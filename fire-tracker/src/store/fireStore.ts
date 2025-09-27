@@ -9,6 +9,7 @@ import type {
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { getTotalAssetsInCurrency } from "../utils/currencyUtils";
 
 interface FireStore extends AppData {
   addAsset: (asset: Omit<Asset, "id" | "dateAdded" | "lastUpdated">) => void;
@@ -53,7 +54,7 @@ export const useFireStore = create<FireStore>()(
           name: "Smart US 500 ETF",
           type: "individual-stock" as const,
           accountType: "investment" as const,
-          value: 101429,
+          value: 61475, // USD value
           contributions: 250,
           contributionFrequency: "weekly" as const,
           dateAdded: "2023-01-01T00:00:00.000Z",
@@ -61,14 +62,14 @@ export const useFireStore = create<FireStore>()(
           stockSymbol: "SPY",
           stockCurrency: "USD" as const,
           autoUpdate: true,
-          notes: "S&P 500 index fund tracking US market - 5,051 shares",
+          notes: "S&P 500 index fund tracking US market",
         },
         {
           id: "sample-nvidia-1",
           name: "NVIDIA Corp",
           type: "individual-stock" as const,
           accountType: "shares" as const,
-          value: 2271.72,
+          value: 2272, // USD value
           contributions: 50,
           contributionFrequency: "monthly" as const,
           dateAdded: "2023-06-01T00:00:00.000Z",
@@ -76,14 +77,14 @@ export const useFireStore = create<FireStore>()(
           stockSymbol: "NVDA",
           stockCurrency: "USD" as const,
           autoUpdate: true,
-          notes: "AI and graphics processing leader - 12.7488 shares",
+          notes: "AI and graphics processing leader",
         },
         {
           id: "sample-apple-1",
           name: "Apple Inc",
           type: "individual-stock" as const,
           accountType: "shares" as const,
-          value: 10084.07,
+          value: 10084, // USD value
           contributions: 200,
           contributionFrequency: "monthly" as const,
           dateAdded: "2023-03-01T00:00:00.000Z",
@@ -91,14 +92,14 @@ export const useFireStore = create<FireStore>()(
           stockSymbol: "AAPL",
           stockCurrency: "USD" as const,
           autoUpdate: true,
-          notes: "Tech giant - iPhone maker - 39.4741 shares",
+          notes: "Tech giant - iPhone maker",
         },
         {
           id: "sample-amd-1",
           name: "Advanced Micro Devices Inc",
           type: "individual-stock" as const,
           accountType: "shares" as const,
-          value: 5245.17,
+          value: 5245, // USD value
           contributions: 100,
           contributionFrequency: "monthly" as const,
           dateAdded: "2023-09-01T00:00:00.000Z",
@@ -106,14 +107,14 @@ export const useFireStore = create<FireStore>()(
           stockSymbol: "AMD",
           stockCurrency: "USD" as const,
           autoUpdate: true,
-          notes: "CPU and GPU manufacturer - 32.8933 shares",
+          notes: "CPU and GPU manufacturer",
         },
         {
           id: "sample-microsoft-1",
           name: "Microsoft Corp",
           type: "individual-stock" as const,
           accountType: "shares" as const,
-          value: 6617.51,
+          value: 6618, // USD value
           contributions: 150,
           contributionFrequency: "monthly" as const,
           dateAdded: "2023-04-01T00:00:00.000Z",
@@ -121,14 +122,14 @@ export const useFireStore = create<FireStore>()(
           stockSymbol: "MSFT",
           stockCurrency: "USD" as const,
           autoUpdate: true,
-          notes: "Cloud computing and software leader - 12.9384 shares",
+          notes: "Cloud computing and software leader",
         },
         {
           id: "sample-kiwisaver-1",
           name: "KiwiSaver",
           type: "kiwisaver" as const,
           accountType: "kiwisaver" as const,
-          value: 115651.53,
+          value: 115652, // NZD value
           contributions: 920,
           contributionFrequency: "monthly" as const,
           dateAdded: "2024-01-01T00:00:00.000Z",
@@ -136,6 +137,32 @@ export const useFireStore = create<FireStore>()(
           kiwiSaverProvider: "simplicity",
           kiwiSaverFund: "Growth Fund",
           notes: "NZ retirement savings scheme",
+        },
+        {
+          id: "sample-bitcoin-1",
+          name: "Bitcoin",
+          type: "bitcoin" as const,
+          accountType: "investment" as const,
+          value: 3902, // NZD value
+          quantity: 0.03562378,
+          contributions: 100,
+          contributionFrequency: "monthly" as const,
+          dateAdded: "2024-02-01T00:00:00.000Z",
+          lastUpdated: new Date().toISOString(),
+          notes: "Digital currency investment",
+        },
+        {
+          id: "sample-ethereum-1",
+          name: "Ethereum",
+          type: "ethereum" as const,
+          accountType: "investment" as const,
+          value: 2213, // NZD value
+          quantity: 0.55105736,
+          contributions: 50,
+          contributionFrequency: "monthly" as const,
+          dateAdded: "2024-02-01T00:00:00.000Z",
+          lastUpdated: new Date().toISOString(),
+          notes: "Smart contract platform",
         },
       ],
       liabilities: [
@@ -188,6 +215,7 @@ export const useFireStore = create<FireStore>()(
       ],
 
       addAsset: (assetData) => {
+        // Store value in original currency - no conversion needed
         const asset: Asset = {
           ...assetData,
           id: generateId(),
@@ -316,9 +344,9 @@ export const useFireStore = create<FireStore>()(
       },
 
       getTotalAssets: () => {
-        const { assets } = get();
+        const { assets, settings } = get();
 
-        return assets.reduce((sum, asset) => sum + asset.value, 0);
+        return getTotalAssetsInCurrency(assets, settings.currency);
       },
 
       getTotalLiabilities: () => {
@@ -338,7 +366,34 @@ export const useFireStore = create<FireStore>()(
     }),
     {
       name: "fire-tracker-store",
-      version: 1,
+      version: 3,
+      migrate: (persistedState: any, version: number) => {
+        if (version < 3) {
+          // Convert back to original currency storage approach
+          if (persistedState.assets) {
+            persistedState.assets = persistedState.assets.map((asset: any) => {
+              if (asset.stockCurrency === "USD" && asset.originalValue) {
+                // Use originalValue if it exists
+                return {
+                  ...asset,
+                  value: asset.originalValue,
+                  originalValue: undefined,
+                };
+              } else if (asset.stockCurrency === "USD" && !asset.originalValue && asset.value) {
+                // Convert from NZD back to USD (estimate)
+                return {
+                  ...asset,
+                  value: Math.round(asset.value / 1.65 * 100) / 100,
+                };
+              }
+              // Remove originalValue field for clean data
+              const { originalValue, ...cleanAsset } = asset;
+              return cleanAsset;
+            });
+          }
+        }
+        return persistedState;
+      },
     },
   ),
 );

@@ -40,6 +40,7 @@ import {
 
 import { useFireStore } from "../store/fireStore";
 import { formatCurrency, getFrequencyLabel } from "../utils/fireCalculations";
+import { convertAssetValue } from "../utils/currencyUtils";
 
 export default function AssetManagement() {
   const {
@@ -420,9 +421,16 @@ export default function AssetManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {formatCurrency(asset.value, settings.currency)}
-                        </span>
+                        <div>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {formatCurrency(convertAssetValue(asset, settings.currency), settings.currency)}
+                          </span>
+                          {asset.stockCurrency === "USD" && settings.currency !== "USD" && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatCurrency(asset.value, "USD")}
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -445,6 +453,21 @@ export default function AssetManagement() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  <TableRow className="border-t-2 border-gray-200 dark:border-gray-700">
+                    <TableCell>
+                      <p className="font-bold text-gray-900 dark:text-white">
+                        Total Assets
+                      </p>
+                    </TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell>
+                      <span className="font-bold text-lg text-green-600">
+                        {formatCurrency(getTotalAssets(), settings.currency)}
+                      </span>
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             ) : (
@@ -578,9 +601,9 @@ export default function AssetManagement() {
                     ))}
                   </Select>
                   <Input
-                    label="Current Value"
+                    label={`Current Value (${assetForm.type === "individual-stock" ? assetForm.stockCurrency : "NZD"})`}
                     placeholder="0"
-                    startContent={<span className="text-gray-500">$</span>}
+                    startContent={<span className="text-gray-500">{assetForm.type === "individual-stock" && assetForm.stockCurrency === "USD" ? "USD $" : "NZD $"}</span>}
                     type="number"
                     value={assetForm.value}
                     onChange={(e) =>

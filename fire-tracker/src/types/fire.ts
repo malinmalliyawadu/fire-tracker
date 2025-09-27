@@ -37,7 +37,7 @@ export interface Asset {
   name: string;
   type: AssetType;
   accountType: AccountType;
-  value: number;
+  value: number; // Value in original currency (stockCurrency for stocks, NZD for others)
   contributions: number;
   contributionFrequency: ContributionFrequency;
   dateAdded: string;
