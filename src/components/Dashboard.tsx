@@ -128,7 +128,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="-mt-8 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 space-y-8">
+        <div className="max-w-7xl mx-auto px-6 space-y-8 pb-16">
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Net Worth Card */}
@@ -266,7 +266,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* FIRE Types Overview */}
           <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 xl:col-span-2">
-            <CardHeader className="pb-4">
+            <CardHeader className="px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
                   <Flame className="w-5 h-5 text-white" />
@@ -276,7 +276,7 @@ export default function Dashboard() {
                 </h3>
               </div>
             </CardHeader>
-            <CardBody className="space-y-4">
+            <CardBody className="space-y-4 px-6 pb-6">
               {[
                 {
                   name: "Lean FIRE",
@@ -372,7 +372,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             {/* Custom Milestones */}
             <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
-              <CardHeader className="pb-4">
+              <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
                     <Award className="w-5 h-5 text-white" />
@@ -382,7 +382,7 @@ export default function Dashboard() {
                   </h3>
                 </div>
               </CardHeader>
-              <CardBody>
+              <CardBody className="px-6 pb-6">
                 {upcomingMilestones.length > 0 ? (
                   <div className="space-y-4">
                     {upcomingMilestones.map((milestone) => {
@@ -432,7 +432,7 @@ export default function Dashboard() {
 
             {/* Quick Stats */}
             <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
-              <CardHeader className="pb-4">
+              <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
                     <Activity className="w-5 h-5 text-white" />
@@ -442,7 +442,7 @@ export default function Dashboard() {
                   </h3>
                 </div>
               </CardHeader>
-              <CardBody className="space-y-4">
+              <CardBody className="space-y-4 px-6 pb-6">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Assets Count</span>
                   <span className="font-semibold text-gray-900 dark:text-white">{assets.length}</span>

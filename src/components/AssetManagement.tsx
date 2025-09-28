@@ -307,7 +307,7 @@ export default function AssetManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Assets & Liabilities

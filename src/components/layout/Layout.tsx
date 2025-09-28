@@ -101,7 +101,7 @@ export default function Layout({
         </NavbarMenu>
       </Navbar>
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">{children}</main>
+      <main>{children}</main>
     </div>
   );
 }
