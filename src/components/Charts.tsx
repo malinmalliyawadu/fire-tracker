@@ -14,6 +14,7 @@ import {
   Area,
 } from "recharts";
 import { useMemo } from "react";
+import { TrendingUp, PieChart as PieChartIcon, Activity } from "lucide-react";
 
 import { useFireStore } from "../store/fireStore";
 import {
@@ -184,20 +185,26 @@ export function FIREProjectionChart({ filters }: FIREProjectionChartProps) {
 
   if (filteredAssets.length === 0 && filteredLiabilities.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            FIRE Progress Projection
-          </h3>
+      <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+        <CardHeader className="px-6 pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              FIRE Progress Projection
+            </h3>
+          </div>
         </CardHeader>
-        <CardBody>
+        <CardBody className="px-6 pb-6">
           <div className="h-80 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                {assets.length === 0 && liabilities.length === 0 ? 'No assets or liabilities found. Add some data to see your FIRE projection.' : 'No data matches the current filters.'}
+              <TrendingUp className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">
+                {assets.length === 0 && liabilities.length === 0 ? 'No financial data yet' : 'No data matches current filters'}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                {assets.length === 0 && liabilities.length === 0 ? 'Go to the Assets or Liabilities page to add your financial data.' : 'Try adjusting your filters to include more data.'}
+              <p className="text-gray-500 dark:text-gray-500 text-sm">
+                {assets.length === 0 && liabilities.length === 0 ? 'Add assets or liabilities to see your FIRE projection' : 'Try adjusting your filters to include more data'}
               </p>
             </div>
           </div>
@@ -207,14 +214,19 @@ export function FIREProjectionChart({ filters }: FIREProjectionChartProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          FIRE Progress Projection
-        </h3>
+    <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+      <CardHeader className="px-6 pt-6 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+            <TrendingUp className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            FIRE Progress Projection
+          </h3>
+        </div>
       </CardHeader>
-      <CardBody>
-        <div className="h-80">
+      <CardBody className="px-6 pb-6">
+        <div className="h-96">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={projectionData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -282,26 +294,26 @@ export function FIREProjectionChart({ filters }: FIREProjectionChartProps) {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-4 flex flex-wrap gap-4 text-xs">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            <span>Net Worth</span>
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-500 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Net Worth</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-1 bg-blue-500"></div>
-            <span>FIRE Target</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-1 bg-blue-500"></div>
+            <span className="text-gray-700 dark:text-gray-300">FIRE Target</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-1 bg-green-500"></div>
-            <span>Lean FIRE</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-1 bg-green-500"></div>
+            <span className="text-gray-700 dark:text-gray-300">Lean FIRE</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-1 bg-purple-500"></div>
-            <span>Fat FIRE</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-1 bg-purple-500"></div>
+            <span className="text-gray-700 dark:text-gray-300">Fat FIRE</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span>Retirement Age ({settings.retirementAge})</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+            <span className="text-gray-700 dark:text-gray-300">Retirement ({settings.retirementAge})</span>
           </div>
         </div>
       </CardBody>
@@ -335,29 +347,47 @@ export function AssetAllocationChart({ filters }: AssetAllocationChartProps) {
 
   if (allocationData.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Asset Allocation
-          </h3>
+      <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+        <CardHeader className="px-6 pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
+              <PieChartIcon className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Asset Allocation
+            </h3>
+          </div>
         </CardHeader>
-        <CardBody>
-          <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-            {assets.length === 0 ? 'No assets to display. Add some assets to see your allocation.' : 'No assets match the current filters. Try adjusting your filters.'}
-          </p>
+        <CardBody className="px-6 pb-6">
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-center">
+              <PieChartIcon className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">
+                {assets.length === 0 ? 'No assets yet' : 'No assets match filters'}
+              </p>
+              <p className="text-gray-500 dark:text-gray-500 text-sm">
+                {assets.length === 0 ? 'Add assets to see your allocation breakdown' : 'Try adjusting your filters to include assets'}
+              </p>
+            </div>
+          </div>
         </CardBody>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Asset Allocation
-        </h3>
+    <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+      <CardHeader className="px-6 pt-6 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
+            <PieChartIcon className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Asset Allocation
+          </h3>
+        </div>
       </CardHeader>
-      <CardBody>
+      <CardBody className="px-6 pb-6">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -386,23 +416,28 @@ export function AssetAllocationChart({ filters }: AssetAllocationChartProps) {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-6 space-y-3">
           {allocationData.map((item, index) => {
             const assetType = item.name.toLowerCase().replace(' ', '-');
             const color = ASSET_TYPE_COLORS[assetType] || COLORS.indigo;
             return (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <div className="flex items-center gap-3">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-4 h-4 rounded-full shadow-sm"
                     style={{ backgroundColor: color }}
                   ></div>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {item.name}
                   </span>
                 </div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  {formatCurrency(item.value, settings.currency)} ({item.percentage}%)
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(item.value, settings.currency)}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {item.percentage}%
+                  </div>
                 </div>
               </div>
             );
@@ -429,29 +464,47 @@ export function NetWorthHistoryChart() {
 
   if (chartData.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Net Worth History
-          </h3>
+      <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+        <CardHeader className="px-6 pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Net Worth History
+            </h3>
+          </div>
         </CardHeader>
-        <CardBody>
-          <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-            No history data. Save some snapshots to see your progress over time.
-          </p>
+        <CardBody className="px-6 pb-6">
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-center">
+              <Activity className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">
+                No history yet
+              </p>
+              <p className="text-gray-500 dark:text-gray-500 text-sm">
+                Save snapshots to track your net worth over time
+              </p>
+            </div>
+          </div>
         </CardBody>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Net Worth History
-        </h3>
+    <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+      <CardHeader className="px-6 pt-6 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+            <Activity className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Net Worth History
+          </h3>
+        </div>
       </CardHeader>
-      <CardBody>
+      <CardBody className="px-6 pb-6">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -497,18 +550,18 @@ export function NetWorthHistoryChart() {
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-4 flex gap-4 text-xs">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span>Assets</span>
+        <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+            <span className="text-gray-700 dark:text-gray-300">Assets</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span>Liabilities</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+            <span className="text-gray-700 dark:text-gray-300">Liabilities</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span>Net Worth</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+            <span className="text-gray-700 dark:text-gray-300">Net Worth</span>
           </div>
         </div>
       </CardBody>
