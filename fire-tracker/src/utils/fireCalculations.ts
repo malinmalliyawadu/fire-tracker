@@ -126,10 +126,13 @@ export const generateProjection = (
   years: number = 40,
   retirementAge?: number,
   withdrawalRate?: number,
+  isDebtOnly: boolean = false,
+  investmentReturn?: number,
 ): ProjectionPoint[] => {
   const points: ProjectionPoint[] = [];
   let value = currentNetWorth;
   let totalContributions = 0;
+  const savingsReturn = investmentReturn ?? expectedReturn;
 
   for (let year = 0; year <= years; year++) {
     const age = currentAge + year;
@@ -145,14 +148,66 @@ export const generateProjection = (
 
     if (year < years) {
       if (isRetired) {
-        // Retirement phase: withdraw annually and grow remaining
-        const annualWithdrawal = withdrawalRate ? value * withdrawalRate : 0;
-        value = (value - annualWithdrawal) * (1 + expectedReturn);
+        // Retirement phase: no more contributions, optional withdrawals
+        if (value > 0) {
+          // Only withdraw if we have positive net worth
+          const annualWithdrawal = withdrawalRate ? value * withdrawalRate : 0;
+          const beforeValue = value;
+          value = (value - annualWithdrawal) * (1 + savingsReturn);
+
+          // Debug logging for retirement calculations
+          if (year === Math.ceil(retirementAge - currentAge) + 1) {
+            console.log('Retirement calculations:', {
+              age,
+              beforeValue,
+              withdrawalRate,
+              annualWithdrawal,
+              savingsReturn,
+              afterValue: value,
+              netChange: value - beforeValue
+            });
+          }
+        }
+        // If still in debt at retirement, debt continues but no more payments
+        else if (value < 0) {
+          // Debt continues to accumulate interest but no payments
+          const debtInterest = value * expectedReturn;
+          value = value + debtInterest;
+        }
       } else {
         // Accumulation phase: contribute and grow
         const yearlyContribution = monthlyContribution * 12;
         totalContributions += yearlyContribution;
-        value = (value + yearlyContribution) * (1 + expectedReturn);
+
+        // If net worth is negative (more liabilities than assets)
+        if (value < 0) {
+          // Debt reduction: payments reduce the negative value (debt)
+          // Interest increases the debt (makes it more negative)
+          const debtInterest = value * expectedReturn; // Negative value * positive rate = negative (increases debt)
+          const newValue = value + yearlyContribution + debtInterest;
+
+          if (newValue >= 0) {
+            // Debt is paid off this year
+            // Calculate the portion of the year it took to pay off
+            const debtPaidOffAmount = -value; // Amount needed to reach zero
+            const interestOnDebt = value * expectedReturn;
+            const principalPayment = yearlyContribution + interestOnDebt;
+
+            if (isDebtOnly) {
+              // For debt-only scenarios, once paid off, continue saving/investing
+              // The excess payment becomes savings that grows at investment rate
+              value = newValue * (1 + savingsReturn);
+            } else {
+              value = newValue;
+            }
+          } else {
+            value = newValue;
+          }
+        } else {
+          // Positive net worth: normal accumulation with growth
+          // Use savingsReturn for investment growth when debt is paid off
+          value = (value + yearlyContribution) * (1 + savingsReturn);
+        }
       }
     }
   }

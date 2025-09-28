@@ -12,6 +12,7 @@
   "dependencies": {
     "@heroui/button": "2.2.26",
     "@heroui/card": "^2.2.24",
+    "@heroui/chip": "^2.2.21",
     "@heroui/code": "2.2.20",
     "@heroui/dropdown": "2.3.26",
     "@heroui/input": "2.4.27",
