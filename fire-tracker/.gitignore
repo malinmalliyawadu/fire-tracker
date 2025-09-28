@@ -22,8 +22,39 @@ dist-ssr
 *.sln
 *.sw?
 
+# Other project directories (only fire-tracker should be tracked)
+anz-tech-test/
+argocd-helper/
+atlassian-browser-test/
+CapDevReporter/
+code-camp-demo/
+console-test/
+cypress-parallel/
+cypress-test-filter/
+everybody-eats-email-templates/
+fe-deep-linked-tabs-assets/
+fed-ai-search/
+FlakeManager/
+img-test/
+mfe-demo/
+module-federation-examples/
+nav/
+nextjs-with-playwright/
+nx-trpc-demo/
+personal-site/
+ptml/
+Sally/
+sot-dotnet-101/
+spin-and-win/
+todo-list/
+vce/
+vce2/
+vce3/
+vce4/
+vce5/
+vibe-coding-example-bak/
+volunteer-portal/
 
 pnpm-lock.yaml
 yarn.lock
-package-lock.json
 bun.lockb
