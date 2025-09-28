@@ -1,82 +1,62 @@
 import { FC, useState, useEffect } from "react";
-import { VisuallyHidden } from "@react-aria/visually-hidden";
-import { SwitchProps, useSwitch } from "@heroui/switch";
-import clsx from "clsx";
+import { Button } from "@heroui/button";
 import { useTheme } from "@heroui/use-theme";
-
-import { SunFilledIcon, MoonFilledIcon } from "@/components/icons";
+import { Sun, Moon } from "lucide-react";
 
 export interface ThemeSwitchProps {
   className?: string;
-  classNames?: SwitchProps["classNames"];
+  showLabel?: boolean;
 }
 
 export const ThemeSwitch: FC<ThemeSwitchProps> = ({
-  className,
-  classNames,
+  className = "",
+  showLabel = false,
 }) => {
   const [isMounted, setIsMounted] = useState(false);
-
   const { theme, setTheme } = useTheme();
-
-  const {
-    Component,
-    slots,
-    isSelected,
-    getBaseProps,
-    getInputProps,
-    getWrapperProps,
-  } = useSwitch({
-    isSelected: theme === "light",
-    onChange: () => setTheme(theme === "light" ? "dark" : "light"),
-  });
 
   useEffect(() => {
     setIsMounted(true);
-  }, [isMounted]);
+  }, []);
 
   // Prevent Hydration Mismatch
-  if (!isMounted) return <div className="w-6 h-6" />;
+  if (!isMounted) {
+    return (
+      <div className={`w-10 h-10 ${className}`} />
+    );
+  }
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
+
+  const isDark = theme === "dark";
 
   return (
-    <Component
-      aria-label={isSelected ? "Switch to dark mode" : "Switch to light mode"}
-      {...getBaseProps({
-        className: clsx(
-          "px-px transition-opacity hover:opacity-80 cursor-pointer",
-          className,
-          classNames?.base,
-        ),
-      })}
+    <Button
+      isIconOnly={!showLabel}
+      variant="light"
+      className={`
+        transition-all duration-300 hover:scale-105
+        bg-white/50 dark:bg-gray-700/50 hover:bg-white/80 dark:hover:bg-gray-700/80
+        border border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm
+        ${className}
+      `}
+      onPress={toggleTheme}
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
     >
-      <VisuallyHidden>
-        <input {...getInputProps()} />
-      </VisuallyHidden>
-      <div
-        {...getWrapperProps()}
-        className={slots.wrapper({
-          class: clsx(
-            [
-              "w-auto h-auto",
-              "bg-transparent",
-              "rounded-lg",
-              "flex items-center justify-center",
-              "group-data-[selected=true]:bg-transparent",
-              "!text-default-500",
-              "pt-px",
-              "px-0",
-              "mx-0",
-            ],
-            classNames?.wrapper,
-          ),
-        })}
-      >
-        {isSelected ? (
-          <MoonFilledIcon size={22} />
+      <div className="flex items-center gap-2">
+        {isDark ? (
+          <Sun className="h-5 w-5 text-yellow-500" />
         ) : (
-          <SunFilledIcon size={22} />
+          <Moon className="h-5 w-5 text-blue-600" />
+        )}
+        {showLabel && (
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {isDark ? "Light" : "Dark"}
+          </span>
         )}
       </div>
-    </Component>
+    </Button>
   );
 };

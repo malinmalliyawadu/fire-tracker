@@ -18,6 +18,7 @@ import {
   BarChart3,
   Trophy,
 } from "lucide-react";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -97,6 +98,13 @@ export default function Layout({
           })}
         </NavbarContent>
 
+        {/* Theme Toggle - Desktop */}
+        <NavbarContent className="hidden sm:flex" justify="end">
+          <NavbarItem>
+            <ThemeSwitch />
+          </NavbarItem>
+        </NavbarContent>
+
         <NavbarMenu className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-700/50">
           <div className="flex flex-col gap-2 pt-6">
             {menuItems.map((item) => {
@@ -129,6 +137,11 @@ export default function Layout({
                 </NavbarMenuItem>
               );
             })}
+
+            {/* Theme Toggle - Mobile */}
+            <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4">
+              <ThemeSwitch showLabel className="w-full" />
+            </div>
           </div>
         </NavbarMenu>
       </Navbar>
