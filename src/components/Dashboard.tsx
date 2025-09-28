@@ -80,8 +80,9 @@ export default function Dashboard() {
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-orange-600 dark:from-blue-800 dark:to-orange-800">
         <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
-        <div className="relative px-6 py-12 sm:py-16">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="relative py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm">
@@ -120,12 +121,14 @@ export default function Dashboard() {
                 Save Snapshot
               </Button>
             </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="px-6 -mt-8 relative z-10 space-y-8">
+      <div className="-mt-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 space-y-8">
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Net Worth Card */}
@@ -459,6 +462,7 @@ export default function Dashboard() {
               </CardBody>
             </Card>
           </div>
+        </div>
         </div>
       </div>
     </div>
