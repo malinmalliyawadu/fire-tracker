@@ -22,14 +22,6 @@ import {
   useDisclosure,
 } from "@heroui/modal";
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@heroui/table";
-import {
   Plus,
   Edit2,
   Trash2,
@@ -39,7 +31,7 @@ import {
 } from "lucide-react";
 
 import { useFireStore } from "../store/fireStore";
-import { formatCurrency, getFrequencyLabel } from "../utils/fireCalculations";
+import { formatCurrency } from "../utils/fireCalculations";
 import { convertAssetValue } from "../utils/currencyUtils";
 
 export default function AssetManagement() {
@@ -307,249 +299,356 @@ export default function AssetManagement() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Assets & Liabilities
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-orange-600 dark:from-blue-800 dark:to-orange-800">
+        <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
+        <div className="relative py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <h1 className="text-4xl lg:text-5xl font-bold text-white">
+                    Assets & Liabilities
+                  </h1>
+                </div>
+                <p className="text-xl text-white/90 max-w-2xl">
+                  Manage your financial portfolio and track your net worth
+                </p>
+                <div className="flex items-center gap-4 text-white/80">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="text-sm">{assets.length} assets</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="w-4 h-4" />
+                    <span className="text-sm">{liabilities.length} liabilities</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  color="secondary"
+                  variant="solid"
+                  size="lg"
+                  startContent={<Plus className="h-5 w-5" />}
+                  onPress={() => openAssetModal()}
+                  className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"
+                >
+                  Add Asset
+                </Button>
+                <Button
+                  color="secondary"
+                  variant="solid"
+                  size="lg"
+                  startContent={<Plus className="h-5 w-5" />}
+                  onPress={() => openLiabilityModal()}
+                  className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"
+                >
+                  Add Liability
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total Assets
-            </h3>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardBody>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(getTotalAssets(), settings.currency)}
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              {assets.length} assets
-            </p>
-          </CardBody>
-        </Card>
+      {/* Main Content */}
+      <div className="-mt-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 space-y-8 pb-16">
+          {/* Key Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Total Assets Card */}
+            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30">
+                    <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Assets</div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{assets.length}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Total Assets
+                  </h3>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(getTotalAssets(), settings.currency)}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Current portfolio value
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total Liabilities
-            </h3>
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardBody>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(getTotalLiabilities(), settings.currency)}
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              {liabilities.length} liabilities
-            </p>
-          </CardBody>
-        </Card>
+            {/* Total Liabilities Card */}
+            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30">
+                    <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Debts</div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{liabilities.length}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Total Liabilities
+                  </h3>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(getTotalLiabilities(), settings.currency)}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Outstanding balances
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Net Worth
-            </h3>
-            <DollarSign className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardBody>
-            <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(getNetWorth(), settings.currency)}
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Assets minus liabilities
-            </p>
-          </CardBody>
-        </Card>
-      </div>
+            {/* Net Worth Card */}
+            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+                    <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className={`flex items-center gap-1 ${getNetWorth() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {getNetWorth() >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                    <span className="text-sm font-medium">Net</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Net Worth
+                  </h3>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(getNetWorth(), settings.currency)}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Assets minus liabilities
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Assets
-            </h3>
-            <Button
-              color="primary"
-              size="sm"
-              startContent={<Plus className="h-4 w-4" />}
-              onPress={() => openAssetModal()}
-            >
-              Add Asset
-            </Button>
-          </CardHeader>
-          <CardBody>
-            {assets.length > 0 ? (
-              <Table aria-label="Assets table">
-                <TableHeader>
-                  <TableColumn>NAME</TableColumn>
-                  <TableColumn>TYPE</TableColumn>
-                  <TableColumn>DETAILS</TableColumn>
-                  <TableColumn>VALUE</TableColumn>
-                  <TableColumn>ACTIONS</TableColumn>
-                </TableHeader>
-                <TableBody>
-                  {assets.map((asset) => (
-                    <TableRow key={asset.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {asset.name}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {
-                              accountTypes.find(
-                                (t) => t.key === asset.accountType,
-                              )?.label
-                            }
-                          </p>
+          {/* Assets & Liabilities Tables */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Assets Table */}
+            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+              <CardHeader className="px-6 pt-6 pb-4">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      Assets
+                    </h3>
+                  </div>
+                  <Button
+                    color="primary"
+                    size="sm"
+                    startContent={<Plus className="h-4 w-4" />}
+                    onPress={() => openAssetModal()}
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+                  >
+                    Add Asset
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardBody className="px-6 pb-6">
+                {assets.length > 0 ? (
+                  <div className="space-y-4">
+                    {assets.map((asset) => (
+                      <div key={asset.id} className="group relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30">
+                                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                  {asset.name}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {assetTypes.find((t) => t.key === asset.type)?.label || asset.type}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-gray-900 dark:text-white">
+                                {formatCurrency(convertAssetValue(asset, settings.currency), settings.currency)}
+                              </div>
+                              {asset.stockCurrency === "USD" && settings.currency !== "USD" && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatCurrency(asset.value, "USD")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              {getAssetDetails(asset)}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="light"
+                                onPress={() => openAssetModal(asset)}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                color="danger"
+                                size="sm"
+                                variant="light"
+                                onPress={() => deleteAsset(asset.id)}
+                                className="hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {assetTypes.find((t) => t.key === asset.type)
-                            ?.label || asset.type}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {getAssetDetails(asset)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {formatCurrency(convertAssetValue(asset, settings.currency), settings.currency)}
-                          </span>
-                          {asset.stockCurrency === "USD" && settings.currency !== "USD" && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {formatCurrency(asset.value, "USD")}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="light"
-                            onPress={() => openAssetModal(asset)}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            color="danger"
-                            size="sm"
-                            variant="light"
-                            onPress={() => deleteAsset(asset.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow className="border-t-2 border-gray-200 dark:border-gray-700">
-                    <TableCell>
-                      <p className="font-bold text-gray-900 dark:text-white">
-                        Total Assets
-                      </p>
-                    </TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                    <TableCell>
-                      <span className="font-bold text-lg text-green-600">
-                        {formatCurrency(getTotalAssets(), settings.currency)}
-                      </span>
-                    </TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-                No assets added yet. Click &quot;Add Asset&quot; to get started.
-              </p>
-            )}
-          </CardBody>
-        </Card>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <TrendingUp className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">
+                      No assets yet
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-500 text-sm mb-4">
+                      Start building your portfolio by adding your first asset
+                    </p>
+                    <Button
+                      color="primary"
+                      onPress={() => openAssetModal()}
+                      startContent={<Plus className="h-4 w-4" />}
+                    >
+                      Add Your First Asset
+                    </Button>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Liabilities
-            </h3>
-            <Button
-              color="primary"
-              size="sm"
-              startContent={<Plus className="h-4 w-4" />}
-              onPress={() => openLiabilityModal()}
-            >
-              Add Liability
-            </Button>
-          </CardHeader>
-          <CardBody>
-            {liabilities.length > 0 ? (
-              <Table aria-label="Liabilities table">
-                <TableHeader>
-                  <TableColumn>NAME</TableColumn>
-                  <TableColumn>TYPE</TableColumn>
-                  <TableColumn>BALANCE</TableColumn>
-                  <TableColumn>ACTIONS</TableColumn>
-                </TableHeader>
-                <TableBody>
-                  {liabilities.map((liability) => (
-                    <TableRow key={liability.id}>
-                      <TableCell>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {liability.name}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <span className="capitalize text-gray-700 dark:text-gray-300">
-                          {liability.type.replace("-", " ")}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {formatCurrency(liability.balance, settings.currency)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="light"
-                            onPress={() => openLiabilityModal(liability)}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            color="danger"
-                            size="sm"
-                            variant="light"
-                            onPress={() => deleteLiability(liability.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+            {/* Liabilities Table */}
+            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+              <CardHeader className="px-6 pt-6 pb-4">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-pink-500">
+                      <TrendingDown className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      Liabilities
+                    </h3>
+                  </div>
+                  <Button
+                    color="danger"
+                    size="sm"
+                    startContent={<Plus className="h-4 w-4" />}
+                    onPress={() => openLiabilityModal()}
+                    className="bg-gradient-to-r from-red-500 to-red-600 text-white"
+                  >
+                    Add Liability
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardBody className="px-6 pb-6">
+                {liabilities.length > 0 ? (
+                  <div className="space-y-4">
+                    {liabilities.map((liability) => (
+                      <div key={liability.id} className="group relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-pink-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30">
+                                <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                  {liability.name}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                                  {liability.type.replace("-", " ")}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-gray-900 dark:text-white">
+                                {formatCurrency(liability.balance, settings.currency)}
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {liability.interestRate}% APR
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              {formatCurrency(liability.minimumPayment, settings.currency)} {liability.paymentFrequency || 'monthly'}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="light"
+                                onPress={() => openLiabilityModal(liability)}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                color="danger"
+                                size="sm"
+                                variant="light"
+                                onPress={() => deleteLiability(liability.id)}
+                                className="hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-                No liabilities added yet. Click &quot;Add Liability&quot; to get
-                started.
-              </p>
-            )}
-          </CardBody>
-        </Card>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <TrendingDown className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">
+                      No liabilities yet
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-500 text-sm mb-4">
+                      Track debts and loans to get a complete financial picture
+                    </p>
+                    <Button
+                      color="danger"
+                      onPress={() => openLiabilityModal()}
+                      startContent={<Plus className="h-4 w-4" />}
+                    >
+                      Add Your First Liability
+                    </Button>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {/* Asset Modal */}
