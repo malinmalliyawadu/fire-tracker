@@ -104,7 +104,7 @@ export function getFilterSummary(filters: ChartFilters): string {
   }
 
   if (filters.selectedLiabilities.length > 0) {
-    parts.push(`${filters.selectedLiabilities.length} liability${filters.selectedLiabilities.length > 1 ? 'ies' : 'y'}`);
+    parts.push(`${filters.selectedLiabilities.length} liabilit${filters.selectedLiabilities.length > 1 ? 'ies' : 'y'}`);
   }
 
   return parts.join(', ');
