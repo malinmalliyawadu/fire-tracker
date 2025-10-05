@@ -334,15 +334,20 @@ export function AssetAllocationChart({ filters }: AssetAllocationChartProps) {
 
     filteredAssets.forEach((asset) => {
       const current = typeMap.get(asset.type) || 0;
-      typeMap.set(asset.type, current + asset.value);
+      const convertedValue = convertAssetValue(asset, settings.currency);
+      typeMap.set(asset.type, current + convertedValue);
     });
+
+    const totalValue = filteredAssets.reduce((sum, a) => {
+      return sum + convertAssetValue(a, settings.currency);
+    }, 0);
 
     return Array.from(typeMap.entries()).map(([type, value]) => ({
       name: type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
       value,
-      percentage: ((value / filteredAssets.reduce((sum, a) => sum + a.value, 0)) * 100).toFixed(1),
+      percentage: ((value / totalValue) * 100).toFixed(1),
     })).sort((a, b) => b.value - a.value);
-  }, [assets, filters]);
+  }, [assets, filters, settings.currency]);
 
   if (allocationData.length === 0) {
     return (
