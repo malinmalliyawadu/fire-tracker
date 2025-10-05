@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
 import Dashboard from "./components/Dashboard";
@@ -8,28 +8,25 @@ import Milestones from "./components/Milestones";
 import Settings from "./components/Settings";
 
 function App() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const location = useLocation();
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return <Dashboard />;
-      case "assets":
-        return <AssetManagement />;
-      case "charts":
-        return <ChartsPage />;
-      case "milestones":
-        return <Milestones />;
-      case "settings":
-        return <Settings />;
-      default:
-        return <Dashboard />;
-    }
+  // Determine active tab from URL
+  const getActiveTab = () => {
+    const path = location.pathname.substring(1); // Remove leading slash
+    if (!path) return "dashboard";
+    return path;
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
+    <Layout activeTab={getActiveTab()}>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/assets" element={<AssetManagement />} />
+        <Route path="/charts" element={<ChartsPage />} />
+        <Route path="/milestones" element={<Milestones />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Layout>
   );
 }

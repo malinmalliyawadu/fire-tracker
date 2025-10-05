@@ -9,6 +9,7 @@ import {
 } from "@heroui/navbar";
 import { Button } from "@heroui/button";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Flame,
   TrendingUp,
@@ -22,22 +23,20 @@ import { ThemeSwitch } from "@/components/theme-switch";
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
-  onTabChange: (tab: string) => void;
 }
 
 export default function Layout({
   children,
   activeTab,
-  onTabChange,
 }: LayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const menuItems = [
-    { key: "dashboard", label: "Dashboard", icon: TrendingUp, color: "from-blue-500 to-cyan-500" },
-    { key: "assets", label: "Assets & Liabilities", icon: DollarSign, color: "from-green-500 to-emerald-500" },
-    { key: "charts", label: "Charts & Analytics", icon: BarChart3, color: "from-purple-500 to-pink-500" },
-    { key: "milestones", label: "Milestones", icon: Trophy, color: "from-orange-500 to-red-500" },
-    { key: "settings", label: "Settings", icon: SettingsIcon, color: "from-gray-500 to-slate-500" },
+    { key: "dashboard", label: "Dashboard", icon: TrendingUp, color: "from-blue-500 to-cyan-500", path: "/" },
+    { key: "assets", label: "Assets & Liabilities", icon: DollarSign, color: "from-green-500 to-emerald-500", path: "/assets" },
+    { key: "charts", label: "Charts & Analytics", icon: BarChart3, color: "from-purple-500 to-pink-500", path: "/charts" },
+    { key: "milestones", label: "Milestones", icon: Trophy, color: "from-orange-500 to-red-500", path: "/milestones" },
+    { key: "settings", label: "Settings", icon: SettingsIcon, color: "from-gray-500 to-slate-500", path: "/settings" },
   ];
 
   return (
@@ -75,6 +74,8 @@ export default function Layout({
             return (
               <NavbarItem key={item.key}>
                 <Button
+                  as={Link}
+                  to={item.path}
                   className={`
                     relative overflow-hidden transition-all duration-300 hover:scale-105
                     ${isActive
@@ -87,7 +88,6 @@ export default function Layout({
                       <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-white'}`} />
                     </div>
                   }
-                  onPress={() => onTabChange(item.key)}
                   size="md"
                 >
                   <span className="font-medium">{item.label}</span>
@@ -113,6 +113,8 @@ export default function Layout({
               return (
                 <NavbarMenuItem key={item.key}>
                   <Button
+                    as={Link}
+                    to={item.path}
                     className={`
                       w-full justify-start transition-all duration-300
                       ${isActive
@@ -125,10 +127,7 @@ export default function Layout({
                         <Icon className="h-4 w-4 text-white" />
                       </div>
                     }
-                    onPress={() => {
-                      onTabChange(item.key);
-                      setIsMenuOpen(false);
-                    }}
+                    onPress={() => setIsMenuOpen(false)}
                     size="lg"
                   >
                     <span className="font-medium">{item.label}</span>

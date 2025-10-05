@@ -30,7 +30,7 @@ describe('fireStore', () => {
         timestamp: '2024-01-15T10:30:00.000Z',
       });
 
-      const { refreshExchangeRate, settings } = useFireStore.getState();
+      const { refreshExchangeRate } = useFireStore.getState();
 
       await refreshExchangeRate();
 
