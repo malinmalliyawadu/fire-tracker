@@ -155,7 +155,7 @@ export default function ChartsPage() {
 
           {/* Filters Section */}
           {showFilters && (
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">

@@ -282,7 +282,7 @@ export default function Milestones() {
           {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Total Milestones Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardBody className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30">
@@ -308,7 +308,7 @@ export default function Milestones() {
             </Card>
 
             {/* Achieved Milestones Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardBody className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30">
@@ -336,7 +336,7 @@ export default function Milestones() {
             </Card>
 
             {/* Current Net Worth Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardBody className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30">
@@ -364,7 +364,7 @@ export default function Milestones() {
 
           {/* Pending Milestones */}
           {pendingMilestones.length > 0 && (
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
@@ -497,7 +497,7 @@ export default function Milestones() {
 
           {/* Achieved Milestones */}
           {achievedMilestones.length > 0 && (
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500">
@@ -574,7 +574,7 @@ export default function Milestones() {
 
           {/* Empty State */}
           {milestones.length === 0 && (
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardBody className="px-6 py-12">
                 <div className="text-center">
                   <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mx-auto mb-4">

@@ -184,7 +184,7 @@ export function FIREProjectionChart({ filters }: FIREProjectionChartProps) {
 
   if (filteredAssets.length === 0 && filteredLiabilities.length === 0) {
     return (
-      <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+      <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
         <CardHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
@@ -213,7 +213,7 @@ export function FIREProjectionChart({ filters }: FIREProjectionChartProps) {
   }
 
   return (
-    <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+    <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
       <CardHeader className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
@@ -351,7 +351,7 @@ export function AssetAllocationChart({ filters }: AssetAllocationChartProps) {
 
   if (allocationData.length === 0) {
     return (
-      <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+      <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
         <CardHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
@@ -380,7 +380,7 @@ export function AssetAllocationChart({ filters }: AssetAllocationChartProps) {
   }
 
   return (
-    <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+    <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
       <CardHeader className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
@@ -468,7 +468,7 @@ export function NetWorthHistoryChart() {
 
   if (chartData.length === 0) {
     return (
-      <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+      <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
         <CardHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
@@ -497,7 +497,7 @@ export function NetWorthHistoryChart() {
   }
 
   return (
-    <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+    <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
       <CardHeader className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">

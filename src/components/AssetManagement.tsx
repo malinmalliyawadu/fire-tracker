@@ -367,7 +367,7 @@ export default function AssetManagement() {
           {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Total Assets Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardBody className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30">
@@ -393,7 +393,7 @@ export default function AssetManagement() {
             </Card>
 
             {/* Total Liabilities Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardBody className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30">
@@ -419,7 +419,7 @@ export default function AssetManagement() {
             </Card>
 
             {/* Net Worth Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardBody className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30">
@@ -448,7 +448,7 @@ export default function AssetManagement() {
           {/* Assets & Liabilities Tables */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Assets Table */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
@@ -552,7 +552,7 @@ export default function AssetManagement() {
             </Card>
 
             {/* Liabilities Table */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">

@@ -153,7 +153,7 @@ export default function Dashboard() {
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Net Worth Card */}
-          <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+          <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30">
@@ -186,7 +186,7 @@ export default function Dashboard() {
           </Card>
 
           {/* FIRE Progress Card */}
-          <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+          <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30">
@@ -224,7 +224,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Years to FIRE Card */}
-          <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+          <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30">
@@ -252,7 +252,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Monthly Contribution Card */}
-          <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+          <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30">
@@ -286,7 +286,7 @@ export default function Dashboard() {
         {/* FIRE Milestones & Progress Section */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* FIRE Types Overview */}
-          <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 xl:col-span-2">
+          <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 xl:col-span-2">
             <CardHeader className="px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
@@ -396,7 +396,7 @@ export default function Dashboard() {
           {/* Quick Actions & Milestones */}
           <div className="space-y-6">
             {/* Custom Milestones */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
@@ -460,7 +460,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Quick Stats */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">

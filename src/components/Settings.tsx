@@ -147,7 +147,7 @@ export default function Settings() {
           {/* Settings Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {/* FIRE Goals Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
@@ -201,7 +201,7 @@ export default function Settings() {
         </Card>
 
             {/* Personal Information Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
@@ -247,7 +247,7 @@ export default function Settings() {
         </Card>
 
             {/* Exchange Rate Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
@@ -298,7 +298,7 @@ export default function Settings() {
             </Card>
 
             {/* Investment Assumptions Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
@@ -349,7 +349,7 @@ export default function Settings() {
         </Card>
 
             {/* FIRE Calculations Card */}
-            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 xl:col-span-2">
+            <Card className="h-fit border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 xl:col-span-2">
               <CardHeader className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
@@ -418,7 +418,7 @@ export default function Settings() {
 
           {/* Unsaved Changes Warning */}
           {hasChanges && (
-            <Card className="border border-orange-200/50 dark:border-orange-700/50 shadow-xl backdrop-blur-sm bg-gradient-to-r from-orange-50/80 to-yellow-50/80 dark:from-orange-900/20 dark:to-yellow-900/20">
+            <Card className="h-fit border border-orange-200/50 dark:border-orange-700/50 shadow-xl backdrop-blur-sm bg-gradient-to-r from-orange-50/80 to-yellow-50/80 dark:from-orange-900/20 dark:to-yellow-900/20">
               <CardBody className="px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
