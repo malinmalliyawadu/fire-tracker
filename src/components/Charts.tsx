@@ -61,7 +61,7 @@ export function FIREProjectionChart({ filters }: FIREProjectionChartProps) {
     // Calculate net worth based on filtered data
     // Convert all assets to the settings currency (NZD) for proper calculation
     const filteredTotalAssets = filteredAssets.reduce((sum, asset) => {
-      const convertedValue = convertAssetValue(asset, settings.currency);
+      const convertedValue = convertAssetValue(asset, settings.currency, settings.usdToNzdRate);
       return sum + convertedValue;
     }, 0);
     const filteredTotalLiabilities = filteredLiabilities.reduce((sum, liability) => sum + liability.balance, 0);
@@ -334,12 +334,12 @@ export function AssetAllocationChart({ filters }: AssetAllocationChartProps) {
 
     filteredAssets.forEach((asset) => {
       const current = typeMap.get(asset.type) || 0;
-      const convertedValue = convertAssetValue(asset, settings.currency);
+      const convertedValue = convertAssetValue(asset, settings.currency, settings.usdToNzdRate);
       typeMap.set(asset.type, current + convertedValue);
     });
 
     const totalValue = filteredAssets.reduce((sum, a) => {
-      return sum + convertAssetValue(a, settings.currency);
+      return sum + convertAssetValue(a, settings.currency, settings.usdToNzdRate);
     }, 0);
 
     return Array.from(typeMap.entries()).map(([type, value]) => ({

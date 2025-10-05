@@ -54,7 +54,7 @@ describe('currencyUtils', () => {
 
     it('should convert NZD to USD', () => {
       const result = convertAssetValue(mockAssets[1], 'USD');
-      expect(result).toBe(3050); // 5000 * 0.61
+      expect(result).toBeCloseTo(3030.30, 2); // 5000 / 1.65
     });
 
     it('should handle assets without stockCurrency (default to NZD)', () => {
@@ -81,9 +81,9 @@ describe('currencyUtils', () => {
     it('should sum all assets in USD', () => {
       const result = getTotalAssetsInCurrency(mockAssets, 'USD');
       // USD assets: 1000 + 2000 = 3000
-      // NZD assets: 5000 * 0.61 = 3050
-      // Total: 6050
-      expect(result).toBe(6050);
+      // NZD assets: 5000 / 1.65 = 3030.30
+      // Total: 6030.30
+      expect(result).toBeCloseTo(6030.30, 2);
     });
 
     it('should handle empty asset array', () => {
@@ -105,7 +105,7 @@ describe('currencyUtils', () => {
 
     it('should convert NZD to USD', () => {
       const result = convertContributionToCurrency(100, 'NZD', 'USD');
-      expect(result).toBe(61); // 100 * 0.61
+      expect(result).toBeCloseTo(60.61, 2); // 100 / 1.65
     });
 
     it('should return original amount for unsupported conversions', () => {

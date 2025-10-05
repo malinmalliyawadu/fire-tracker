@@ -1,17 +1,19 @@
 import { useState } from "react";
+import { formatDistanceToNow } from "date-fns";
 
 import DarkVeil from "./DarkVeil";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
-import { Settings as SettingsIcon, Save, RotateCcw, User, Calculator, TrendingUp, Target, DollarSign } from "lucide-react";
+import { Settings as SettingsIcon, Save, RotateCcw, User, Calculator, TrendingUp, Target, DollarSign, RefreshCw } from "lucide-react";
 
 import { useFireStore } from "../store/fireStore";
 import { formatPercentage } from "../utils/fireCalculations";
 
 export default function Settings() {
-  const { settings, updateSettings } = useFireStore();
+  const { settings, updateSettings, refreshExchangeRate } = useFireStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [form, setForm] = useState({
     fireTarget: settings.fireTarget.toString(),
@@ -66,6 +68,15 @@ export default function Settings() {
     { key: "GBP", label: "British Pound (GBP)" },
     { key: "CAD", label: "Canadian Dollar (CAD)" },
   ];
+
+  const handleRefreshExchangeRate = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshExchangeRate();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -234,6 +245,57 @@ export default function Settings() {
             </div>
           </CardBody>
         </Card>
+
+            {/* Exchange Rate Card */}
+            <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+              <CardHeader className="px-6 pt-6 pb-4">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                      <DollarSign className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      Exchange Rate
+                    </h3>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="secondary"
+                    isLoading={isRefreshing}
+                    startContent={!isRefreshing ? <RefreshCw className="w-4 h-4" /> : null}
+                    onPress={handleRefreshExchangeRate}
+                  >
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardBody className="px-6 pb-6">
+                <div className="space-y-4">
+                  <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">USD to NZD</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {settings.usdToNzdRate ? settings.usdToNzdRate.toFixed(4) : '1.6500'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Last updated</p>
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {settings.exchangeRateLastUpdated
+                            ? formatDistanceToNow(new Date(settings.exchangeRateLastUpdated), { addSuffix: true })
+                            : 'Never'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    This rate is used for converting USD assets to NZD throughout the app. Click refresh to get the latest exchange rate.
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
 
             {/* Investment Assumptions Card */}
             <Card className="border border-gray-200/50 dark:border-gray-700/50 shadow-xl backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">

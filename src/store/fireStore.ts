@@ -9,7 +9,7 @@ import type {
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { getTotalAssetsInCurrency } from "../utils/currencyUtils";
+import { getTotalAssetsInCurrency, fetchExchangeRate } from "../utils/currencyUtils";
 
 interface FireStore extends AppData {
   addAsset: (asset: Omit<Asset, "id" | "dateAdded" | "lastUpdated">) => void;
@@ -26,6 +26,7 @@ interface FireStore extends AppData {
   deleteLiability: (id: string) => void;
 
   updateSettings: (settings: Partial<Settings>) => void;
+  refreshExchangeRate: () => Promise<void>;
 
   addNetWorthSnapshot: () => void;
 
@@ -288,6 +289,17 @@ export const useFireStore = create<FireStore>()(
         }));
       },
 
+      refreshExchangeRate: async () => {
+        const { rate, timestamp } = await fetchExchangeRate();
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            usdToNzdRate: rate,
+            exchangeRateLastUpdated: timestamp,
+          },
+        }));
+      },
+
       addNetWorthSnapshot: () => {
         const { assets, liabilities } = get();
         const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
@@ -353,7 +365,7 @@ export const useFireStore = create<FireStore>()(
       getTotalAssets: () => {
         const { assets, settings } = get();
 
-        return getTotalAssetsInCurrency(assets, settings.currency);
+        return getTotalAssetsInCurrency(assets, settings.currency, settings.usdToNzdRate);
       },
 
       getTotalLiabilities: () => {

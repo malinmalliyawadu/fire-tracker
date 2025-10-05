@@ -94,6 +94,8 @@ export interface Settings {
   retirementAge: number;
   currentAge: number;
   currency: string;
+  usdToNzdRate?: number;
+  exchangeRateLastUpdated?: string;
 }
 
 export interface NetWorthHistory {
