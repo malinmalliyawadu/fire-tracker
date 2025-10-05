@@ -9,7 +9,6 @@ import {
   Calendar,
   Plus,
   Flame,
-  TrendingDown,
   Activity,
   Award,
   ArrowUp,
@@ -18,9 +17,11 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 
+import DarkVeil from "./DarkVeil";
 import { useFireStore } from "../store/fireStore";
 import {
   calculateFIREMetrics,
+  calculateProgressPercentage,
   formatCurrency,
   convertToMonthlyContribution,
 } from "../utils/fireCalculations";
@@ -31,6 +32,7 @@ export default function Dashboard() {
     liabilities,
     settings,
     milestones,
+    history,
     getTotalAssets,
     getTotalLiabilities,
     getNetWorth,
@@ -40,6 +42,14 @@ export default function Dashboard() {
   const netWorth = getNetWorth();
   const totalAssets = getTotalAssets();
   const totalLiabilities = getTotalLiabilities();
+
+  // Debug net worth calculation
+  console.log('Net Worth Debug:', {
+    totalAssets,
+    totalLiabilities,
+    netWorth,
+    calculation: `${totalAssets} - ${totalLiabilities} = ${totalAssets - totalLiabilities}`
+  });
 
   const monthlyContribution = useMemo(() => {
     const totalAssetContributions = assets.reduce((sum, asset) => {
@@ -57,20 +67,28 @@ export default function Dashboard() {
   }, [assets, liabilities]);
 
   const fireMetrics = useMemo(() => {
-    return calculateFIREMetrics(netWorth, monthlyContribution, settings);
-  }, [netWorth, monthlyContribution, settings]);
+    return calculateFIREMetrics(netWorth, monthlyContribution, settings, history);
+  }, [netWorth, monthlyContribution, settings, history]);
+
+  // Get starting net worth from first snapshot for consistent baseline calculations
+  const startingNetWorth = useMemo(() => {
+    if (history && history.length > 0) {
+      const sortedHistory = history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      console.log('Dashboard History Debug:', {
+        historyLength: history.length,
+        firstSnapshot: sortedHistory[0],
+        allSnapshots: sortedHistory
+      });
+      return sortedHistory[0].netWorth;
+    }
+    return 0;
+  }, [history]);
 
   const upcomingMilestones = milestones
     .filter((m) => !m.achieved)
     .sort((a, b) => a.targetAmount - b.targetAmount)
     .slice(0, 3);
 
-  // Helper function to get trend color based on value
-  const getTrendColor = (value: number) => {
-    if (value > 0) return "text-green-600 dark:text-green-400";
-    if (value < 0) return "text-red-600 dark:text-red-400";
-    return "text-gray-600 dark:text-gray-400";
-  };
 
   // Calculate FIRE streak (days)
   const fireStreak = Math.floor((Date.now() - new Date('2024-01-01').getTime()) / (1000 * 60 * 60 * 24));
@@ -79,6 +97,9 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-orange-600 dark:from-blue-800 dark:to-orange-800">
+        <div className="absolute inset-0">
+          <DarkVeil />
+        </div>
         <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
         <div className="relative py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-6">
@@ -311,8 +332,12 @@ export default function Dashboard() {
                   achieved: netWorth >= fireMetrics.fatFIRENumber
                 }
               ].map((milestone, index) => {
-                const progress = Math.min((netWorth / milestone.amount) * 100, 100);
-                const colorMap = {
+                const progress = calculateProgressPercentage(
+                  netWorth,
+                  milestone.amount,
+                  startingNetWorth
+                );
+                const colorMap: Record<string, string> = {
                   green: "from-green-500 to-emerald-500",
                   blue: "from-blue-500 to-cyan-500",
                   orange: "from-orange-500 to-red-500",
@@ -386,7 +411,11 @@ export default function Dashboard() {
                 {upcomingMilestones.length > 0 ? (
                   <div className="space-y-4">
                     {upcomingMilestones.map((milestone) => {
-                      const progress = (netWorth / milestone.targetAmount) * 100;
+                      const progress = calculateProgressPercentage(
+                        netWorth,
+                        milestone.targetAmount,
+                        startingNetWorth
+                      );
 
                       return (
                         <div key={milestone.id} className="space-y-3">

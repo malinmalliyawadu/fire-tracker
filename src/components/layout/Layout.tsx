@@ -12,7 +12,6 @@ import { useState } from "react";
 import {
   Flame,
   TrendingUp,
-  Target,
   Settings as SettingsIcon,
   DollarSign,
   BarChart3,

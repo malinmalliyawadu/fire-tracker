@@ -71,14 +71,51 @@ export const calculateMonthlyContributionNeeded = (
 export const calculateProgressPercentage = (
   currentNetWorth: number,
   fireTarget: number,
+  startingNetWorth: number = 0,
 ): number => {
-  return Math.min(100, Math.max(0, (currentNetWorth / fireTarget) * 100));
+  // Debug logging for break even milestone
+  if (fireTarget === 0) {
+    console.log('Break Even Progress Debug:', {
+      currentNetWorth,
+      fireTarget,
+      startingNetWorth,
+      progressAmount: currentNetWorth - startingNetWorth,
+      targetAmount: fireTarget - startingNetWorth
+    });
+  }
+
+  // Special case: if target is 0 (break even) and current is negative
+  if (fireTarget === 0 && currentNetWorth < 0) {
+    // For break even milestone, we want to show progress from starting debt to $0
+    if (startingNetWorth < 0) {
+      // Started with debt, progressing toward $0
+      const progressAmount = currentNetWorth - startingNetWorth;
+      const targetAmount = 0 - startingNetWorth;
+      const result = Math.min(100, Math.max(0, (progressAmount / targetAmount) * 100));
+      console.log('Break even calculation result:', result);
+      return result;
+    } else {
+      // Started positive but now negative (unusual case)
+      return 0;
+    }
+  }
+
+  // Special case: target is reached or exceeded
+  if (currentNetWorth >= fireTarget) return 100;
+
+  const progressAmount = currentNetWorth - startingNetWorth;
+  const targetAmount = fireTarget - startingNetWorth;
+
+  if (targetAmount <= 0) return 100;
+
+  return Math.min(100, Math.max(0, (progressAmount / targetAmount) * 100));
 };
 
 export const calculateFIREMetrics = (
   currentNetWorth: number,
   monthlyContribution: number,
   settings: Settings,
+  history?: Array<{ netWorth: number; date: string }>,
 ): FIRECalculation => {
   const fireNumber = calculateFIRENumber(settings);
   const leanFIRENumber = calculateLeanFIRE(settings);
@@ -101,9 +138,15 @@ export const calculateFIREMetrics = (
     settings.expectedReturn,
   );
 
+  // Get starting net worth from first snapshot if available
+  const startingNetWorth = history && history.length > 0
+    ? history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0].netWorth
+    : 0;
+
   const progressPercentage = calculateProgressPercentage(
     currentNetWorth,
     fireNumber,
+    startingNetWorth,
   );
 
   return {
@@ -189,9 +232,9 @@ export const generateProjection = (
           if (newValue >= 0) {
             // Debt is paid off this year
             // Calculate the portion of the year it took to pay off
-            const debtPaidOffAmount = -value; // Amount needed to reach zero
-            const interestOnDebt = value * expectedReturn;
-            const principalPayment = yearlyContribution + interestOnDebt;
+            // const debtPaidOffAmount = -value; // Amount needed to reach zero
+            // const interestOnDebt = value * expectedReturn;
+            // const principalPayment = yearlyContribution + interestOnDebt;
 
             if (isDebtOnly) {
               // For debt-only scenarios, once paid off, continue saving/investing

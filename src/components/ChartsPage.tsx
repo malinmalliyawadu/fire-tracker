@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { BarChart3, Filter, X, TrendingUp, Activity, PieChart } from "lucide-react";
+
+import DarkVeil from "./DarkVeil";
+import { BarChart3, Filter, TrendingUp, Activity } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
@@ -100,6 +102,9 @@ export default function ChartsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-orange-600 dark:from-blue-800 dark:to-orange-800">
+        <div className="absolute inset-0">
+          <DarkVeil />
+        </div>
         <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
         <div className="relative py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-6">
@@ -189,7 +194,7 @@ export default function ChartsPage() {
                 }
               >
                 {assetTypeOptions.map((option) => (
-                  <SelectItem key={option.key} value={option.key}>
+                  <SelectItem key={option.key}>
                     {option.label}
                   </SelectItem>
                 ))}
@@ -208,7 +213,7 @@ export default function ChartsPage() {
                 }
               >
                 {liabilityTypeOptions.map((option) => (
-                  <SelectItem key={option.key} value={option.key}>
+                  <SelectItem key={option.key}>
                     {option.label}
                   </SelectItem>
                 ))}
@@ -227,7 +232,7 @@ export default function ChartsPage() {
                 }
               >
                 {assets.map((asset) => (
-                  <SelectItem key={asset.id} value={asset.id}>
+                  <SelectItem key={asset.id}>
                     {asset.name}
                   </SelectItem>
                 ))}
@@ -246,7 +251,7 @@ export default function ChartsPage() {
                 }
               >
                 {liabilities.map((liability) => (
-                  <SelectItem key={liability.id} value={liability.id}>
+                  <SelectItem key={liability.id}>
                     {liability.name}
                   </SelectItem>
                 ))}

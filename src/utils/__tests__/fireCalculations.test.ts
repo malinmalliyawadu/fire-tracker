@@ -7,6 +7,7 @@ import {
   calculateYearsToFIRE,
   calculateMonthlyContributionNeeded,
   calculateProgressPercentage,
+  calculateFIREMetrics,
   generateProjection,
   convertToMonthlyContribution,
   formatCurrency,
@@ -117,7 +118,7 @@ describe('fireCalculations', () => {
   });
 
   describe('calculateProgressPercentage', () => {
-    it('should calculate progress percentage', () => {
+    it('should calculate progress percentage without baseline', () => {
       const result = calculateProgressPercentage(250000, 1000000);
       expect(result).toBe(25);
     });
@@ -130,6 +131,53 @@ describe('fireCalculations', () => {
     it('should handle negative net worth', () => {
       const result = calculateProgressPercentage(-50000, 1000000);
       expect(result).toBe(0);
+    });
+
+    describe('with baseline (snapshot-based)', () => {
+      it('should calculate progress relative to starting baseline', () => {
+        // Started at $50k, now at $250k, target $1M
+        // Progress: (250k - 50k) / (1M - 50k) = 200k / 950k ≈ 21.05%
+        const result = calculateProgressPercentage(250000, 1000000, 50000);
+        expect(result).toBeCloseTo(21.05, 1);
+      });
+
+      it('should handle case where current is below baseline', () => {
+        // Started at $100k, now at $50k, target $1M
+        // Progress should be 0% since we went backwards
+        const result = calculateProgressPercentage(50000, 1000000, 100000);
+        expect(result).toBe(0);
+      });
+
+      it('should handle negative baseline (debt)', () => {
+        // Started with -$50k debt, now at $100k, target $1M
+        // Progress: (100k - (-50k)) / (1M - (-50k)) = 150k / 1.05M ≈ 14.29%
+        const result = calculateProgressPercentage(100000, 1000000, -50000);
+        expect(result).toBeCloseTo(14.29, 1);
+      });
+
+      it('should return 100% when target is reached from baseline', () => {
+        // Started at $100k, now at $1M (target), should be 100%
+        const result = calculateProgressPercentage(1000000, 1000000, 100000);
+        expect(result).toBe(100);
+      });
+
+      it('should cap above 100% when exceeding target', () => {
+        // Started at $100k, now at $1.2M, target $1M, should cap at 100%
+        const result = calculateProgressPercentage(1200000, 1000000, 100000);
+        expect(result).toBe(100);
+      });
+
+      it('should handle edge case where baseline equals target', () => {
+        // If somehow baseline equals target, should return 100%
+        const result = calculateProgressPercentage(1000000, 1000000, 1000000);
+        expect(result).toBe(100);
+      });
+
+      it('should handle baseline greater than target', () => {
+        // If baseline is above target (unusual but possible), should return 100%
+        const result = calculateProgressPercentage(500000, 1000000, 1200000);
+        expect(result).toBe(100);
+      });
     });
   });
 
@@ -242,6 +290,105 @@ describe('fireCalculations', () => {
     it('should handle zero', () => {
       const result = formatPercentage(0);
       expect(result).toBe('0.0%');
+    });
+  });
+
+  describe('calculateFIREMetrics', () => {
+    const mockHistory = [
+      { netWorth: 50000, date: '2023-01-01T00:00:00.000Z' },
+      { netWorth: 75000, date: '2023-06-01T00:00:00.000Z' },
+      { netWorth: 100000, date: '2024-01-01T00:00:00.000Z' },
+    ];
+
+    it('should calculate FIRE metrics without history', () => {
+      const result = calculateFIREMetrics(
+        250000, // current net worth
+        2000,   // monthly contribution
+        mockSettings
+      );
+
+      expect(result.fireNumber).toBe(1000000);
+      expect(result.currentNetWorth).toBe(250000);
+      expect(result.progressPercentage).toBe(25); // 250k / 1M = 25%
+      expect(result.yearsToFIRE).toBeGreaterThan(0);
+      expect(result.monthlyContributionNeeded).toBeGreaterThan(0);
+    });
+
+    it('should calculate FIRE metrics with history (baseline)', () => {
+      const result = calculateFIREMetrics(
+        250000, // current net worth
+        2000,   // monthly contribution
+        mockSettings,
+        mockHistory
+      );
+
+      expect(result.fireNumber).toBe(1000000);
+      expect(result.currentNetWorth).toBe(250000);
+      // Progress: (250k - 50k) / (1M - 50k) = 200k / 950k ≈ 21.05%
+      expect(result.progressPercentage).toBeCloseTo(21.05, 1);
+      expect(result.yearsToFIRE).toBeGreaterThan(0);
+    });
+
+    it('should handle empty history array', () => {
+      const result = calculateFIREMetrics(
+        250000, // current net worth
+        2000,   // monthly contribution
+        mockSettings,
+        []
+      );
+
+      expect(result.progressPercentage).toBe(25); // Should default to no baseline
+    });
+
+    it('should sort history by date to find first snapshot', () => {
+      const unsortedHistory = [
+        { netWorth: 100000, date: '2024-01-01T00:00:00.000Z' },
+        { netWorth: 50000, date: '2023-01-01T00:00:00.000Z' }, // This is earliest
+        { netWorth: 75000, date: '2023-06-01T00:00:00.000Z' },
+      ];
+
+      const result = calculateFIREMetrics(
+        250000, // current net worth
+        2000,   // monthly contribution
+        mockSettings,
+        unsortedHistory
+      );
+
+      // Should use 50000 as baseline (earliest date)
+      expect(result.progressPercentage).toBeCloseTo(21.05, 1);
+    });
+
+    it('should handle negative starting net worth (debt)', () => {
+      const debtHistory = [
+        { netWorth: -100000, date: '2023-01-01T00:00:00.000Z' },
+        { netWorth: -50000, date: '2023-06-01T00:00:00.000Z' },
+      ];
+
+      const result = calculateFIREMetrics(
+        100000, // current net worth
+        2000,   // monthly contribution
+        mockSettings,
+        debtHistory
+      );
+
+      // Progress: (100k - (-100k)) / (1M - (-100k)) = 200k / 1.1M ≈ 18.18%
+      expect(result.progressPercentage).toBeCloseTo(18.18, 1);
+    });
+
+    it('should handle case where current net worth is below starting baseline', () => {
+      const highStartHistory = [
+        { netWorth: 300000, date: '2023-01-01T00:00:00.000Z' },
+      ];
+
+      const result = calculateFIREMetrics(
+        250000, // current net worth (below baseline)
+        2000,   // monthly contribution
+        mockSettings,
+        highStartHistory
+      );
+
+      // Progress should be 0% since we went backwards
+      expect(result.progressPercentage).toBe(0);
     });
   });
 });

@@ -191,6 +191,13 @@ export const useFireStore = create<FireStore>()(
       history: [],
       milestones: [
         {
+          id: "milestone-0",
+          name: "Break Even",
+          targetAmount: 0,
+          achieved: false,
+          description: "Reaching $0 net worth - debt free!",
+        },
+        {
           id: "milestone-1",
           name: "First $100k",
           targetAmount: 100000,

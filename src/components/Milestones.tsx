@@ -1,6 +1,8 @@
 import type { Milestone } from "../types/fire";
 
 import { useState } from "react";
+
+import DarkVeil from "./DarkVeil";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
@@ -20,7 +22,6 @@ import {
   Trash2,
   Trophy,
   Target,
-  CheckCircle2,
   Award,
   Star,
   TrendingUp,
@@ -228,6 +229,9 @@ export default function Milestones() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-orange-600 dark:from-blue-800 dark:to-orange-800">
+        <div className="absolute inset-0">
+          <DarkVeil />
+        </div>
         <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
         <div className="relative py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-6">
@@ -618,7 +622,7 @@ export default function Milestones() {
                       }}
                     >
                       {getDefaultMilestones().map((milestone) => (
-                        <SelectItem key={milestone.key} value={milestone.key}>
+                        <SelectItem key={milestone.key}>
                           <div className="flex flex-col">
                             <span className="font-medium">{milestone.name}</span>
                             {milestone.targetAmount > 0 && (

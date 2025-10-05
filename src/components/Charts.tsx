@@ -11,7 +11,6 @@ import {
   Pie,
   Cell,
   AreaChart,
-  Area,
 } from "recharts";
 import { useMemo } from "react";
 import { TrendingUp, PieChart as PieChartIcon, Activity } from "lucide-react";
