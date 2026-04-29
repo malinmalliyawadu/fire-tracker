@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FIRE Tracker</title>
+    <script>
+      // SPA fallback for GitHub Pages: redirect any sub-route 404 to the
+      // root with the path encoded so BrowserRouter can pick it up after
+      // hydration (see matching restore script in index.html).
+      (function () {
+        var segments = 1; // /fire-tracker/ takes 1 path segment
+        var l = window.location;
+        var pathAfterBase = l.pathname
+          .split("/")
+          .slice(1 + segments)
+          .join("/");
+        l.replace(
+          l.protocol +
+            "//" +
+            l.hostname +
+            (l.port ? ":" + l.port : "") +
+            l.pathname.split("/").slice(0, 1 + segments).join("/") +
+            "/?p=/" +
+            pathAfterBase.replace(/&/g, "~and~") +
+            (l.search ? "&q=" + l.search.slice(1).replace(/&/g, "~and~") : "") +
+            l.hash,
+        );
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

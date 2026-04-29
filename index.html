@@ -18,6 +18,26 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
     />
+    <script>
+      // Restore deep-link path stashed by 404.html (spa-github-pages trick).
+      (function () {
+        var l = window.location;
+        if (l.search.indexOf("?p=/") === 0 || l.search.indexOf("&p=/") > -1) {
+          var q = l.search.slice(1).split("&").reduce(function (acc, kv) {
+            var i = kv.indexOf("=");
+            acc[kv.slice(0, i)] = kv.slice(i + 1);
+            return acc;
+          }, {});
+          var path = (q.p || "").replace(/~and~/g, "&");
+          var search = q.q ? "?" + q.q.replace(/~and~/g, "&") : "";
+          history.replaceState(
+            null,
+            "",
+            l.pathname.replace(/\/$/, "") + path + search + l.hash,
+          );
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
