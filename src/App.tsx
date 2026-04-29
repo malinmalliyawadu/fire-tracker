@@ -1,34 +1,23 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
-import Layout from "./components/layout/Layout";
-import Dashboard from "./components/Dashboard";
-import AssetManagement from "./components/AssetManagement";
-import ChartsPage from "./components/ChartsPage";
-import Milestones from "./components/Milestones";
-import Settings from "./components/Settings";
+import { AppShell } from "@/components/layout/AppShell";
+import { useAutoSnapshot } from "@/hooks/useAutoSnapshot";
+import Dashboard from "@/pages/Dashboard";
+import Export from "@/pages/Export";
+import Settings from "@/pages/Settings";
+import Simulate from "@/pages/Simulate";
 
-function App() {
-  const location = useLocation();
-
-  // Determine active tab from URL
-  const getActiveTab = () => {
-    const path = location.pathname.substring(1); // Remove leading slash
-    if (!path) return "dashboard";
-    return path;
-  };
+export default function App() {
+  useAutoSnapshot();
 
   return (
-    <Layout activeTab={getActiveTab()}>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/assets" element={<AssetManagement />} />
-        <Route path="/charts" element={<ChartsPage />} />
-        <Route path="/milestones" element={<Milestones />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route element={<Dashboard />} index />
+        <Route element={<Simulate />} path="/simulate" />
+        <Route element={<Export />} path="/export" />
+        <Route element={<Settings />} path="/settings" />
+      </Route>
+    </Routes>
   );
 }
-
-export default App;
