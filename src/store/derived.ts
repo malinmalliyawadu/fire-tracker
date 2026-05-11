@@ -148,6 +148,16 @@ export const useFireTargets = (): FireTargets => {
   );
 };
 
+/**
+ * Indicative annual cost per dependent child in NZD. Roughly tracks NZ
+ * household estimates of ~$200–$300/wk per child once accounting for food,
+ * activities, childcare, and education extras.
+ */
+export const KID_ANNUAL_COST_NZD = 15_000;
+
+/** How long a kid is treated as a dependent in the simulation. */
+export const KID_DEPENDENT_YEARS = 18;
+
 export interface ProjectionInputBundle {
   currentNetWorth: number;
   monthlySavings: number;
@@ -159,6 +169,8 @@ export interface ProjectionInputBundle {
   currentLockedNetWorth?: number;
   /** KiwiSaver portion of monthlySavings (display currency). */
   monthlyLockedSavings?: number;
+  includeKids?: boolean;
+  numberOfKids?: number;
 }
 
 export const buildProjection = (
@@ -176,6 +188,17 @@ export const buildProjection = (
       )
     : 0;
 
+  const kids = bundle.includeKids ? Math.max(0, bundle.numberOfKids ?? 0) : 0;
+  const kidsAnnualCost =
+    kids > 0
+      ? convert(
+          KID_ANNUAL_COST_NZD * kids,
+          "NZD",
+          settings.displayCurrency,
+          settings.usdToNzd,
+        )
+      : 0;
+
   return generateProjection({
     currentNetWorth: bundle.currentNetWorth,
     monthlySavings: bundle.monthlySavings,
@@ -190,5 +213,7 @@ export const buildProjection = (
     currentLockedNetWorth: bundle.currentLockedNetWorth ?? 0,
     monthlyLockedSavings: bundle.monthlyLockedSavings ?? 0,
     unlockAge: settings.kiwisaverUnlockAge ?? 65,
+    kidsAnnualCost,
+    kidsYears: KID_DEPENDENT_YEARS,
   });
 };

@@ -9,6 +9,8 @@ import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
 import {
   buildProjection,
+  KID_ANNUAL_COST_NZD,
+  KID_DEPENDENT_YEARS,
   useFireTargets,
   usePortfolioTotals,
 } from "@/store/derived";
@@ -38,6 +40,8 @@ export default function Simulate() {
       retirementAge: settings.retirementAge,
       fireType: "traditional",
       includeNzSuper: false,
+      includeKids: false,
+      numberOfKids: 1,
     }),
     [totals.monthlyContributions, settings],
   );
@@ -74,6 +78,8 @@ export default function Simulate() {
         includeNzSuper: inputs.includeNzSuper,
         currentLockedNetWorth: totals.lockedAssetsTotal,
         monthlyLockedSavings: lockedShare,
+        includeKids: inputs.includeKids,
+        numberOfKids: inputs.numberOfKids,
       },
       settings,
       PROJECTION_YEARS,
@@ -117,6 +123,18 @@ export default function Simulate() {
                   scenario.inputs.monthlySavings,
               )
             : 0;
+        const kids = scenario.inputs.includeKids
+          ? Math.max(0, scenario.inputs.numberOfKids ?? 0)
+          : 0;
+        const kidsAnnualCost =
+          kids > 0
+            ? convert(
+                KID_ANNUAL_COST_NZD * kids,
+                "NZD",
+                settings.displayCurrency,
+                settings.usdToNzd,
+              )
+            : 0;
 
         return {
           scenario,
@@ -134,6 +152,8 @@ export default function Simulate() {
             currentLockedNetWorth: totals.lockedAssetsTotal,
             monthlyLockedSavings: lockedShare,
             unlockAge: settings.kiwisaverUnlockAge ?? 65,
+            kidsAnnualCost,
+            kidsYears: KID_DEPENDENT_YEARS,
           }),
         };
       }),

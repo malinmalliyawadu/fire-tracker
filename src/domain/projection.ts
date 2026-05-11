@@ -22,6 +22,10 @@ export interface ProjectionInputs {
   monthlyLockedSavings?: number;
   /** Age at which the locked pot becomes available. Defaults to 65. */
   unlockAge?: number;
+  /** Total annual cost of dependent kids in display currency. 0 disables. */
+  kidsAnnualCost?: number;
+  /** Number of years from now that the kids cost applies. Defaults to 18. */
+  kidsYears?: number;
 }
 
 export const generateProjection = (
@@ -35,6 +39,8 @@ export const generateProjection = (
   const nzSuper = input.nzSuperAnnualInDisplay ?? 0;
   const nzSuperStart = input.nzSuperStartAge ?? 65;
   const unlockAge = input.unlockAge ?? 65;
+  const kidsAnnualCost = input.kidsAnnualCost ?? 0;
+  const kidsYears = input.kidsYears ?? 18;
 
   let locked = input.currentLockedNetWorth ?? 0;
   let accessible = input.currentNetWorth - locked;
@@ -64,12 +70,13 @@ export const generateProjection = (
     if (year >= input.years) continue;
 
     const isRetired = age >= input.retirementAge;
+    const kidsCost = year < kidsYears ? kidsAnnualCost : 0;
 
     if (isRetired) {
       const supplement = age >= nzSuperStart ? nzSuper : 0;
       const portfolioWithdrawal = Math.max(
         0,
-        input.annualExpenses - supplement,
+        input.annualExpenses + kidsCost - supplement,
       );
 
       if (isUnlocked) {
@@ -88,7 +95,8 @@ export const generateProjection = (
       }
     } else {
       contributed += annualSavings;
-      accessible = (accessible + annualAccessibleSavings) * (1 + realReturn);
+      accessible =
+        (accessible + annualAccessibleSavings - kidsCost) * (1 + realReturn);
       locked = (locked + annualLockedSavings) * (1 + realReturn);
     }
   }

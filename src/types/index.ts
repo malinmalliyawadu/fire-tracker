@@ -74,6 +74,8 @@ export interface SimulationInputs {
   retirementAge: number;
   fireType: FireType;
   includeNzSuper: boolean;
+  includeKids: boolean;
+  numberOfKids: number;
 }
 
 export interface Scenario {

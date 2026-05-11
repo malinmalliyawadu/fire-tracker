@@ -292,6 +292,13 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
       lines.push(
         `- Includes NZ Super: **${s.inputs.includeNzSuper ? "yes" : "no"}**`,
       );
+      lines.push(
+        `- Plans with kids: **${
+          s.inputs.includeKids
+            ? `yes (${s.inputs.numberOfKids})`
+            : "no"
+        }**`,
+      );
       lines.push(`- Implied target: ${formatMoney(scenarioTarget, display)}`);
       lines.push(`- Time to reach target: **${formatYears(scenarioYears)}**`);
       lines.push(`- Saved: ${s.createdAt}`);

@@ -1,12 +1,13 @@
 import type { FireType, SimulationInputs } from "@/types";
 
 import clsx from "clsx";
-import { Landmark } from "lucide-react";
+import { Baby, Landmark, Minus, Plus } from "lucide-react";
 
 import { convert } from "@/domain/currency";
 import { FIRE_TYPES, FIRE_TYPE_META } from "@/domain/labels";
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
+import { KID_ANNUAL_COST_NZD, KID_DEPENDENT_YEARS } from "@/store/derived";
 
 import { Card } from "@/components/ui/Card";
 import { SliderField } from "./SliderField";
@@ -117,6 +118,13 @@ export function SimulationControls({
           enabled={inputs.includeNzSuper}
           onToggle={(v) => set("includeNzSuper", v)}
         />
+
+        <KidsToggle
+          enabled={inputs.includeKids}
+          numberOfKids={inputs.numberOfKids}
+          onCountChange={(v) => set("numberOfKids", v)}
+          onToggle={(v) => set("includeKids", v)}
+        />
       </div>
     </Card>
   );
@@ -178,5 +186,113 @@ function NzSuperToggle({ enabled, onToggle }: NzSuperToggleProps) {
         />
       </div>
     </button>
+  );
+}
+
+interface KidsToggleProps {
+  enabled: boolean;
+  numberOfKids: number;
+  onToggle: (value: boolean) => void;
+  onCountChange: (value: number) => void;
+}
+
+const MAX_KIDS = 5;
+
+function KidsToggle({
+  enabled,
+  numberOfKids,
+  onToggle,
+  onCountChange,
+}: KidsToggleProps) {
+  const settings = useSettings((s) => s.settings);
+  const safeCount = Math.min(MAX_KIDS, Math.max(1, numberOfKids || 1));
+  const totalAnnual = convert(
+    KID_ANNUAL_COST_NZD * safeCount,
+    "NZD",
+    settings.displayCurrency,
+    settings.usdToNzd,
+  );
+
+  const adjust = (delta: number) => {
+    const next = Math.min(MAX_KIDS, Math.max(1, safeCount + delta));
+    onCountChange(next);
+  };
+
+  return (
+    <div
+      className={clsx(
+        "rounded-lg border transition",
+        enabled
+          ? "border-accent/40 bg-accent/10"
+          : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
+      )}
+    >
+      <button
+        aria-pressed={enabled}
+        className="flex w-full items-center gap-3 px-3 py-3 text-left"
+        onClick={() => onToggle(!enabled)}
+      >
+        <div
+          className={clsx(
+            "grid h-9 w-9 place-items-center rounded-lg transition-colors",
+            enabled ? "bg-accent text-white" : "bg-white/[0.05] text-ink-300",
+          )}
+        >
+          <Baby className="h-4 w-4" strokeWidth={2} />
+        </div>
+        <div className="flex-1">
+          <div className="text-sm font-semibold text-white">
+            Plan with kids
+          </div>
+          <div className="mt-0.5 text-[11px] text-ink-400">
+            {enabled
+              ? `${formatMoney(totalAnnual, settings.displayCurrency)}/yr for ${KID_DEPENDENT_YEARS} years`
+              : `~${formatMoney(convert(KID_ANNUAL_COST_NZD, "NZD", settings.displayCurrency, settings.usdToNzd), settings.displayCurrency)}/yr per kid · ${KID_DEPENDENT_YEARS} yrs`}
+          </div>
+        </div>
+        <div
+          className={clsx(
+            "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+            enabled ? "bg-accent" : "bg-white/15",
+          )}
+        >
+          <div
+            className={clsx(
+              "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
+              enabled ? "left-[18px]" : "left-0.5",
+            )}
+          />
+        </div>
+      </button>
+
+      {enabled && (
+        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-3 py-2.5">
+          <span className="text-[11px] uppercase tracking-[0.18em] text-ink-300">
+            Number of kids
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              aria-label="Decrease number of kids"
+              className="grid h-7 w-7 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-ink-300 transition hover:border-white/10 hover:text-white disabled:opacity-40 disabled:hover:border-white/[0.06] disabled:hover:text-ink-300"
+              disabled={safeCount <= 1}
+              onClick={() => adjust(-1)}
+            >
+              <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </button>
+            <span className="font-mono tabular w-6 text-center text-sm font-semibold text-white">
+              {safeCount}
+            </span>
+            <button
+              aria-label="Increase number of kids"
+              className="grid h-7 w-7 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-ink-300 transition hover:border-white/10 hover:text-white disabled:opacity-40 disabled:hover:border-white/[0.06] disabled:hover:text-ink-300"
+              disabled={safeCount >= MAX_KIDS}
+              onClick={() => adjust(1)}
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
