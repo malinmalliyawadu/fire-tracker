@@ -7,6 +7,7 @@ import { AssumptionsCard } from "@/components/dashboard/AssumptionsCard";
 import { NetWorthHistoryCard } from "@/components/dashboard/NetWorthHistoryCard";
 import { PlanTrackingCard } from "@/components/dashboard/PlanTrackingCard";
 import { IncomeCard } from "@/components/income/IncomeCard";
+import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function Dashboard() {
@@ -17,6 +18,7 @@ export default function Dashboard() {
         eyebrow="Overview"
         title="Dashboard"
       />
+      <OnboardingGate />
       <NetWorthHero />
       <FireTypeCards />
       <NetWorthHistoryCard />

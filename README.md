@@ -7,8 +7,10 @@ A comprehensive Financial Independence, Retire Early (FIRE) calculator and track
 ### 📊 Financial Tracking
 - **Asset Management**: Track stocks, crypto, KiwiSaver, savings accounts, and more
 - **Liability Tracking**: Monitor mortgages, loans, and other debts
+- **Income & Savings Rate**: Gross pay in, tax worked out for you, and the savings rate that actually drives your FIRE date
+- **Itemised Spending**: Expenses by category, with costs that stop or start at retirement
 - **Multi-Currency Support**: Handle NZD and USD assets with automatic conversion
-- **Real-time Calculations**: Dynamic FIRE number calculation based on your withdrawal rate
+- **Actual vs Plan**: Compare recorded snapshots against the plan, and split growth into contributions versus market
 
 ### 🎯 FIRE Calculations
 - **Traditional FIRE**: Calculate your standard FIRE target
@@ -24,9 +26,20 @@ A comprehensive Financial Independence, Retire Early (FIRE) calculator and track
 - **Retirement Phase**: Model the withdrawal years, including any debt still being serviced
 
 ### 🇳🇿 New Zealand Specifics
-- **NZ Super**: Optionally offset retirement withdrawals from the eligibility age onward
-- **KiwiSaver Lock**: Treated as a pot that compounds untouched and can't fund a retirement that starts before the unlock age
-- **Kids**: Model the cost of dependent children against the plan
+- **Tax**: Progressive PAYE with the ACC earner levy, and investment tax by asset class — interest at your marginal rate, PIE funds and KiwiSaver under the Fair Dividend Rate at your PIR, property growth untaxed
+- **KiwiSaver**: Contributions derived from salary, including the employer match net of ESCT and the government contribution
+- **NZ Super**: Rates by living situation, offsetting retirement withdrawals from the eligibility age
+- **KiwiSaver Lock**: A pot that compounds untouched and can't fund a retirement starting before the unlock age
+- **Household**: A partner's NZ Super timed to their own age
+
+### 🎯 Planning
+- **Coast Date**: When you could stop contributing entirely and still arrive on time
+- **Barista FIRE**: Part-time income bridging early retirement
+- **Kids**: Per-child costs that follow an age curve, not a flat yearly figure
+- **Life Events**: Dated one-off costs and windfalls
+- **Spending Phases**: Optional go-go / slow-go / no-go multipliers across retirement
+- **Assumption Checks**: Warnings when the numbers can't work — a withdrawal rate above your real return, a loan that never pays down
+- **Backup & Restore**: Export everything as JSON or Markdown, and load a backup back in
 
 ### ⚙️ Advanced Features
 - **Payment Frequencies**: Support for weekly, fortnightly, monthly, quarterly, and annual contributions
@@ -98,7 +111,7 @@ npm run lint        # Run ESLint with auto-fix
 - **Traditional FIRE**: 25x annual expenses (4% withdrawal rule)
 - **Lean FIRE**: Minimal expenses lifestyle (60% of traditional)
 - **Fat FIRE**: Comfortable/luxury retirement (150% of traditional)
-- **Coast FIRE**: Let compound interest do the work until retirement
+- **Coast FIRE**: Let compound interest do the work until retirement — the app reports both the amount needed today and the date you reach it
 
 ### Financial Modeling
 Projections run in **today's dollars**, compounding at the real return (nominal return − inflation), so time-to-FIRE figures on every screen agree with the chart.
@@ -108,10 +121,11 @@ Projections run in **today's dollars**, compounding at the real return (nominal 
 - **Retirement Phase**: Withdrawals cover expenses, dependent kids, and any remaining debt service, less NZ Super once eligible.
 
 #### Known limitations
-- There is no income input, so savings rate and the cash flow funding debt repayments are not modelled.
 - Returns are a single deterministic path — no Monte Carlo or sequence-of-returns risk.
 - Net worth includes owner-occupied property, which compounds at the investment return and counts toward the FIRE target even though a home can't fund withdrawals.
-- Returns are modelled before tax (no PIE/PIR, FIF/FDR, or RWT).
+- Tax rates and thresholds are hardcoded for one tax year in `src/domain/tax.ts` and need reviewing each April.
+- Asset values are entered by hand; there is no live price feed.
+- A partner's assets and income are pooled with yours — only their age is modelled separately.
 - The layout is desktop-only; there is no mobile view yet.
 
 ## Contributing
@@ -124,10 +138,13 @@ Projections run in **today's dollars**, compounding at the real return (nominal 
 
 ## Testing
 
-The project includes unit tests covering:
+The project includes 156 unit tests covering:
 - FIRE target calculations
 - Numeric input parsing and formatting
-- Financial projection modeling, including debt amortisation and the KiwiSaver lock
+- Projection modelling: debt amortisation, the KiwiSaver lock, kid cost curves, spending phases, one-off events, coast timing, and Barista income
+- NZ tax: PAYE bands, the ACC cap, PIR and ESCT, and per-asset investment tax
+- Backup parsing, including malformed and hostile input
+- Plan tracking and assumption checks
 - The exported snapshot
 
 Run tests with `npm test` or use the UI with `npm run test:ui`.

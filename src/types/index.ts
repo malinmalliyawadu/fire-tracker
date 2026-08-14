@@ -158,6 +158,8 @@ export interface Settings {
   /** Which NZ Super rate applies — living situation, not just status. */
   nzSuperStatus: NzSuperStatus;
   household: Household;
+  /** Set once the first-run wizard has been completed or skipped. */
+  onboarded?: boolean;
 }
 
 /**
