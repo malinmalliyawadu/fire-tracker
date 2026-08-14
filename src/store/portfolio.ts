@@ -16,6 +16,8 @@ interface PortfolioState {
     },
   ) => void;
   removeLiability: (id: string) => void;
+  /** Move a set of debts in or out of the FIRE picture in one step. */
+  setLiabilityFireInclusion: (ids: string[], countsTowardFire: boolean) => void;
   reset: () => void;
 }
 
@@ -87,6 +89,16 @@ export const usePortfolio = create<PortfolioState>()(
       },
       removeLiability: (id) =>
         set({ liabilities: get().liabilities.filter((l) => l.id !== id) }),
+      setLiabilityFireInclusion: (ids, countsTowardFire) => {
+        const targets = new Set(ids);
+        const now = new Date().toISOString();
+
+        set({
+          liabilities: get().liabilities.map((l) =>
+            targets.has(l.id) ? { ...l, countsTowardFire, updatedAt: now } : l,
+          ),
+        });
+      },
       reset: () => set({ assets: [], liabilities: [] }),
     }),
     {

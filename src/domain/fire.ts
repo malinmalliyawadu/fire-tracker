@@ -1,4 +1,4 @@
-import type { FireTargets, FireType } from "@/types";
+import type { Asset, FireTargets, FireType, Liability } from "@/types";
 
 /**
  * Whether a holding or debt belongs to the pot that funds retirement.
@@ -10,6 +10,33 @@ import type { FireTargets, FireType } from "@/types";
 export const countsTowardFire = (item: {
   countsTowardFire?: boolean;
 }): boolean => item.countsTowardFire !== false;
+
+/**
+ * Mortgages still counted toward FIRE while some property sits outside it.
+ *
+ * These are the loans whose balance is subtracted from the retirement pot
+ * without the asset behind them being in it — the asymmetry that makes the pot
+ * read far smaller than the investments actually backing it.
+ *
+ * Assets and loans aren't linked in the data model, so this can't know *which*
+ * property secures which mortgage. It deliberately errs toward flagging: with
+ * a property excluded, a counted mortgage is worth a second look either way.
+ * Returns empty when every property counts, since then the netting is honest.
+ */
+export const unpairedPropertyMortgages = (
+  assets: Asset[],
+  liabilities: Liability[],
+): Liability[] => {
+  const hasExcludedProperty = assets.some(
+    (a) => a.type === "property" && !countsTowardFire(a),
+  );
+
+  if (!hasExcludedProperty) return [];
+
+  return liabilities.filter(
+    (l) => l.type === "mortgage" && countsTowardFire(l),
+  );
+};
 
 export interface FireInputs {
   annualExpenses: number;

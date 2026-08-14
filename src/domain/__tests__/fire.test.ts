@@ -1,6 +1,13 @@
+import type { Asset, Liability } from "@/types";
+
 import { describe, expect, it } from "vitest";
 
-import { computeFireTargets, countsTowardFire, progressPercent } from "../fire";
+import {
+  computeFireTargets,
+  countsTowardFire,
+  progressPercent,
+  unpairedPropertyMortgages,
+} from "../fire";
 
 describe("countsTowardFire", () => {
   it("counts anything recorded before the flag existed", () => {
@@ -73,5 +80,87 @@ describe("progressPercent", () => {
 
   it("returns 100 when target is zero and net worth non-negative", () => {
     expect(progressPercent(0, 0)).toBe(100);
+  });
+});
+
+describe("unpairedPropertyMortgages", () => {
+  const stamp = "2026-01-01T00:00:00.000Z";
+  const asset = (over: Partial<Asset>): Asset => ({
+    id: "a",
+    name: "Asset",
+    type: "property",
+    value: 100,
+    currency: "NZD",
+    contribution: 0,
+    frequency: "monthly",
+    createdAt: stamp,
+    updatedAt: stamp,
+    ...over,
+  });
+  const debt = (over: Partial<Liability>): Liability => ({
+    id: "l",
+    name: "Loan",
+    type: "mortgage",
+    balance: 100,
+    currency: "NZD",
+    interestRate: 0.06,
+    payment: 10,
+    frequency: "monthly",
+    createdAt: stamp,
+    updatedAt: stamp,
+    ...over,
+  });
+
+  it("flags a counted mortgage when a property is excluded", () => {
+    const found = unpairedPropertyMortgages(
+      [asset({ countsTowardFire: false })],
+      [debt({ id: "m1" })],
+    );
+
+    expect(found.map((l) => l.id)).toEqual(["m1"]);
+  });
+
+  it("stays quiet when every property counts", () => {
+    expect(unpairedPropertyMortgages([asset({})], [debt({})])).toEqual([]);
+  });
+
+  it("stays quiet once the mortgage is excluded too", () => {
+    const found = unpairedPropertyMortgages(
+      [asset({ countsTowardFire: false })],
+      [debt({ countsTowardFire: false })],
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("ignores debts that aren't mortgages", () => {
+    const found = unpairedPropertyMortgages(
+      [asset({ countsTowardFire: false })],
+      [debt({ id: "car", type: "car-loan" })],
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("returns only the counted mortgages when some are already excluded", () => {
+    const found = unpairedPropertyMortgages(
+      [asset({ countsTowardFire: false })],
+      [
+        debt({ id: "m1" }),
+        debt({ id: "m2", countsTowardFire: false }),
+        debt({ id: "m3" }),
+      ],
+    );
+
+    expect(found.map((l) => l.id)).toEqual(["m1", "m3"]);
+  });
+
+  it("an excluded non-property asset doesn't implicate a mortgage", () => {
+    const found = unpairedPropertyMortgages(
+      [asset({ type: "other", countsTowardFire: false })],
+      [debt({})],
+    );
+
+    expect(found).toEqual([]);
   });
 });
