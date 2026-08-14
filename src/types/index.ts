@@ -50,6 +50,27 @@ export interface Liability {
   updatedAt: string;
 }
 
+export type IncomeType = "salary" | "self-employed" | "rental" | "other";
+
+export interface IncomeSource {
+  id: string;
+  name: string;
+  type: IncomeType;
+  /** Gross amount before tax, expressed at `frequency`. */
+  amount: number;
+  currency: Currency;
+  frequency: ContributionFrequency;
+  /** Employee KiwiSaver contribution rate. Salary income only. */
+  kiwisaverRate?: number;
+  /** Employer KiwiSaver contribution rate. Salary income only. */
+  employerKiwisaverRate?: number;
+  /** Keeps paying after retirement, e.g. rental or royalties. */
+  continuesInRetirement?: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Settings {
   displayCurrency: Currency;
   currentAge: number;
@@ -63,6 +84,10 @@ export interface Settings {
   kiwisaverUnlockAge: number;
   usdToNzd: number;
   exchangeRateUpdatedAt?: string;
+  /** Apply NZ investment tax (PIE/FDR, RWT) to projected returns. */
+  applyInvestmentTax: boolean;
+  /** Force a PIR instead of deriving one from income. */
+  pirOverride?: number;
 }
 
 export type FireType = "traditional" | "lean" | "fat" | "coast";

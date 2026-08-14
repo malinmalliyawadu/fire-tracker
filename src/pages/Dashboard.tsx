@@ -4,6 +4,7 @@ import { FireTypeCards } from "@/components/dashboard/FireTypeCards";
 import { LiabilityTable } from "@/components/dashboard/LiabilityTable";
 import { NetWorthHero } from "@/components/dashboard/NetWorthHero";
 import { NetWorthHistoryCard } from "@/components/dashboard/NetWorthHistoryCard";
+import { IncomeCard } from "@/components/income/IncomeCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function Dashboard() {
@@ -17,6 +18,7 @@ export default function Dashboard() {
       <NetWorthHero />
       <FireTypeCards />
       <NetWorthHistoryCard />
+      <IncomeCard />
       <AllocationCard />
       <AssetTable />
       <LiabilityTable />

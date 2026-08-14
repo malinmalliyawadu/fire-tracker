@@ -28,6 +28,8 @@ export interface ProjectionInputBundle {
   numberOfKids?: number;
   /** Debts to amortise. currentNetWorth must already be net of these. */
   liabilities?: ProjectionLiability[];
+  /** Annual income that continues through retirement (display currency). */
+  retirementIncome?: number;
 }
 
 /**
@@ -72,5 +74,6 @@ export const buildProjection = (
     kidsAnnualCost,
     kidsYears: KID_DEPENDENT_YEARS,
     liabilities: bundle.liabilities,
+    retirementIncomeAnnual: bundle.retirementIncome ?? 0,
   });
 };

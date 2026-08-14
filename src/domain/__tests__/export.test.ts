@@ -16,6 +16,7 @@ const settings: Settings = {
   nzSuperStartAge: 65,
   kiwisaverUnlockAge: 65,
   usdToNzd: 1.65,
+  applyInvestmentTax: false,
 };
 
 const stamp = "2026-01-01T00:00:00.000Z";

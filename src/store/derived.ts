@@ -3,12 +3,23 @@ import type { ProjectionLiability } from "@/domain/projection";
 
 import { useMemo } from "react";
 
+import { useIncome } from "./income";
 import { usePortfolio } from "./portfolio";
 import { useSettings } from "./settings";
 
 import { convert, toMonthly } from "@/domain/currency";
 import { computeFireTargets } from "@/domain/fire";
 import { buildProjection } from "@/domain/plan";
+import {
+  accLevy,
+  blendedAfterTaxReturn,
+  DEFAULT_EMPLOYER_KIWISAVER_RATE,
+  esctRate,
+  governmentContribution,
+  marginalRate,
+  payeTax,
+  prescribedInvestorRate,
+} from "@/domain/tax";
 
 export interface PortfolioTotals {
   assetsTotal: number;
@@ -163,6 +174,9 @@ const DASHBOARD_HORIZON_YEARS = 60;
  */
 export const useCurrentProjection = (): ProjectionPoint[] => {
   const totals = usePortfolioTotals();
+  const contributions = usePlanContributions();
+  const expectedReturn = useAfterTaxReturn();
+  const income = useIncomeTotals();
   const settings = useSettings((s) => s.settings);
 
   return useMemo(
@@ -170,16 +184,225 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
       buildProjection(
         {
           currentNetWorth: totals.netWorth,
-          monthlySavings: totals.monthlyContributions,
-          expectedReturn: settings.expectedReturn,
+          monthlySavings: contributions.monthlyContributions,
+          expectedReturn,
           retirementAge: settings.retirementAge,
           currentLockedNetWorth: totals.lockedAssetsTotal,
-          monthlyLockedSavings: totals.lockedMonthlyContributions,
+          monthlyLockedSavings: contributions.monthlyLockedContributions,
           liabilities: totals.debts,
+          retirementIncome: income.retirementIncomeAnnual,
         },
         settings,
         DASHBOARD_HORIZON_YEARS,
       ),
-    [totals, settings],
+    [totals, contributions, expectedReturn, income, settings],
   );
+};
+
+export interface IncomeTotals {
+  /** Gross annual income across every source, display currency. */
+  grossAnnual: number;
+  /** Gross annual salary and wages only — what KiwiSaver and ACC apply to. */
+  salaryAnnual: number;
+  /** Income tax plus the ACC earner levy. */
+  annualTax: number;
+  /** Gross less tax, before KiwiSaver is deducted. */
+  takeHomeAnnual: number;
+  /** Employee KiwiSaver contributions, deducted from take-home pay. */
+  employeeKiwisaverAnnual: number;
+  /** Employer KiwiSaver contributions, net of ESCT. */
+  employerKiwisaverAnnual: number;
+  /** Annual government contribution. */
+  govtContributionAnnual: number;
+  /** Every KiwiSaver inflow combined. */
+  kiwisaverAnnual: number;
+  /** True when any salary source defines a KiwiSaver rate. */
+  hasDerivedKiwisaver: boolean;
+  /** Income that keeps paying after retirement, e.g. rental. */
+  retirementIncomeAnnual: number;
+  marginalRate: number;
+  pir: number;
+}
+
+export const useIncomeTotals = (): IncomeTotals => {
+  const sources = useIncome((s) => s.sources);
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(() => {
+    const display = settings.displayCurrency;
+    const rate = settings.usdToNzd;
+
+    let grossAnnual = 0;
+    let salaryAnnual = 0;
+    let employeeKiwisaverAnnual = 0;
+    let employerGross = 0;
+    let retirementIncomeAnnual = 0;
+    let hasDerivedKiwisaver = false;
+
+    for (const source of sources) {
+      const annual =
+        toMonthly(
+          convert(source.amount, source.currency, display, rate),
+          source.frequency,
+        ) * 12;
+
+      grossAnnual += annual;
+      if (source.continuesInRetirement) retirementIncomeAnnual += annual;
+
+      if (source.type !== "salary") continue;
+
+      salaryAnnual += annual;
+
+      if (source.kiwisaverRate != null) {
+        hasDerivedKiwisaver = true;
+        employeeKiwisaverAnnual += annual * source.kiwisaverRate;
+        employerGross +=
+          annual *
+          (source.employerKiwisaverRate ?? DEFAULT_EMPLOYER_KIWISAVER_RATE);
+      }
+    }
+
+    // Employer contributions are taxed before they land in the fund.
+    const employerKiwisaverAnnual =
+      employerGross * (1 - esctRate(salaryAnnual + employerGross));
+    const govtContributionAnnual = governmentContribution(
+      employeeKiwisaverAnnual,
+      grossAnnual,
+    );
+
+    const annualTax = payeTax(grossAnnual) + accLevy(salaryAnnual);
+
+    return {
+      grossAnnual,
+      salaryAnnual,
+      annualTax,
+      takeHomeAnnual: grossAnnual - annualTax,
+      employeeKiwisaverAnnual,
+      employerKiwisaverAnnual,
+      govtContributionAnnual,
+      kiwisaverAnnual:
+        employeeKiwisaverAnnual +
+        employerKiwisaverAnnual +
+        govtContributionAnnual,
+      hasDerivedKiwisaver,
+      retirementIncomeAnnual,
+      marginalRate: marginalRate(grossAnnual),
+      pir: prescribedInvestorRate(grossAnnual),
+    };
+  }, [sources, settings]);
+};
+
+export interface SavingsSummary {
+  /** Everything that actually arrives: take-home plus employer and govt KiwiSaver. */
+  incomeAvailable: number;
+  /** Annual savings, including every KiwiSaver inflow. */
+  annualSavings: number;
+  /** Savings as a share of income available. 0 when there's no income yet. */
+  savingsRate: number;
+  /** What's left over after saving — implied spending. */
+  impliedSpending: number;
+  /** True once income has been entered, so the rate means something. */
+  hasIncome: boolean;
+}
+
+/**
+ * Savings rate, the single most predictive number in FIRE.
+ *
+ * Numerator and denominator are kept consistent: employee KiwiSaver comes out
+ * of take-home pay, so it appears in both, while employer and government
+ * contributions are added to each since they're money that arrives and is
+ * saved in the same motion.
+ */
+export const useSavingsSummary = (): SavingsSummary => {
+  const totals = usePortfolioTotals();
+  const income = useIncomeTotals();
+
+  return useMemo(() => {
+    const nonKiwisaverSavings =
+      (totals.monthlyContributions - totals.lockedMonthlyContributions) * 12;
+    const annualSavings = nonKiwisaverSavings + income.kiwisaverAnnual;
+    const incomeAvailable =
+      income.takeHomeAnnual +
+      income.employerKiwisaverAnnual +
+      income.govtContributionAnnual;
+
+    return {
+      incomeAvailable,
+      annualSavings,
+      savingsRate: incomeAvailable > 0 ? annualSavings / incomeAvailable : 0,
+      impliedSpending: incomeAvailable - annualSavings,
+      hasIncome: income.grossAnnual > 0,
+    };
+  }, [totals, income]);
+};
+
+/**
+ * The expected return after investment tax, blended across the portfolio.
+ *
+ * Returns the pre-tax figure untouched when tax modelling is switched off, so
+ * the setting is a genuine toggle rather than a partial one.
+ */
+export const useAfterTaxReturn = (nominalReturn?: number): number => {
+  const settings = useSettings((s) => s.settings);
+  const assets = usePortfolio((s) => s.assets);
+  const income = useIncomeTotals();
+
+  return useMemo(() => {
+    const nominal = nominalReturn ?? settings.expectedReturn;
+
+    if (!settings.applyInvestmentTax) return nominal;
+
+    const display = settings.displayCurrency;
+    const rate = settings.usdToNzd;
+    const weights = assets.map((a) => ({
+      type: a.type,
+      value: convert(a.value, a.currency, display, rate),
+    }));
+
+    return blendedAfterTaxReturn(weights, nominal, {
+      marginal: income.marginalRate,
+      pir: settings.pirOverride ?? income.pir,
+    });
+  }, [assets, settings, income, nominalReturn]);
+};
+
+export interface PlanContributions {
+  /** Total monthly contributions into assets, display currency. */
+  monthlyContributions: number;
+  /** Monthly contributions flowing into the locked KiwiSaver pot. */
+  monthlyLockedContributions: number;
+  /** True when KiwiSaver is derived from salary rather than entered by hand. */
+  kiwisaverFromSalary: boolean;
+}
+
+/**
+ * The contributions the plan should actually project.
+ *
+ * Once a salary defines a KiwiSaver rate, the derived contributions replace
+ * whatever was typed on the KiwiSaver asset — otherwise the same money would
+ * be counted twice.
+ */
+export const usePlanContributions = (): PlanContributions => {
+  const totals = usePortfolioTotals();
+  const income = useIncomeTotals();
+
+  return useMemo(() => {
+    if (!income.hasDerivedKiwisaver) {
+      return {
+        monthlyContributions: totals.monthlyContributions,
+        monthlyLockedContributions: totals.lockedMonthlyContributions,
+        kiwisaverFromSalary: false,
+      };
+    }
+
+    const nonLocked =
+      totals.monthlyContributions - totals.lockedMonthlyContributions;
+    const locked = income.kiwisaverAnnual / 12;
+
+    return {
+      monthlyContributions: nonLocked + locked,
+      monthlyLockedContributions: locked,
+      kiwisaverFromSalary: true,
+    };
+  }, [totals, income]);
 };

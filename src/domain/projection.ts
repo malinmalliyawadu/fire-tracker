@@ -32,6 +32,12 @@ export interface ProjectionInputs {
   monthlyLockedSavings?: number;
   /** Age at which the locked pot becomes available. Defaults to 65. */
   unlockAge?: number;
+  /**
+   * Income that keeps arriving throughout retirement (rental, royalties), in
+   * display currency. Reduces what has to come out of the portfolio, the same
+   * way NZ Super does, but without an age gate.
+   */
+  retirementIncomeAnnual?: number;
   /** Total annual cost of dependent kids in display currency. 0 disables. */
   kidsAnnualCost?: number;
   /** Number of years from now that the kids cost applies. Defaults to 18. */
@@ -129,6 +135,7 @@ export const generateProjection = (
   const annualAccessibleSavings = annualSavings - annualLockedSavings;
   const nzSuper = input.nzSuperAnnualInDisplay ?? 0;
   const nzSuperStart = input.nzSuperStartAge ?? 65;
+  const retirementIncome = input.retirementIncomeAnnual ?? 0;
   const unlockAge = input.unlockAge ?? 65;
   const kidsAnnualCost = input.kidsAnnualCost ?? 0;
   const kidsYears = input.kidsYears ?? 18;
@@ -198,7 +205,7 @@ export const generateProjection = (
     const freedReal = (scheduledPayments - paidNominal) / deflator;
 
     if (isRetired) {
-      const supplement = age >= nzSuperStart ? nzSuper : 0;
+      const supplement = (age >= nzSuperStart ? nzSuper : 0) + retirementIncome;
       const portfolioWithdrawal = Math.max(
         0,
         input.annualExpenses + kidsCost + debtServiceReal - supplement,

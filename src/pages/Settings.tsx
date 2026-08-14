@@ -5,6 +5,7 @@ import { KiwiSaverCard } from "@/components/settings/KiwiSaverCard";
 import { NzSuperCard } from "@/components/settings/NzSuperCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProfileCard } from "@/components/settings/ProfileCard";
+import { TaxCard } from "@/components/settings/TaxCard";
 
 export default function Settings() {
   return (
@@ -19,6 +20,7 @@ export default function Settings() {
         <ExchangeRateCard />
       </div>
       <GoalsCard />
+      <TaxCard />
       <div className="grid gap-6 lg:grid-cols-2">
         <NzSuperCard />
         <KiwiSaverCard />

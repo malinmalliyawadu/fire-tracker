@@ -15,7 +15,13 @@ import {
   KID_ANNUAL_COST_NZD,
   KID_DEPENDENT_YEARS,
 } from "@/domain/plan";
-import { useFireTargets, usePortfolioTotals } from "@/store/derived";
+import {
+  useAfterTaxReturn,
+  useFireTargets,
+  useIncomeTotals,
+  usePlanContributions,
+  usePortfolioTotals,
+} from "@/store/derived";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { ProjectionChart } from "@/components/simulate/ProjectionChart";
@@ -29,13 +35,18 @@ const PROJECTION_YEARS = 60;
 export default function Simulate() {
   const settings = useSettings((s) => s.settings);
   const totals = usePortfolioTotals();
+  const contributions = usePlanContributions();
+  const income = useIncomeTotals();
   const targets = useFireTargets();
   const scenarios = useScenarios((s) => s.scenarios);
   const comparedIds = useScenarios((s) => s.comparedIds);
 
   const defaults: SimulationInputs = useMemo(
     () => ({
-      monthlySavings: Math.max(0, Math.round(totals.monthlyContributions)),
+      monthlySavings: Math.max(
+        0,
+        Math.round(contributions.monthlyContributions),
+      ),
       expectedReturn: settings.expectedReturn,
       withdrawalRate: settings.withdrawalRate,
       retirementAge: settings.retirementAge,
@@ -44,7 +55,7 @@ export default function Simulate() {
       includeKids: false,
       numberOfKids: 1,
     }),
-    [totals.monthlyContributions, settings],
+    [contributions.monthlyContributions, settings],
   );
 
   const [inputs, setInputs] = useState<SimulationInputs>(defaults);
@@ -56,15 +67,20 @@ export default function Simulate() {
   }, [defaults]);
 
   const target = fireTargetFor(inputs.fireType, targets);
+  // The slider is a pre-tax return; investment tax is applied on top of it.
+  const simulatedAfterTaxReturn = useAfterTaxReturn(inputs.expectedReturn);
 
   const currentProjection = useMemo(() => {
     // Slider can move savings up/down; keep KiwiSaver share proportional.
-    const baseTotal = Math.max(0, Math.round(totals.monthlyContributions));
+    const baseTotal = Math.max(
+      0,
+      Math.round(contributions.monthlyContributions),
+    );
     const lockedShare =
       baseTotal > 0
         ? Math.min(
             inputs.monthlySavings,
-            (totals.lockedMonthlyContributions / baseTotal) *
+            (contributions.monthlyLockedContributions / baseTotal) *
               inputs.monthlySavings,
           )
         : 0;
@@ -73,7 +89,7 @@ export default function Simulate() {
       {
         currentNetWorth: totals.netWorth,
         monthlySavings: inputs.monthlySavings,
-        expectedReturn: inputs.expectedReturn,
+        expectedReturn: simulatedAfterTaxReturn,
         retirementAge: inputs.retirementAge,
         includeNzSuper: inputs.includeNzSuper,
         currentLockedNetWorth: totals.lockedAssetsTotal,
@@ -81,11 +97,19 @@ export default function Simulate() {
         includeKids: inputs.includeKids,
         numberOfKids: inputs.numberOfKids,
         liabilities: totals.debts,
+        retirementIncome: income.retirementIncomeAnnual,
       },
       settings,
       PROJECTION_YEARS,
     );
-  }, [totals, inputs, settings]);
+  }, [
+    totals,
+    contributions,
+    inputs,
+    settings,
+    simulatedAfterTaxReturn,
+    income.retirementIncomeAnnual,
+  ]);
 
   const yearsToTarget = useMemo(
     () => yearsUntilTarget(currentProjection, target),

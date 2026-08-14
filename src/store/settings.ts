@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS: Settings = {
   nzSuperStartAge: 65,
   kiwisaverUnlockAge: 65,
   usdToNzd: FALLBACK_USD_TO_NZD,
+  applyInvestmentTax: true,
 };
 
 export const useSettings = create<SettingsState>()(

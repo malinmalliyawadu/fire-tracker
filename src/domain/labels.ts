@@ -2,18 +2,21 @@ import type {
   AssetType,
   ContributionFrequency,
   FireType,
+  IncomeType,
   LiabilityType,
 } from "@/types";
 import type { LucideIcon } from "lucide-react";
 
 import {
   Bitcoin,
+  Briefcase,
   Building2,
   Car,
   CreditCard,
   GraduationCap,
   Home,
   Landmark,
+  Laptop,
   Layers,
   LineChart,
   PiggyBank,
@@ -137,4 +140,25 @@ export const ASSET_TYPE_COLOR: Record<AssetType, string> = {
   crypto: "#f59e0b",
   property: "#ec4899",
   other: "#94a3b8",
+};
+
+export const INCOME_TYPE_LABEL: Record<IncomeType, string> = {
+  salary: "Salary",
+  "self-employed": "Self-employed",
+  rental: "Rental",
+  other: "Other",
+};
+
+export const INCOME_TYPES: IncomeType[] = [
+  "salary",
+  "self-employed",
+  "rental",
+  "other",
+];
+
+export const INCOME_TYPE_ICON: Record<IncomeType, LucideIcon> = {
+  salary: Briefcase,
+  "self-employed": Laptop,
+  rental: Home,
+  other: Layers,
 };
