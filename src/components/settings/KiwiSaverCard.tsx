@@ -1,6 +1,7 @@
 import { Building2, Lock } from "lucide-react";
 import { Input } from "@heroui/input";
 
+import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
 
 import { Card } from "@/components/ui/Card";
@@ -10,6 +11,13 @@ export function KiwiSaverCard() {
   const update = useSettings((s) => s.update);
 
   const unlockAge = settings.kiwisaverUnlockAge ?? 65;
+
+  const unlockAgeField = useNumericField({
+    value: unlockAge,
+    onChange: (v) => update({ kiwisaverUnlockAge: v ?? 65 }),
+    allowDecimal: false,
+    grouping: false,
+  });
 
   return (
     <Card
@@ -33,13 +41,9 @@ export function KiwiSaverCard() {
         </div>
         <Input
           description="NZ default is 65 (matches NZ Super eligibility)"
-          inputMode="numeric"
           label="Unlock age"
-          value={unlockAge.toString()}
           variant="bordered"
-          onValueChange={(v) =>
-            update({ kiwisaverUnlockAge: parseInt(v) || 65 })
-          }
+          {...unlockAgeField}
         />
       </div>
     </Card>

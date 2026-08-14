@@ -18,6 +18,7 @@ import {
 } from "@/domain/labels";
 import { formatMoney } from "@/domain/format";
 import { toMonthly } from "@/domain/currency";
+import { useNumericField } from "@/hooks/useNumericField";
 import { usePortfolio } from "@/store/portfolio";
 
 import { AmountInput } from "@/components/ui/AmountInput";
@@ -35,9 +36,9 @@ interface AssetEditorProps {
 interface FormState {
   name: string;
   type: AssetType;
-  value: string;
+  value: number | null;
   currency: Currency;
-  contribution: string;
+  contribution: number | null;
   frequency: ContributionFrequency;
   notes: string;
 }
@@ -45,9 +46,9 @@ interface FormState {
 const blank = (asset?: Asset): FormState => ({
   name: asset?.name ?? "",
   type: asset?.type ?? "shares",
-  value: asset?.value?.toString() ?? "",
+  value: asset?.value ?? null,
   currency: asset?.currency ?? "NZD",
-  contribution: asset?.contribution?.toString() ?? "0",
+  contribution: asset?.contribution ?? 0,
   frequency: asset?.frequency ?? "monthly",
   notes: asset?.notes ?? "",
 });
@@ -64,15 +65,20 @@ export function AssetEditor({ isOpen, onClose, asset }: AssetEditorProps) {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const contributionField = useNumericField({
+    value: form.contribution,
+    onChange: (v) => set("contribution", v),
+  });
+
   const handleSave = () => {
     if (!form.name.trim()) return;
     upsertAsset({
       id: asset?.id,
       name: form.name.trim(),
       type: form.type,
-      value: parseFloat(form.value) || 0,
+      value: form.value ?? 0,
       currency: form.currency,
-      contribution: parseFloat(form.contribution) || 0,
+      contribution: form.contribution ?? 0,
       frequency: form.frequency,
       notes: form.notes.trim() || undefined,
     });
@@ -84,10 +90,7 @@ export function AssetEditor({ isOpen, onClose, asset }: AssetEditorProps) {
     onClose();
   };
 
-  const monthlyContribution = toMonthly(
-    parseFloat(form.contribution) || 0,
-    form.frequency,
-  );
+  const monthlyContribution = toMonthly(form.contribution ?? 0, form.frequency);
 
   return (
     <DialogShell
@@ -188,11 +191,9 @@ export function AssetEditor({ isOpen, onClose, asset }: AssetEditorProps) {
           </span>
           <input
             className="min-w-0 flex-1 bg-transparent font-mono tabular text-2xl font-semibold tracking-tight outline-none placeholder:text-ink-600"
-            inputMode="decimal"
             placeholder="0"
             type="text"
-            value={form.contribution}
-            onChange={(e) => set("contribution", e.target.value)}
+            {...contributionField}
           />
           <span className="text-[11px] text-ink-500">
             {FREQUENCY_LABEL[form.frequency]}

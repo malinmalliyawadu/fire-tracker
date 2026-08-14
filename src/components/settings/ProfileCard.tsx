@@ -3,6 +3,7 @@ import type { Currency } from "@/types";
 import { Input } from "@heroui/input";
 import clsx from "clsx";
 
+import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
 
 import { Card } from "@/components/ui/Card";
@@ -10,6 +11,19 @@ import { Card } from "@/components/ui/Card";
 export function ProfileCard() {
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
+
+  const currentAgeField = useNumericField({
+    value: settings.currentAge,
+    onChange: (v) => update({ currentAge: v ?? 0 }),
+    allowDecimal: false,
+    grouping: false,
+  });
+  const retirementAgeField = useNumericField({
+    value: settings.retirementAge,
+    onChange: (v) => update({ retirementAge: v ?? 0 }),
+    allowDecimal: false,
+    grouping: false,
+  });
 
   return (
     <Card eyebrow="About you" title="Profile">
@@ -38,22 +52,14 @@ export function ProfileCard() {
 
         <div className="grid grid-cols-2 gap-3">
           <Input
-            inputMode="numeric"
             label="Current age"
-            value={settings.currentAge.toString()}
             variant="bordered"
-            onValueChange={(v) =>
-              update({ currentAge: parseInt(v) || 0 })
-            }
+            {...currentAgeField}
           />
           <Input
-            inputMode="numeric"
             label="Retirement age"
-            value={settings.retirementAge.toString()}
             variant="bordered"
-            onValueChange={(v) =>
-              update({ retirementAge: parseInt(v) || 0 })
-            }
+            {...retirementAgeField}
           />
         </div>
       </div>

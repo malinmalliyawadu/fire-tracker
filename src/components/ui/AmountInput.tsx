@@ -3,10 +3,12 @@ import type { ReactNode } from "react";
 
 import clsx from "clsx";
 
+import { useNumericField } from "@/hooks/useNumericField";
+
 interface AmountInputProps {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
+  value: number | null;
+  onChange: (value: number | null) => void;
   currency: Currency;
   hint?: ReactNode;
   action?: ReactNode;
@@ -28,6 +30,7 @@ export function AmountInput({
   placeholder = "0",
   autoFocus,
 }: AmountInputProps) {
+  const field = useNumericField({ value, onChange });
   const symbol = currency === "NZD" ? "NZ$" : "US$";
   const focusRing =
     tone === "accent"
@@ -62,11 +65,9 @@ export function AmountInput({
             "min-w-0 flex-1 bg-transparent font-mono tabular font-semibold tracking-tight outline-none placeholder:text-ink-600",
             size === "lg" ? "text-3xl" : "text-xl",
           )}
-          inputMode="decimal"
           placeholder={placeholder}
           type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          {...field}
         />
       </div>
       {hint && <div className="mt-2 text-[11px] text-ink-400">{hint}</div>}

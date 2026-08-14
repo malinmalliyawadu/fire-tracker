@@ -2,6 +2,7 @@ import { Input } from "@heroui/input";
 
 import { computeFireTargets } from "@/domain/fire";
 import { formatMoneyCompact, formatPercent } from "@/domain/format";
+import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
 
 import { Card } from "@/components/ui/Card";
@@ -10,6 +11,11 @@ import { SliderField } from "@/components/simulate/SliderField";
 export function GoalsCard() {
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
+
+  const expensesField = useNumericField({
+    value: settings.annualExpenses,
+    onChange: (v) => update({ annualExpenses: v ?? 0 }),
+  });
 
   const targets = computeFireTargets({
     annualExpenses: settings.annualExpenses,
@@ -32,18 +38,14 @@ export function GoalsCard() {
     >
       <div className="space-y-5">
         <Input
-          inputMode="decimal"
           label="Annual expenses (today's dollars)"
           startContent={
             <span className="text-sm text-ink-400">
               {settings.displayCurrency === "NZD" ? "NZ$" : "US$"}
             </span>
           }
-          value={settings.annualExpenses.toString()}
           variant="bordered"
-          onValueChange={(v) =>
-            update({ annualExpenses: parseFloat(v) || 0 })
-          }
+          {...expensesField}
         />
 
         <SliderField

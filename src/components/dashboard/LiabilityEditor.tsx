@@ -18,6 +18,7 @@ import {
 } from "@/domain/labels";
 import { formatMoney } from "@/domain/format";
 import { toMonthly } from "@/domain/currency";
+import { useNumericField } from "@/hooks/useNumericField";
 import { usePortfolio } from "@/store/portfolio";
 
 import { AmountInput } from "@/components/ui/AmountInput";
@@ -35,21 +36,24 @@ interface LiabilityEditorProps {
 interface FormState {
   name: string;
   type: LiabilityType;
-  balance: string;
+  balance: number | null;
   currency: Currency;
-  interestRate: string;
-  payment: string;
+  interestRate: number | null;
+  payment: number | null;
   frequency: ContributionFrequency;
 }
 
 const blank = (l?: Liability): FormState => ({
   name: l?.name ?? "",
   type: l?.type ?? "mortgage",
-  balance: l?.balance?.toString() ?? "",
+  balance: l?.balance ?? null,
   currency: l?.currency ?? "NZD",
+  // toFixed keeps 0.0725 from surfacing as 7.249999999999999
   interestRate:
-    l?.interestRate !== undefined ? (l.interestRate * 100).toString() : "5",
-  payment: l?.payment?.toString() ?? "0",
+    l?.interestRate !== undefined
+      ? Number((l.interestRate * 100).toFixed(4))
+      : 5,
+  payment: l?.payment ?? 0,
   frequency: l?.frequency ?? "monthly",
 });
 
@@ -69,16 +73,21 @@ export function LiabilityEditor({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const paymentField = useNumericField({
+    value: form.payment,
+    onChange: (v) => set("payment", v),
+  });
+
   const handleSave = () => {
     if (!form.name.trim()) return;
     upsertLiability({
       id: liability?.id,
       name: form.name.trim(),
       type: form.type,
-      balance: parseFloat(form.balance) || 0,
+      balance: form.balance ?? 0,
       currency: form.currency,
-      interestRate: (parseFloat(form.interestRate) || 0) / 100,
-      payment: parseFloat(form.payment) || 0,
+      interestRate: (form.interestRate ?? 0) / 100,
+      payment: form.payment ?? 0,
       frequency: form.frequency,
     });
     onClose();
@@ -89,10 +98,7 @@ export function LiabilityEditor({
     onClose();
   };
 
-  const monthlyPayment = toMonthly(
-    parseFloat(form.payment) || 0,
-    form.frequency,
-  );
+  const monthlyPayment = toMonthly(form.payment ?? 0, form.frequency);
 
   return (
     <DialogShell
@@ -203,11 +209,9 @@ export function LiabilityEditor({
             </span>
             <input
               className="min-w-0 flex-1 bg-transparent font-mono tabular text-xl font-semibold tracking-tight outline-none placeholder:text-ink-600"
-              inputMode="decimal"
               placeholder="0"
               type="text"
-              value={form.payment}
-              onChange={(e) => set("payment", e.target.value)}
+              {...paymentField}
             />
           </div>
         </div>
@@ -225,12 +229,14 @@ export function LiabilityEditor({
 
 interface RatePillProps {
   label: string;
-  value: string;
+  value: number | null;
   unit: string;
-  onChange: (value: string) => void;
+  onChange: (value: number | null) => void;
 }
 
 function RatePill({ label, value, unit, onChange }: RatePillProps) {
+  const field = useNumericField({ value, onChange, grouping: false });
+
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
       <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
@@ -239,11 +245,9 @@ function RatePill({ label, value, unit, onChange }: RatePillProps) {
       <div className="flex items-baseline gap-1">
         <input
           className="min-w-0 flex-1 bg-transparent font-mono tabular text-xl font-semibold tracking-tight outline-none placeholder:text-ink-600"
-          inputMode="decimal"
           placeholder="5"
           type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          {...field}
         />
         <span className="font-mono text-sm font-medium text-ink-400">
           {unit}
