@@ -11,7 +11,9 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 
 import { buildSnapshotJson, buildSnapshotMarkdown } from "@/domain/export";
+import { useExpenses } from "@/store/expenses";
 import { useHistory } from "@/store/history";
+import { useIncome } from "@/store/income";
 import { usePortfolio } from "@/store/portfolio";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
@@ -25,18 +27,43 @@ export function ExportCard() {
   const liabilities = usePortfolio((s) => s.liabilities);
   const scenarios = useScenarios((s) => s.scenarios);
   const history = useHistory((s) => s.snapshots);
+  const income = useIncome((s) => s.sources);
+  const expenses = useExpenses((s) => s.expenses);
+  const events = useExpenses((s) => s.events);
+  const kids = useExpenses((s) => s.kids);
 
   const [format, setFormat] = useState<Format>("markdown");
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   const content = useMemo(() => {
-    const input = { settings, assets, liabilities, scenarios, history };
+    const input = {
+      settings,
+      assets,
+      liabilities,
+      scenarios,
+      history,
+      income,
+      expenses,
+      events,
+      kids,
+    };
 
     return format === "markdown"
       ? buildSnapshotMarkdown(input)
       : buildSnapshotJson(input);
-  }, [format, settings, assets, liabilities, scenarios, history]);
+  }, [
+    format,
+    settings,
+    assets,
+    liabilities,
+    scenarios,
+    history,
+    income,
+    expenses,
+    events,
+    kids,
+  ]);
 
   const fileName = `fire-snapshot-${new Date().toISOString().slice(0, 10)}.${format === "markdown" ? "md" : "json"}`;
   const mime = format === "markdown" ? "text/markdown" : "application/json";

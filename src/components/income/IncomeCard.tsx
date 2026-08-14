@@ -12,7 +12,11 @@ import { formatMoney, formatPercent } from "@/domain/format";
 import { TAX_YEAR } from "@/domain/tax";
 import { useSettings } from "@/store/settings";
 import { useIncome } from "@/store/income";
-import { useIncomeTotals, useSavingsSummary } from "@/store/derived";
+import {
+  useIncomeTotals,
+  usePlanBudget,
+  useSavingsSummary,
+} from "@/store/derived";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Money } from "@/components/ui/Money";
@@ -22,6 +26,7 @@ export function IncomeCard() {
   const settings = useSettings((s) => s.settings);
   const totals = useIncomeTotals();
   const savings = useSavingsSummary();
+  const budget = usePlanBudget();
   const [editing, setEditing] = useState<IncomeSource | undefined>();
   const [open, setOpen] = useState(false);
 
@@ -189,17 +194,19 @@ export function IncomeCard() {
                 }}
               />
             </div>
-            {Math.abs(savings.impliedSpending - settings.annualExpenses) >
-              settings.annualExpenses * 0.15 && (
-              <p className="mt-3 text-[11px] leading-relaxed text-amber-400/90">
-                Implied spending is{" "}
-                {formatMoney(savings.impliedSpending, display)} but your annual
-                expenses setting says{" "}
-                {formatMoney(settings.annualExpenses, display)}. Your FIRE
-                target is built from the setting, so it&apos;s worth reconciling
-                the two.
-              </p>
-            )}
+            {budget.annualExpenses > 0 &&
+              Math.abs(savings.impliedSpending - budget.annualExpenses) >
+                budget.annualExpenses * 0.15 && (
+                <p className="mt-3 text-[11px] leading-relaxed text-amber-400/90">
+                  Income less savings implies you spend{" "}
+                  {formatMoney(savings.impliedSpending, display)} a year, but
+                  your{" "}
+                  {budget.itemised ? "itemised expenses" : "expenses setting"}{" "}
+                  come to {formatMoney(budget.annualExpenses, display)}. The
+                  FIRE target is built from the recorded figure, so the gap is
+                  worth reconciling.
+                </p>
+              )}
           </div>
         </div>
       )}

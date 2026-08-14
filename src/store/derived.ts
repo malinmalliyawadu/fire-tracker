@@ -1,9 +1,11 @@
 import type { AssetType, FireTargets, ProjectionPoint } from "@/types";
 import type { ProjectionLiability } from "@/domain/projection";
+import type { SanityWarning } from "@/domain/sanity";
 
 import { useMemo } from "react";
 
 import { useExpenses } from "./expenses";
+import { useHistory } from "./history";
 import { useIncome } from "./income";
 import { usePortfolio } from "./portfolio";
 import { useSettings } from "./settings";
@@ -12,6 +14,8 @@ import { convert, toMonthly } from "@/domain/currency";
 import { computeFireTargets } from "@/domain/fire";
 import { kidsCostByYear as kidsCostNzdByYear } from "@/domain/kids";
 import { buildProjection } from "@/domain/plan";
+import { checkAssumptions } from "@/domain/sanity";
+import { attributeGrowth, comparePlan } from "@/domain/tracking";
 import {
   accLevy,
   blendedAfterTaxReturn,
@@ -516,4 +520,72 @@ export const usePlanBudget = (): PlanBudget => {
       workOnlyAnnual,
     };
   }, [expenses, events, kids, settings]);
+};
+
+/**
+ * Assumption warnings for the current plan. Empty when everything is
+ * internally consistent.
+ */
+export const useSanityWarnings = (): SanityWarning[] => {
+  const settings = useSettings((s) => s.settings);
+  const totals = usePortfolioTotals();
+  const allocation = useAllocation();
+  const budget = usePlanBudget();
+  const savings = useSavingsSummary();
+  const afterTax = useAfterTaxReturn();
+
+  return useMemo(
+    () =>
+      checkAssumptions({
+        settings,
+        realReturn: afterTax - settings.inflationRate,
+        retirementExpenses: budget.retirementExpenses,
+        savingsRate: savings.savingsRate,
+        hasIncome: savings.hasIncome,
+        topAssetShare: allocation.topPercent,
+        hasNegativeAmortisation: totals.debts.some(
+          (d) => d.balance > 0 && d.annualPayment < d.balance * d.interestRate,
+        ),
+      }),
+    [settings, afterTax, budget, savings, allocation, totals],
+  );
+};
+
+/** How the plan is tracking against reality, from recorded snapshots. */
+export const usePlanTracking = () => {
+  const snapshots = useHistory((s) => s.snapshots);
+  const contributions = usePlanContributions();
+  const expectedReturn = useAfterTaxReturn();
+  const budget = usePlanBudget();
+  const totals = usePortfolioTotals();
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(() => {
+    const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+    const first = sorted[0];
+
+    if (!first) return { comparison: null, attribution: null };
+
+    // Anchor the projection at the first snapshot, so the comparison asks
+    // whether reality matched the plan rather than comparing today to today.
+    const fromFirst = buildProjection(
+      {
+        currentNetWorth: first.netWorth,
+        monthlySavings: contributions.monthlyContributions,
+        expectedReturn,
+        retirementAge: settings.retirementAge,
+        annualExpenses: budget.annualExpenses,
+        retirementExpenses: budget.retirementExpenses,
+        currentLockedNetWorth: totals.lockedAssetsTotal,
+        monthlyLockedSavings: contributions.monthlyLockedContributions,
+      },
+      settings,
+      DASHBOARD_HORIZON_YEARS,
+    );
+
+    return {
+      comparison: comparePlan(sorted, fromFirst),
+      attribution: attributeGrowth(sorted, contributions.monthlyContributions),
+    };
+  }, [snapshots, contributions, expectedReturn, budget, totals, settings]);
 };
