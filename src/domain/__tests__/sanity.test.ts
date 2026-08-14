@@ -100,6 +100,13 @@ describe("checkAssumptions", () => {
     expect(ids({ ...healthy, topAssetShare: 0.8 })).toContain("concentrated");
   });
 
+  it("warns when a property is excluded but its mortgage still counts", () => {
+    expect(ids({ ...healthy, hasUnpairedPropertyDebt: true })).toContain(
+      "unpaired-property-debt",
+    );
+    expect(ids(healthy)).not.toContain("unpaired-property-debt");
+  });
+
   it("notes a loan still being repaid after retirement", () => {
     expect(ids({ ...healthy, hasDebtPastRetirement: true })).toContain(
       "debt-past-retirement",
