@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { generateProjection, yearsToTarget } from "../projection";
+import {
+  coastPoint,
+  generateProjection,
+  spendingMultiplier,
+  yearsToTarget,
+} from "../projection";
 
 describe("generateProjection", () => {
   const base = {
@@ -350,5 +355,300 @@ describe("yearsToTarget", () => {
     // The interpolated answer sits in the year before the first crossing.
     expect(years).toBeGreaterThan(crossing.year - 1);
     expect(years).toBeLessThanOrEqual(crossing.year);
+  });
+});
+
+describe("spendingMultiplier", () => {
+  const phases = {
+    enabled: true,
+    goGoMultiplier: 1.1,
+    slowGoFromAge: 75,
+    slowGoMultiplier: 0.9,
+    noGoFromAge: 85,
+    noGoMultiplier: 0.85,
+  };
+
+  it("is 1 when phases are disabled or absent", () => {
+    expect(spendingMultiplier(80, { ...phases, enabled: false })).toBe(1);
+    expect(spendingMultiplier(80, undefined)).toBe(1);
+  });
+
+  it("picks the band the age falls in", () => {
+    expect(spendingMultiplier(66, phases)).toBe(1.1);
+    expect(spendingMultiplier(74, phases)).toBe(1.1);
+    expect(spendingMultiplier(75, phases)).toBe(0.9);
+    expect(spendingMultiplier(84, phases)).toBe(0.9);
+    expect(spendingMultiplier(85, phases)).toBe(0.85);
+    expect(spendingMultiplier(100, phases)).toBe(0.85);
+  });
+});
+
+describe("retirement spending", () => {
+  const base = {
+    currentNetWorth: 2_000_000,
+    monthlySavings: 0,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 65,
+    retirementAge: 65,
+    annualExpenses: 60_000,
+    years: 30,
+  };
+
+  it("uses retirementExpenses instead of annualExpenses once retired", () => {
+    const flat = generateProjection(base);
+    const cheaper = generateProjection({ ...base, retirementExpenses: 40_000 });
+    const at75 = cheaper.find((p) => p.age === 75)!;
+    const at75Flat = flat.find((p) => p.age === 75)!;
+
+    expect(at75.withdrawn).toBeLessThan(at75Flat.withdrawn);
+    expect(at75.netWorth).toBeGreaterThan(at75Flat.netWorth);
+  });
+
+  it("falls back to annualExpenses when retirementExpenses is absent", () => {
+    const implicit = generateProjection(base);
+    const explicit = generateProjection({
+      ...base,
+      retirementExpenses: base.annualExpenses,
+    });
+
+    expect(implicit.at(-1)!.netWorth).toBe(explicit.at(-1)!.netWorth);
+  });
+
+  it("spending phases reduce withdrawals in the later years", () => {
+    const flat = generateProjection(base);
+    const phased = generateProjection({
+      ...base,
+      spendingPhases: {
+        enabled: true,
+        goGoMultiplier: 1,
+        slowGoFromAge: 75,
+        slowGoMultiplier: 0.8,
+        noGoFromAge: 85,
+        noGoMultiplier: 0.7,
+      },
+    });
+
+    const at74 = phased.find((p) => p.age === 74)!;
+    const at74Flat = flat.find((p) => p.age === 74)!;
+    const at90 = phased.find((p) => p.age === 90)!;
+    const at90Flat = flat.find((p) => p.age === 90)!;
+
+    // Identical while the multiplier is 1, better once it drops.
+    expect(at74.withdrawn).toBeCloseTo(at74Flat.withdrawn, 0);
+    expect(at90.withdrawn).toBeLessThan(at90Flat.withdrawn);
+  });
+});
+
+describe("one-off events", () => {
+  const base = {
+    currentNetWorth: 300_000,
+    monthlySavings: 2_000,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 35,
+    retirementAge: 65,
+    annualExpenses: 50_000,
+    years: 20,
+  };
+
+  it("a cost dents the portfolio from the year it lands", () => {
+    const withoutEvent = generateProjection(base);
+    const withEvent = generateProjection({
+      ...base,
+      oneOffByYear: [0, 0, 0, 100_000],
+    });
+
+    expect(withEvent[3].netWorth).toBe(withoutEvent[3].netWorth);
+    expect(withEvent[4].netWorth).toBeLessThan(withoutEvent[4].netWorth);
+  });
+
+  it("a windfall lifts it", () => {
+    const withoutEvent = generateProjection(base);
+    const withWindfall = generateProjection({
+      ...base,
+      oneOffByYear: [0, 0, -50_000],
+    });
+
+    expect(withWindfall[5].netWorth).toBeGreaterThan(withoutEvent[5].netWorth);
+  });
+
+  it("events after retirement come out of withdrawals", () => {
+    const retired = { ...base, currentAge: 65, retirementAge: 65 };
+    const withoutEvent = generateProjection(retired);
+    const withEvent = generateProjection({
+      ...retired,
+      oneOffByYear: [30_000],
+    });
+
+    expect(withEvent[1].withdrawn).toBeGreaterThan(withoutEvent[1].withdrawn);
+  });
+
+  it("ignores years beyond the array", () => {
+    const short = generateProjection({ ...base, oneOffByYear: [0, 5_000] });
+
+    expect(short).toHaveLength(21);
+    expect(Number.isFinite(short.at(-1)!.netWorth)).toBe(true);
+  });
+});
+
+describe("kid costs by year", () => {
+  const base = {
+    currentNetWorth: 300_000,
+    monthlySavings: 2_000,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 35,
+    retirementAge: 65,
+    annualExpenses: 50_000,
+    years: 20,
+  };
+
+  it("only bites in the years with a cost", () => {
+    const none = generateProjection(base);
+    const withKids = generateProjection({
+      ...base,
+      kidsCostByYear: [0, 0, 15_000, 15_000],
+    });
+
+    expect(withKids[2].netWorth).toBe(none[2].netWorth);
+    expect(withKids[5].netWorth).toBeLessThan(none[5].netWorth);
+  });
+
+  it("a longer cost curve costs more overall", () => {
+    const short = generateProjection({
+      ...base,
+      kidsCostByYear: Array(5).fill(15_000),
+    });
+    const long = generateProjection({
+      ...base,
+      kidsCostByYear: Array(18).fill(15_000),
+    });
+
+    expect(long.at(-1)!.netWorth).toBeLessThan(short.at(-1)!.netWorth);
+  });
+});
+
+describe("coastPoint", () => {
+  const base = {
+    currentNetWorth: 100_000,
+    monthlySavings: 2_000,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 30,
+    retirementAge: 65,
+    annualExpenses: 40_000,
+    years: 40,
+  };
+  const realReturn = base.expectedReturn - base.inflationRate;
+
+  it("returns null for a target that's never coastable", () => {
+    const points = generateProjection(base);
+
+    expect(coastPoint(points, 500_000_000, realReturn, 65)).toBeNull();
+  });
+
+  it("returns null for a non-positive target", () => {
+    expect(coastPoint(generateProjection(base), 0, realReturn, 65)).toBeNull();
+  });
+
+  it("says 'now' when today's net worth already coasts there", () => {
+    const points = generateProjection(base);
+    // 100k compounding for 35 years at 4.5% lands well above 300k.
+    const coast = coastPoint(points, 300_000, realReturn, 65);
+
+    expect(coast).not.toBeNull();
+    expect(coast!.year).toBe(0);
+  });
+
+  it("arrives before the target itself is reached", () => {
+    const points = generateProjection(base);
+    const target = 1_000_000;
+    const coast = coastPoint(points, target, realReturn, 65);
+    const reached = yearsToTarget(points, target);
+
+    expect(coast).not.toBeNull();
+    expect(coast!.year).toBeLessThan(reached);
+  });
+
+  it("a bigger target takes longer to coast to", () => {
+    const points = generateProjection(base);
+    const early = coastPoint(points, 800_000, realReturn, 65)!;
+    const later = coastPoint(points, 1_500_000, realReturn, 65)!;
+
+    expect(later.year).toBeGreaterThan(early.year);
+  });
+
+  it("retiring earlier leaves less time to coast, so it takes longer", () => {
+    const points = generateProjection(base);
+    const to65 = coastPoint(points, 1_000_000, realReturn, 65)!;
+    const to55 = coastPoint(points, 1_000_000, realReturn, 55)!;
+
+    expect(to55.year).toBeGreaterThan(to65.year);
+  });
+});
+
+describe("barista income and partner Super", () => {
+  const early = {
+    currentNetWorth: 900_000,
+    monthlySavings: 0,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 50,
+    retirementAge: 50,
+    annualExpenses: 55_000,
+    years: 45,
+  };
+
+  it("part-time income reduces early withdrawals", () => {
+    const without = generateProjection(early);
+    const withBarista = generateProjection({
+      ...early,
+      baristaIncomeAnnual: 25_000,
+      baristaUntilAge: 60,
+    });
+    const at55 = withBarista.find((p) => p.age === 55)!;
+    const at55Without = without.find((p) => p.age === 55)!;
+
+    expect(at55.withdrawn).toBeLessThan(at55Without.withdrawn);
+    expect(at55.netWorth).toBeGreaterThan(at55Without.netWorth);
+  });
+
+  it("part-time income stops at the given age", () => {
+    const points = generateProjection({
+      ...early,
+      baristaIncomeAnnual: 25_000,
+      baristaUntilAge: 60,
+    });
+    const at61 = points.find((p) => p.age === 61)!;
+    const at62 = points.find((p) => p.age === 62)!;
+
+    // Full expenses again once the part-time work ends.
+    expect(at62.withdrawn - at61.withdrawn).toBeCloseTo(55_000, 0);
+  });
+
+  it("a partner's Super starts on its own schedule", () => {
+    const solo = generateProjection({
+      ...early,
+      nzSuperAnnualInDisplay: 21_000,
+      nzSuperStartAge: 65,
+    });
+    const couple = generateProjection({
+      ...early,
+      nzSuperAnnualInDisplay: 21_000,
+      nzSuperStartAge: 65,
+      partnerNzSuperAnnual: 21_000,
+      // Partner is five years younger, so their Super lands when you're 70.
+      partnerNzSuperStartAge: 70,
+    });
+
+    const at67 = couple.find((p) => p.age === 67)!;
+    const at67Solo = solo.find((p) => p.age === 67)!;
+    const at75 = couple.find((p) => p.age === 75)!;
+    const at75Solo = solo.find((p) => p.age === 75)!;
+
+    // Identical before the partner qualifies, better afterwards.
+    expect(at67.netWorth).toBe(at67Solo.netWorth);
+    expect(at75.netWorth).toBeGreaterThan(at75Solo.netWorth);
   });
 });

@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Settings,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import clsx from "clsx";
@@ -18,6 +19,7 @@ interface NavItem {
 
 const items: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/spending", label: "Spending", icon: Wallet },
   { to: "/simulate", label: "Simulate", icon: Sparkles },
   { to: "/export", label: "Export", icon: FileText },
   { to: "/settings", label: "Settings", icon: Settings },

@@ -1,6 +1,10 @@
 import type {
   Asset,
+  Expense,
+  IncomeSource,
+  Kid,
   Liability,
+  LifeEvent,
   ProjectionPoint,
   Scenario,
   Settings,
@@ -27,6 +31,10 @@ export interface SnapshotInput {
   liabilities: Liability[];
   scenarios: Scenario[];
   history?: NetWorthSnapshot[];
+  income?: IncomeSource[];
+  expenses?: Expense[];
+  events?: LifeEvent[];
+  kids?: Kid[];
 }
 
 /** Matches the dashboard's projection horizon so figures line up. */

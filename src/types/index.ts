@@ -1,3 +1,5 @@
+import type { NzSuperStatus } from "@/domain/tax";
+
 export type Currency = "NZD" | "USD";
 
 export type ContributionFrequency =
@@ -50,6 +52,89 @@ export interface Liability {
   updatedAt: string;
 }
 
+export type ExpenseCategory =
+  | "housing"
+  | "food"
+  | "transport"
+  | "utilities"
+  | "health"
+  | "insurance"
+  | "discretionary"
+  | "other";
+
+export interface Expense {
+  id: string;
+  name: string;
+  category: ExpenseCategory;
+  amount: number;
+  currency: Currency;
+  frequency: ContributionFrequency;
+  /** Drops away once retired, e.g. commuting or work clothes. */
+  stopsAtRetirement?: boolean;
+  /** Only starts once retired, e.g. extra travel or health cover. */
+  startsAtRetirement?: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A dated one-off cost or windfall: a car, a deposit, an inheritance. */
+export interface LifeEvent {
+  id: string;
+  name: string;
+  /** Calendar year the event lands in. */
+  year: number;
+  /** Positive is a cost, negative is money arriving. */
+  amount: number;
+  currency: Currency;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Kid {
+  id: string;
+  name: string;
+  /** Year of birth. A future year models a kid you're planning for. */
+  birthYear: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Retirement spending rarely stays flat. Multipliers on retirement expenses
+ * for the active years, the slower years, and the late years.
+ */
+export interface SpendingPhases {
+  enabled: boolean;
+  goGoMultiplier: number;
+  slowGoFromAge: number;
+  slowGoMultiplier: number;
+  noGoFromAge: number;
+  noGoMultiplier: number;
+}
+
+export type IncomeType = "salary" | "self-employed" | "rental" | "other";
+
+export interface IncomeSource {
+  id: string;
+  name: string;
+  type: IncomeType;
+  /** Gross amount before tax, expressed at `frequency`. */
+  amount: number;
+  currency: Currency;
+  frequency: ContributionFrequency;
+  /** Employee KiwiSaver contribution rate. Salary income only. */
+  kiwisaverRate?: number;
+  /** Employer KiwiSaver contribution rate. Salary income only. */
+  employerKiwisaverRate?: number;
+  /** Keeps paying after retirement, e.g. rental or royalties. */
+  continuesInRetirement?: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Settings {
   displayCurrency: Currency;
   currentAge: number;
@@ -63,11 +148,39 @@ export interface Settings {
   kiwisaverUnlockAge: number;
   usdToNzd: number;
   exchangeRateUpdatedAt?: string;
+  /** Apply NZ investment tax (PIE/FDR, RWT) to projected returns. */
+  applyInvestmentTax: boolean;
+  /** Force a PIR instead of deriving one from income. */
+  pirOverride?: number;
+  /** Annual spending once retired, when it differs from today's. */
+  retirementExpenses?: number;
+  spendingPhases: SpendingPhases;
+  /** Which NZ Super rate applies — living situation, not just status. */
+  nzSuperStatus: NzSuperStatus;
+  household: Household;
+  /** Set once the first-run wizard has been completed or skipped. */
+  onboarded?: boolean;
+}
+
+/**
+ * A partner sharing the plan. Their assets and income go in the same lists as
+ * yours; what's modelled separately is the timing their age changes — a second
+ * NZ Super entitlement that starts when *they* turn 65, not when you do.
+ */
+export interface Household {
+  hasPartner: boolean;
+  partnerAge: number;
+  /** Include the partner's NZ Super in retirement income. */
+  includePartnerNzSuper: boolean;
 }
 
 export type FireType = "traditional" | "lean" | "fat" | "coast";
 
 export interface SimulationInputs {
+  /** Part-time earnings during early retirement, display currency per year. */
+  baristaIncome: number;
+  /** Age the part-time work stops. */
+  baristaUntilAge: number;
   monthlySavings: number;
   expectedReturn: number;
   withdrawalRate: number;

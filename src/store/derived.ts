@@ -1,14 +1,31 @@
 import type { AssetType, FireTargets, ProjectionPoint } from "@/types";
 import type { ProjectionLiability } from "@/domain/projection";
+import type { SanityWarning } from "@/domain/sanity";
 
 import { useMemo } from "react";
 
+import { useExpenses } from "./expenses";
+import { useHistory } from "./history";
+import { useIncome } from "./income";
 import { usePortfolio } from "./portfolio";
 import { useSettings } from "./settings";
 
 import { convert, toMonthly } from "@/domain/currency";
 import { computeFireTargets } from "@/domain/fire";
+import { kidsCostByYear as kidsCostNzdByYear } from "@/domain/kids";
 import { buildProjection } from "@/domain/plan";
+import { checkAssumptions } from "@/domain/sanity";
+import { attributeGrowth, comparePlan } from "@/domain/tracking";
+import {
+  accLevy,
+  blendedAfterTaxReturn,
+  DEFAULT_EMPLOYER_KIWISAVER_RATE,
+  esctRate,
+  governmentContribution,
+  marginalRate,
+  payeTax,
+  prescribedInvestorRate,
+} from "@/domain/tax";
 
 export interface PortfolioTotals {
   assetsTotal: number;
@@ -138,18 +155,20 @@ export const useAllocation = (): AllocationSummary => {
 
 export const useFireTargets = (): FireTargets => {
   const settings = useSettings((s) => s.settings);
+  const budget = usePlanBudget();
 
   return useMemo(
     () =>
       computeFireTargets({
-        annualExpenses: settings.annualExpenses,
+        // The target funds retirement, so it's built from retirement spending.
+        annualExpenses: budget.retirementExpenses,
         withdrawalRate: settings.withdrawalRate,
         expectedReturn: settings.expectedReturn,
         inflationRate: settings.inflationRate,
         currentAge: settings.currentAge,
         retirementAge: settings.retirementAge,
       }),
-    [settings],
+    [settings, budget.retirementExpenses],
   );
 };
 
@@ -163,6 +182,10 @@ const DASHBOARD_HORIZON_YEARS = 60;
  */
 export const useCurrentProjection = (): ProjectionPoint[] => {
   const totals = usePortfolioTotals();
+  const contributions = usePlanContributions();
+  const expectedReturn = useAfterTaxReturn();
+  const income = useIncomeTotals();
+  const budget = usePlanBudget();
   const settings = useSettings((s) => s.settings);
 
   return useMemo(
@@ -170,16 +193,399 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
       buildProjection(
         {
           currentNetWorth: totals.netWorth,
-          monthlySavings: totals.monthlyContributions,
-          expectedReturn: settings.expectedReturn,
+          monthlySavings: contributions.monthlyContributions,
+          expectedReturn,
           retirementAge: settings.retirementAge,
+          annualExpenses: budget.annualExpenses,
+          retirementExpenses: budget.retirementExpenses,
+          kidsCostByYear: budget.kidsCostByYear,
+          oneOffByYear: budget.oneOffByYear,
           currentLockedNetWorth: totals.lockedAssetsTotal,
-          monthlyLockedSavings: totals.lockedMonthlyContributions,
+          monthlyLockedSavings: contributions.monthlyLockedContributions,
           liabilities: totals.debts,
+          retirementIncome: income.retirementIncomeAnnual,
         },
         settings,
         DASHBOARD_HORIZON_YEARS,
       ),
-    [totals, settings],
+    [totals, contributions, expectedReturn, income, budget, settings],
   );
+};
+
+export interface IncomeTotals {
+  /** Gross annual income across every source, display currency. */
+  grossAnnual: number;
+  /** Gross annual salary and wages only — what KiwiSaver and ACC apply to. */
+  salaryAnnual: number;
+  /** Income tax plus the ACC earner levy. */
+  annualTax: number;
+  /** Gross less tax, before KiwiSaver is deducted. */
+  takeHomeAnnual: number;
+  /** Employee KiwiSaver contributions, deducted from take-home pay. */
+  employeeKiwisaverAnnual: number;
+  /** Employer KiwiSaver contributions, net of ESCT. */
+  employerKiwisaverAnnual: number;
+  /** Annual government contribution. */
+  govtContributionAnnual: number;
+  /** Every KiwiSaver inflow combined. */
+  kiwisaverAnnual: number;
+  /** True when any salary source defines a KiwiSaver rate. */
+  hasDerivedKiwisaver: boolean;
+  /** Income that keeps paying after retirement, e.g. rental. */
+  retirementIncomeAnnual: number;
+  marginalRate: number;
+  pir: number;
+}
+
+export const useIncomeTotals = (): IncomeTotals => {
+  const sources = useIncome((s) => s.sources);
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(() => {
+    const display = settings.displayCurrency;
+    const rate = settings.usdToNzd;
+
+    let grossAnnual = 0;
+    let salaryAnnual = 0;
+    let employeeKiwisaverAnnual = 0;
+    let employerGross = 0;
+    let retirementIncomeAnnual = 0;
+    let hasDerivedKiwisaver = false;
+
+    for (const source of sources) {
+      const annual =
+        toMonthly(
+          convert(source.amount, source.currency, display, rate),
+          source.frequency,
+        ) * 12;
+
+      grossAnnual += annual;
+      if (source.continuesInRetirement) retirementIncomeAnnual += annual;
+
+      if (source.type !== "salary") continue;
+
+      salaryAnnual += annual;
+
+      if (source.kiwisaverRate != null) {
+        hasDerivedKiwisaver = true;
+        employeeKiwisaverAnnual += annual * source.kiwisaverRate;
+        employerGross +=
+          annual *
+          (source.employerKiwisaverRate ?? DEFAULT_EMPLOYER_KIWISAVER_RATE);
+      }
+    }
+
+    // Employer contributions are taxed before they land in the fund.
+    const employerKiwisaverAnnual =
+      employerGross * (1 - esctRate(salaryAnnual + employerGross));
+    const govtContributionAnnual = governmentContribution(
+      employeeKiwisaverAnnual,
+      grossAnnual,
+    );
+
+    const annualTax = payeTax(grossAnnual) + accLevy(salaryAnnual);
+
+    return {
+      grossAnnual,
+      salaryAnnual,
+      annualTax,
+      takeHomeAnnual: grossAnnual - annualTax,
+      employeeKiwisaverAnnual,
+      employerKiwisaverAnnual,
+      govtContributionAnnual,
+      kiwisaverAnnual:
+        employeeKiwisaverAnnual +
+        employerKiwisaverAnnual +
+        govtContributionAnnual,
+      hasDerivedKiwisaver,
+      retirementIncomeAnnual,
+      marginalRate: marginalRate(grossAnnual),
+      pir: prescribedInvestorRate(grossAnnual),
+    };
+  }, [sources, settings]);
+};
+
+export interface SavingsSummary {
+  /** Everything that actually arrives: take-home plus employer and govt KiwiSaver. */
+  incomeAvailable: number;
+  /** Annual savings, including every KiwiSaver inflow. */
+  annualSavings: number;
+  /** Savings as a share of income available. 0 when there's no income yet. */
+  savingsRate: number;
+  /** What's left over after saving — implied spending. */
+  impliedSpending: number;
+  /** True once income has been entered, so the rate means something. */
+  hasIncome: boolean;
+}
+
+/**
+ * Savings rate, the single most predictive number in FIRE.
+ *
+ * Numerator and denominator are kept consistent: employee KiwiSaver comes out
+ * of take-home pay, so it appears in both, while employer and government
+ * contributions are added to each since they're money that arrives and is
+ * saved in the same motion.
+ */
+export const useSavingsSummary = (): SavingsSummary => {
+  const totals = usePortfolioTotals();
+  const income = useIncomeTotals();
+
+  return useMemo(() => {
+    const nonKiwisaverSavings =
+      (totals.monthlyContributions - totals.lockedMonthlyContributions) * 12;
+    const annualSavings = nonKiwisaverSavings + income.kiwisaverAnnual;
+    const incomeAvailable =
+      income.takeHomeAnnual +
+      income.employerKiwisaverAnnual +
+      income.govtContributionAnnual;
+
+    return {
+      incomeAvailable,
+      annualSavings,
+      savingsRate: incomeAvailable > 0 ? annualSavings / incomeAvailable : 0,
+      impliedSpending: incomeAvailable - annualSavings,
+      hasIncome: income.grossAnnual > 0,
+    };
+  }, [totals, income]);
+};
+
+/**
+ * The expected return after investment tax, blended across the portfolio.
+ *
+ * Returns the pre-tax figure untouched when tax modelling is switched off, so
+ * the setting is a genuine toggle rather than a partial one.
+ */
+export const useAfterTaxReturn = (nominalReturn?: number): number => {
+  const settings = useSettings((s) => s.settings);
+  const assets = usePortfolio((s) => s.assets);
+  const income = useIncomeTotals();
+
+  return useMemo(() => {
+    const nominal = nominalReturn ?? settings.expectedReturn;
+
+    if (!settings.applyInvestmentTax) return nominal;
+
+    const display = settings.displayCurrency;
+    const rate = settings.usdToNzd;
+    const weights = assets.map((a) => ({
+      type: a.type,
+      value: convert(a.value, a.currency, display, rate),
+    }));
+
+    return blendedAfterTaxReturn(weights, nominal, {
+      marginal: income.marginalRate,
+      pir: settings.pirOverride ?? income.pir,
+    });
+  }, [assets, settings, income, nominalReturn]);
+};
+
+export interface PlanContributions {
+  /** Total monthly contributions into assets, display currency. */
+  monthlyContributions: number;
+  /** Monthly contributions flowing into the locked KiwiSaver pot. */
+  monthlyLockedContributions: number;
+  /** True when KiwiSaver is derived from salary rather than entered by hand. */
+  kiwisaverFromSalary: boolean;
+}
+
+/**
+ * The contributions the plan should actually project.
+ *
+ * Once a salary defines a KiwiSaver rate, the derived contributions replace
+ * whatever was typed on the KiwiSaver asset — otherwise the same money would
+ * be counted twice.
+ */
+export const usePlanContributions = (): PlanContributions => {
+  const totals = usePortfolioTotals();
+  const income = useIncomeTotals();
+
+  return useMemo(() => {
+    if (!income.hasDerivedKiwisaver) {
+      return {
+        monthlyContributions: totals.monthlyContributions,
+        monthlyLockedContributions: totals.lockedMonthlyContributions,
+        kiwisaverFromSalary: false,
+      };
+    }
+
+    const nonLocked =
+      totals.monthlyContributions - totals.lockedMonthlyContributions;
+    const locked = income.kiwisaverAnnual / 12;
+
+    return {
+      monthlyContributions: nonLocked + locked,
+      monthlyLockedContributions: locked,
+      kiwisaverFromSalary: true,
+    };
+  }, [totals, income]);
+};
+
+export interface PlanBudget {
+  /** Annual spending today, itemised if entered, else the settings figure. */
+  annualExpenses: number;
+  /** Annual spending once retired. */
+  retirementExpenses: number;
+  /** Kid costs by year offset, in display currency. */
+  kidsCostByYear: number[];
+  /** One-off costs (positive) and windfalls (negative) by year offset. */
+  oneOffByYear: number[];
+  /** True when expenses are itemised rather than taken from settings. */
+  itemised: boolean;
+  /** Expenses that only start at retirement, e.g. travel or health cover. */
+  retirementOnlyAnnual: number;
+  /** Expenses that stop at retirement, e.g. commuting. */
+  workOnlyAnnual: number;
+}
+
+/** How far ahead kid costs and one-off events are laid out. */
+const BUDGET_HORIZON_YEARS = 60;
+
+/**
+ * The spending side of the plan: itemised expenses, dependent kids, and dated
+ * one-off events, all normalised to display currency and year offsets.
+ *
+ * Itemised expenses take over from the single `annualExpenses` setting once
+ * any are entered, so the FIRE target follows what's actually been recorded.
+ */
+export const usePlanBudget = (): PlanBudget => {
+  const expenses = useExpenses((s) => s.expenses);
+  const events = useExpenses((s) => s.events);
+  const kids = useExpenses((s) => s.kids);
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(() => {
+    const display = settings.displayCurrency;
+    const rate = settings.usdToNzd;
+    const startYear = new Date().getFullYear();
+
+    let todayAnnual = 0;
+    let retirementAnnual = 0;
+    let retirementOnlyAnnual = 0;
+    let workOnlyAnnual = 0;
+
+    for (const expense of expenses) {
+      const annual =
+        toMonthly(
+          convert(expense.amount, expense.currency, display, rate),
+          expense.frequency,
+        ) * 12;
+
+      if (expense.startsAtRetirement) {
+        retirementAnnual += annual;
+        retirementOnlyAnnual += annual;
+        continue;
+      }
+
+      todayAnnual += annual;
+      if (expense.stopsAtRetirement) workOnlyAnnual += annual;
+      else retirementAnnual += annual;
+    }
+
+    const itemised = expenses.length > 0;
+    const annualExpenses = itemised ? todayAnnual : settings.annualExpenses;
+    const retirementExpenses = itemised
+      ? retirementAnnual
+      : (settings.retirementExpenses ?? settings.annualExpenses);
+
+    const kidsCostByYear = kidsCostNzdByYear({
+      kids,
+      startYear,
+      years: BUDGET_HORIZON_YEARS,
+    }).map((nzd) => convert(nzd, "NZD", display, rate));
+
+    const oneOffByYear = Array.from(
+      { length: BUDGET_HORIZON_YEARS + 1 },
+      () => 0,
+    );
+
+    for (const event of events) {
+      const offset = event.year - startYear;
+
+      if (offset < 0 || offset > BUDGET_HORIZON_YEARS) continue;
+      oneOffByYear[offset] += convert(
+        event.amount,
+        event.currency,
+        display,
+        rate,
+      );
+    }
+
+    return {
+      annualExpenses,
+      retirementExpenses,
+      kidsCostByYear,
+      oneOffByYear,
+      itemised,
+      retirementOnlyAnnual,
+      workOnlyAnnual,
+    };
+  }, [expenses, events, kids, settings]);
+};
+
+/**
+ * Assumption warnings for the current plan. Empty when everything is
+ * internally consistent.
+ */
+export const useSanityWarnings = (): SanityWarning[] => {
+  const settings = useSettings((s) => s.settings);
+  const totals = usePortfolioTotals();
+  const allocation = useAllocation();
+  const budget = usePlanBudget();
+  const savings = useSavingsSummary();
+  const afterTax = useAfterTaxReturn();
+
+  return useMemo(
+    () =>
+      checkAssumptions({
+        settings,
+        realReturn: afterTax - settings.inflationRate,
+        retirementExpenses: budget.retirementExpenses,
+        savingsRate: savings.savingsRate,
+        hasIncome: savings.hasIncome,
+        topAssetShare: allocation.topPercent,
+        hasNegativeAmortisation: totals.debts.some(
+          (d) => d.balance > 0 && d.annualPayment < d.balance * d.interestRate,
+        ),
+      }),
+    [settings, afterTax, budget, savings, allocation, totals],
+  );
+};
+
+/** How the plan is tracking against reality, from recorded snapshots. */
+export const usePlanTracking = () => {
+  const snapshots = useHistory((s) => s.snapshots);
+  const contributions = usePlanContributions();
+  const expectedReturn = useAfterTaxReturn();
+  const budget = usePlanBudget();
+  const totals = usePortfolioTotals();
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(() => {
+    const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+    const first = sorted[0];
+
+    if (!first) return { comparison: null, attribution: null };
+
+    // Anchor the projection at the first snapshot, so the comparison asks
+    // whether reality matched the plan rather than comparing today to today.
+    const fromFirst = buildProjection(
+      {
+        currentNetWorth: first.netWorth,
+        monthlySavings: contributions.monthlyContributions,
+        expectedReturn,
+        retirementAge: settings.retirementAge,
+        annualExpenses: budget.annualExpenses,
+        retirementExpenses: budget.retirementExpenses,
+        currentLockedNetWorth: totals.lockedAssetsTotal,
+        monthlyLockedSavings: contributions.monthlyLockedContributions,
+      },
+      settings,
+      DASHBOARD_HORIZON_YEARS,
+    );
+
+    return {
+      comparison: comparePlan(sorted, fromFirst),
+      attribution: attributeGrowth(sorted, contributions.monthlyContributions),
+    };
+  }, [snapshots, contributions, expectedReturn, budget, totals, settings]);
 };

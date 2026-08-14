@@ -1,6 +1,13 @@
 import type { ProjectionPoint } from "@/types";
+import type { CoastPoint } from "@/domain/projection";
 
-import { CheckCircle2, Hourglass, Target, TrendingUp } from "lucide-react";
+import {
+  CheckCircle2,
+  Coffee,
+  Hourglass,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 
 import { formatMoneyCompact, formatYears } from "@/domain/format";
 import { useSettings } from "@/store/settings";
@@ -11,6 +18,7 @@ interface SimulationKPIsProps {
   target: number;
   projection: ProjectionPoint[];
   retirementAge: number;
+  coast: CoastPoint | null;
 }
 
 const lastsUntilAge = (
@@ -34,6 +42,7 @@ export function SimulationKPIs({
   target,
   projection,
   retirementAge,
+  coast,
 }: SimulationKPIsProps) {
   const settings = useSettings((s) => s.settings);
   const currency = settings.displayCurrency;
@@ -57,6 +66,17 @@ export function SimulationKPIs({
       tone: "default" as const,
     },
     {
+      label: "Coast from",
+      value:
+        coast === null
+          ? "Not yet"
+          : coast.year === 0
+            ? "Now"
+            : `Age ${coast.age}`,
+      icon: Coffee,
+      tone: (coast !== null ? "gain" : "default") as "gain" | "default",
+    },
+    {
       label: "Peak net worth",
       value: formatMoneyCompact(peak, currency),
       icon: TrendingUp,
@@ -76,7 +96,7 @@ export function SimulationKPIs({
 
   return (
     <Card bodyClassName="p-0">
-      <div className="grid grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5">
         {kpis.map((k, idx) => (
           <div
             key={k.label}

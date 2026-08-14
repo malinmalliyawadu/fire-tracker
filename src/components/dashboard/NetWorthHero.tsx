@@ -4,21 +4,26 @@ import { ProgressRing } from "./ProgressRing";
 
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
-import { useFireTargets, usePortfolioTotals } from "@/store/derived";
+import {
+  useFireTargets,
+  usePlanContributions,
+  usePortfolioTotals,
+  useSavingsSummary,
+} from "@/store/derived";
 import { Card } from "@/components/ui/Card";
 import { Money } from "@/components/ui/Money";
 import { Stat } from "@/components/ui/Stat";
 
 export function NetWorthHero() {
   const totals = usePortfolioTotals();
+  const contributions = usePlanContributions();
+  const savings = useSavingsSummary();
   const targets = useFireTargets();
   const currency = useSettings((s) => s.settings.displayCurrency);
 
-  const { netWorth, assetsTotal, liabilitiesTotal, monthlyContributions } =
-    totals;
+  const { netWorth, assetsTotal, liabilitiesTotal } = totals;
+  const monthlyContributions = contributions.monthlyContributions;
   const annualSavings = monthlyContributions * 12;
-  const savingsRate =
-    annualSavings > 0 ? annualSavings / (annualSavings + 50_000) : 0;
   const isPositive = netWorth >= 0;
 
   return (
@@ -40,10 +45,14 @@ export function NetWorthHero() {
             <span className={isPositive ? "text-gain" : "text-loss"}>
               {isPositive ? "Positive net worth" : "In the red"}
             </span>
-            <span className="text-ink-500">·</span>
-            <span className="text-ink-300">
-              {formatPercent(savingsRate, 0)} savings rate
-            </span>
+            {savings.hasIncome && (
+              <>
+                <span className="text-ink-500">·</span>
+                <span className="text-ink-300">
+                  {formatPercent(savings.savingsRate, 0)} savings rate
+                </span>
+              </>
+            )}
           </div>
 
           <div className="mt-8 grid grid-cols-3 gap-6 border-t border-white/5 pt-6">

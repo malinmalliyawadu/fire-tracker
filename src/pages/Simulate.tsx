@@ -2,20 +2,22 @@ import type { SimulationInputs } from "@/types";
 
 import { useEffect, useMemo, useState } from "react";
 
-import { convert } from "@/domain/currency";
 import { fireTargetFor } from "@/domain/fire";
 import {
-  generateProjection,
+  coastPoint,
   yearsToTarget as yearsUntilTarget,
 } from "@/domain/projection";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
+import { buildProjection } from "@/domain/plan";
 import {
-  buildProjection,
-  KID_ANNUAL_COST_NZD,
-  KID_DEPENDENT_YEARS,
-} from "@/domain/plan";
-import { useFireTargets, usePortfolioTotals } from "@/store/derived";
+  useAfterTaxReturn,
+  useFireTargets,
+  useIncomeTotals,
+  usePlanBudget,
+  usePlanContributions,
+  usePortfolioTotals,
+} from "@/store/derived";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { ProjectionChart } from "@/components/simulate/ProjectionChart";
@@ -29,13 +31,19 @@ const PROJECTION_YEARS = 60;
 export default function Simulate() {
   const settings = useSettings((s) => s.settings);
   const totals = usePortfolioTotals();
+  const contributions = usePlanContributions();
+  const income = useIncomeTotals();
+  const plan = usePlanBudget();
   const targets = useFireTargets();
   const scenarios = useScenarios((s) => s.scenarios);
   const comparedIds = useScenarios((s) => s.comparedIds);
 
   const defaults: SimulationInputs = useMemo(
     () => ({
-      monthlySavings: Math.max(0, Math.round(totals.monthlyContributions)),
+      monthlySavings: Math.max(
+        0,
+        Math.round(contributions.monthlyContributions),
+      ),
       expectedReturn: settings.expectedReturn,
       withdrawalRate: settings.withdrawalRate,
       retirementAge: settings.retirementAge,
@@ -43,8 +51,10 @@ export default function Simulate() {
       includeNzSuper: false,
       includeKids: false,
       numberOfKids: 1,
+      baristaIncome: 0,
+      baristaUntilAge: settings.nzSuperStartAge ?? 65,
     }),
-    [totals.monthlyContributions, settings],
+    [contributions.monthlyContributions, settings],
   );
 
   const [inputs, setInputs] = useState<SimulationInputs>(defaults);
@@ -56,15 +66,20 @@ export default function Simulate() {
   }, [defaults]);
 
   const target = fireTargetFor(inputs.fireType, targets);
+  // The slider is a pre-tax return; investment tax is applied on top of it.
+  const simulatedAfterTaxReturn = useAfterTaxReturn(inputs.expectedReturn);
 
   const currentProjection = useMemo(() => {
     // Slider can move savings up/down; keep KiwiSaver share proportional.
-    const baseTotal = Math.max(0, Math.round(totals.monthlyContributions));
+    const baseTotal = Math.max(
+      0,
+      Math.round(contributions.monthlyContributions),
+    );
     const lockedShare =
       baseTotal > 0
         ? Math.min(
             inputs.monthlySavings,
-            (totals.lockedMonthlyContributions / baseTotal) *
+            (contributions.monthlyLockedContributions / baseTotal) *
               inputs.monthlySavings,
           )
         : 0;
@@ -73,23 +88,55 @@ export default function Simulate() {
       {
         currentNetWorth: totals.netWorth,
         monthlySavings: inputs.monthlySavings,
-        expectedReturn: inputs.expectedReturn,
+        expectedReturn: simulatedAfterTaxReturn,
         retirementAge: inputs.retirementAge,
+        annualExpenses: plan.annualExpenses,
+        retirementExpenses: plan.retirementExpenses,
+        kidsCostByYear: plan.kidsCostByYear,
+        oneOffByYear: plan.oneOffByYear,
         includeNzSuper: inputs.includeNzSuper,
         currentLockedNetWorth: totals.lockedAssetsTotal,
         monthlyLockedSavings: lockedShare,
         includeKids: inputs.includeKids,
         numberOfKids: inputs.numberOfKids,
         liabilities: totals.debts,
+        retirementIncome: income.retirementIncomeAnnual,
+        baristaIncome: inputs.baristaIncome,
+        baristaUntilAge: inputs.baristaUntilAge,
       },
       settings,
       PROJECTION_YEARS,
     );
-  }, [totals, inputs, settings]);
+  }, [
+    totals,
+    contributions,
+    inputs,
+    plan,
+    settings,
+    simulatedAfterTaxReturn,
+    income.retirementIncomeAnnual,
+  ]);
 
   const yearsToTarget = useMemo(
     () => yearsUntilTarget(currentProjection, target),
     [currentProjection, target],
+  );
+
+  const coast = useMemo(
+    () =>
+      coastPoint(
+        currentProjection,
+        targets.traditional,
+        simulatedAfterTaxReturn - settings.inflationRate,
+        inputs.retirementAge,
+      ),
+    [
+      currentProjection,
+      targets.traditional,
+      simulatedAfterTaxReturn,
+      settings.inflationRate,
+      inputs.retirementAge,
+    ],
   );
 
   const comparedScenarios = useMemo(
@@ -100,60 +147,47 @@ export default function Simulate() {
   const comparisons = useMemo(
     () =>
       comparedScenarios.map((scenario) => {
-        const annualNzd = settings.nzSuperAnnual ?? 28_000;
-        const nzSuperInDisplay = scenario.inputs.includeNzSuper
-          ? convert(
-              annualNzd,
-              "NZD",
-              settings.displayCurrency,
-              settings.usdToNzd,
-            )
-          : 0;
-        const baseTotal = Math.max(0, Math.round(totals.monthlyContributions));
+        const baseTotal = Math.max(
+          0,
+          Math.round(contributions.monthlyContributions),
+        );
         const lockedShare =
           baseTotal > 0
             ? Math.min(
                 scenario.inputs.monthlySavings,
-                (totals.lockedMonthlyContributions / baseTotal) *
+                (contributions.monthlyLockedContributions / baseTotal) *
                   scenario.inputs.monthlySavings,
-              )
-            : 0;
-        const kids = scenario.inputs.includeKids
-          ? Math.max(0, scenario.inputs.numberOfKids ?? 0)
-          : 0;
-        const kidsAnnualCost =
-          kids > 0
-            ? convert(
-                KID_ANNUAL_COST_NZD * kids,
-                "NZD",
-                settings.displayCurrency,
-                settings.usdToNzd,
               )
             : 0;
 
         return {
           scenario,
-          projection: generateProjection({
-            currentNetWorth: totals.netWorth,
-            monthlySavings: scenario.inputs.monthlySavings,
-            expectedReturn: scenario.inputs.expectedReturn,
-            inflationRate: settings.inflationRate,
-            currentAge: settings.currentAge,
-            retirementAge: scenario.inputs.retirementAge,
-            annualExpenses: settings.annualExpenses,
-            years: PROJECTION_YEARS,
-            nzSuperAnnualInDisplay: nzSuperInDisplay,
-            nzSuperStartAge: settings.nzSuperStartAge ?? 65,
-            currentLockedNetWorth: totals.lockedAssetsTotal,
-            monthlyLockedSavings: lockedShare,
-            unlockAge: settings.kiwisaverUnlockAge ?? 65,
-            kidsAnnualCost,
-            kidsYears: KID_DEPENDENT_YEARS,
-            liabilities: totals.debts,
-          }),
+          projection: buildProjection(
+            {
+              currentNetWorth: totals.netWorth,
+              monthlySavings: scenario.inputs.monthlySavings,
+              expectedReturn: scenario.inputs.expectedReturn,
+              retirementAge: scenario.inputs.retirementAge,
+              annualExpenses: plan.annualExpenses,
+              retirementExpenses: plan.retirementExpenses,
+              kidsCostByYear: plan.kidsCostByYear,
+              oneOffByYear: plan.oneOffByYear,
+              includeNzSuper: scenario.inputs.includeNzSuper,
+              currentLockedNetWorth: totals.lockedAssetsTotal,
+              monthlyLockedSavings: lockedShare,
+              includeKids: scenario.inputs.includeKids,
+              numberOfKids: scenario.inputs.numberOfKids,
+              liabilities: totals.debts,
+              retirementIncome: income.retirementIncomeAnnual,
+              baristaIncome: scenario.inputs.baristaIncome,
+              baristaUntilAge: scenario.inputs.baristaUntilAge,
+            },
+            settings,
+            PROJECTION_YEARS,
+          ),
         };
       }),
-    [comparedScenarios, totals, settings],
+    [comparedScenarios, totals, contributions, plan, income, settings],
   );
 
   return (
@@ -165,6 +199,7 @@ export default function Simulate() {
       />
 
       <SimulationKPIs
+        coast={coast}
         projection={currentProjection}
         retirementAge={inputs.retirementAge}
         target={target}

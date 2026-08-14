@@ -1,7 +1,7 @@
 import type { FireType, SimulationInputs } from "@/types";
 
 import clsx from "clsx";
-import { Baby, Landmark, Minus, Plus } from "lucide-react";
+import { Baby, Coffee, Landmark, Minus, Plus } from "lucide-react";
 
 import { SliderField } from "./SliderField";
 
@@ -9,7 +9,7 @@ import { convert } from "@/domain/currency";
 import { FIRE_TYPES, FIRE_TYPE_META } from "@/domain/labels";
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
-import { KID_ANNUAL_COST_NZD, KID_DEPENDENT_YEARS } from "@/domain/plan";
+import { KID_INDEPENDENT_AGE, kidCostAtAge } from "@/domain/kids";
 import { Card } from "@/components/ui/Card";
 
 interface SimulationControlsProps {
@@ -127,6 +127,41 @@ export function SimulationControls({
           onCountChange={(v) => set("numberOfKids", v)}
           onToggle={(v) => set("includeKids", v)}
         />
+
+        <div className="space-y-5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="flex items-center gap-2">
+            <Coffee className="h-3.5 w-3.5 text-ink-300" />
+            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-300">
+              Barista FIRE
+            </span>
+          </div>
+          <SliderField
+            display={
+              inputs.baristaIncome > 0
+                ? `${formatMoney(inputs.baristaIncome, display)}/yr`
+                : "Off"
+            }
+            hint="Part-time earnings that bridge early retirement"
+            label="Part-time income"
+            max={60_000}
+            min={0}
+            step={1_000}
+            value={inputs.baristaIncome}
+            onChange={(v) => set("baristaIncome", v)}
+          />
+          {inputs.baristaIncome > 0 && (
+            <SliderField
+              display={`${inputs.baristaUntilAge}`}
+              hint={`Working part-time until ${inputs.baristaUntilAge}`}
+              label="Until age"
+              max={75}
+              min={inputs.retirementAge}
+              step={1}
+              value={inputs.baristaUntilAge}
+              onChange={(v) => set("baristaUntilAge", v)}
+            />
+          )}
+        </div>
       </div>
     </Card>
   );
@@ -208,8 +243,9 @@ function KidsToggle({
 }: KidsToggleProps) {
   const settings = useSettings((s) => s.settings);
   const safeCount = Math.min(MAX_KIDS, Math.max(1, numberOfKids || 1));
-  const totalAnnual = convert(
-    KID_ANNUAL_COST_NZD * safeCount,
+  // Costs vary by the child's age; show the first-year figure as the anchor.
+  const firstYearAnnual = convert(
+    kidCostAtAge(0) * safeCount,
     "NZD",
     settings.displayCurrency,
     settings.usdToNzd,
@@ -247,8 +283,8 @@ function KidsToggle({
           <div className="text-sm font-semibold text-white">Plan with kids</div>
           <div className="mt-0.5 text-[11px] text-ink-400">
             {enabled
-              ? `${formatMoney(totalAnnual, settings.displayCurrency)}/yr for ${KID_DEPENDENT_YEARS} years`
-              : `~${formatMoney(convert(KID_ANNUAL_COST_NZD, "NZD", settings.displayCurrency, settings.usdToNzd), settings.displayCurrency)}/yr per kid · ${KID_DEPENDENT_YEARS} yrs`}
+              ? `From ${formatMoney(firstYearAnnual, settings.displayCurrency)}/yr, easing off until age ${KID_INDEPENDENT_AGE}`
+              : `Cost varies by age — childcare, school, then study, to age ${KID_INDEPENDENT_AGE}`}
           </div>
         </div>
         <div

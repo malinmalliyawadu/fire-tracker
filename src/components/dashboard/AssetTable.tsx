@@ -10,6 +10,7 @@ import { ASSET_TYPE_LABEL, FREQUENCY_SHORT } from "@/domain/labels";
 import { convert, toMonthly } from "@/domain/currency";
 import { useSettings } from "@/store/settings";
 import { usePortfolio } from "@/store/portfolio";
+import { usePlanContributions } from "@/store/derived";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Money } from "@/components/ui/Money";
@@ -17,12 +18,14 @@ import { Money } from "@/components/ui/Money";
 export function AssetTable() {
   const assets = usePortfolio((s) => s.assets);
   const settings = useSettings((s) => s.settings);
+  const contributions = usePlanContributions();
   const [editing, setEditing] = useState<Asset | undefined>();
   const [open, setOpen] = useState(false);
 
   const display = settings.displayCurrency;
   const rate = settings.usdToNzd;
   const unlockAge = settings.kiwisaverUnlockAge ?? 65;
+  const supersededBySalary = contributions.kiwisaverFromSalary;
 
   const startAdd = () => {
     setEditing(undefined);
@@ -119,7 +122,14 @@ export function AssetTable() {
                       <Money amount={valueInDisplay} currency={display} />
                     </td>
                     <td className="py-3.5 text-right text-ink-200">
-                      {asset.contribution > 0 ? (
+                      {supersededBySalary && asset.type === "kiwisaver" ? (
+                        <span
+                          className="text-xs text-ink-500"
+                          title="Contributions are derived from your salary's KiwiSaver rate, so this field is ignored"
+                        >
+                          From salary
+                        </span>
+                      ) : asset.contribution > 0 ? (
                         <>
                           <Money amount={monthly} currency={display} />
                           <span className="ml-1 text-xs text-ink-400">

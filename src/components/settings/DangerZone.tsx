@@ -2,6 +2,7 @@ import { Button } from "@heroui/button";
 import { Trash2 } from "lucide-react";
 
 import { useHistory } from "@/store/history";
+import { useIncome } from "@/store/income";
 import { usePortfolio } from "@/store/portfolio";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
@@ -9,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 
 export function DangerZone() {
   const resetPortfolio = usePortfolio((s) => s.reset);
+  const resetIncome = useIncome((s) => s.reset);
   const resetSettings = useSettings((s) => s.reset);
   const scenarios = useScenarios((s) => s.scenarios);
   const removeScenario = useScenarios((s) => s.remove);
@@ -22,6 +24,7 @@ export function DangerZone() {
     ) {
       resetPortfolio();
       resetSettings();
+      resetIncome();
       clearHistory();
       scenarios.forEach((s) => removeScenario(s.id));
     }

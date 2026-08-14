@@ -16,6 +16,21 @@ const settings: Settings = {
   nzSuperStartAge: 65,
   kiwisaverUnlockAge: 65,
   usdToNzd: 1.65,
+  applyInvestmentTax: false,
+  nzSuperStatus: "singleLivingAlone",
+  household: {
+    hasPartner: false,
+    partnerAge: 38,
+    includePartnerNzSuper: true,
+  },
+  spendingPhases: {
+    enabled: false,
+    goGoMultiplier: 1.1,
+    slowGoFromAge: 75,
+    slowGoMultiplier: 0.9,
+    noGoFromAge: 85,
+    noGoMultiplier: 0.85,
+  },
 };
 
 const stamp = "2026-01-01T00:00:00.000Z";

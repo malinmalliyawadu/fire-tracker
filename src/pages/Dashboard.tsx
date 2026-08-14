@@ -3,7 +3,11 @@ import { AssetTable } from "@/components/dashboard/AssetTable";
 import { FireTypeCards } from "@/components/dashboard/FireTypeCards";
 import { LiabilityTable } from "@/components/dashboard/LiabilityTable";
 import { NetWorthHero } from "@/components/dashboard/NetWorthHero";
+import { AssumptionsCard } from "@/components/dashboard/AssumptionsCard";
 import { NetWorthHistoryCard } from "@/components/dashboard/NetWorthHistoryCard";
+import { PlanTrackingCard } from "@/components/dashboard/PlanTrackingCard";
+import { IncomeCard } from "@/components/income/IncomeCard";
+import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function Dashboard() {
@@ -14,9 +18,15 @@ export default function Dashboard() {
         eyebrow="Overview"
         title="Dashboard"
       />
+      <OnboardingGate />
       <NetWorthHero />
       <FireTypeCards />
       <NetWorthHistoryCard />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <PlanTrackingCard />
+        <AssumptionsCard />
+      </div>
+      <IncomeCard />
       <AllocationCard />
       <AssetTable />
       <LiabilityTable />
