@@ -33,6 +33,12 @@ export interface Asset {
   currency: Currency;
   contribution: number;
   frequency: ContributionFrequency;
+  /**
+   * Whether this holding funds retirement. The home you live in counts towards
+   * net worth but can't be drawn down at 4% a year, so excluding it keeps the
+   * FIRE target honest. Absent means yes, so existing data is unaffected.
+   */
+  countsTowardFire?: boolean;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -47,6 +53,12 @@ export interface Liability {
   interestRate: number;
   payment: number;
   frequency: ContributionFrequency;
+  /**
+   * Whether this debt is netted off the retirement pot. Exclude the mortgage
+   * on an excluded home, so the house and its loan leave the FIRE picture
+   * together. Absent means yes, so existing data is unaffected.
+   */
+  countsTowardFire?: boolean;
   notes?: string;
   createdAt: string;
   updatedAt: string;

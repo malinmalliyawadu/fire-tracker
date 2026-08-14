@@ -37,7 +37,7 @@ export function FireTypeCards() {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {FIRE_TYPES.map((type) => {
         const target = targets[type];
-        const pct = progressPercent(totals.netWorth, target);
+        const pct = progressPercent(totals.fireNetWorth, target);
         const years = yearsToTarget(projection, target);
 
         return (

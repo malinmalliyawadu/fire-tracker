@@ -86,7 +86,7 @@ export default function Simulate() {
 
     return buildProjection(
       {
-        currentNetWorth: totals.netWorth,
+        currentNetWorth: totals.fireNetWorth,
         monthlySavings: inputs.monthlySavings,
         expectedReturn: simulatedAfterTaxReturn,
         retirementAge: inputs.retirementAge,
@@ -95,11 +95,11 @@ export default function Simulate() {
         kidsCostByYear: plan.kidsCostByYear,
         oneOffByYear: plan.oneOffByYear,
         includeNzSuper: inputs.includeNzSuper,
-        currentLockedNetWorth: totals.lockedAssetsTotal,
+        currentLockedNetWorth: totals.fireLockedAssetsTotal,
         monthlyLockedSavings: lockedShare,
         includeKids: inputs.includeKids,
         numberOfKids: inputs.numberOfKids,
-        liabilities: totals.debts,
+        liabilities: totals.fireDebts,
         retirementIncome: income.retirementIncomeAnnual,
         baristaIncome: inputs.baristaIncome,
         baristaUntilAge: inputs.baristaUntilAge,
@@ -164,7 +164,7 @@ export default function Simulate() {
           scenario,
           projection: buildProjection(
             {
-              currentNetWorth: totals.netWorth,
+              currentNetWorth: totals.fireNetWorth,
               monthlySavings: scenario.inputs.monthlySavings,
               expectedReturn: scenario.inputs.expectedReturn,
               retirementAge: scenario.inputs.retirementAge,
@@ -173,11 +173,11 @@ export default function Simulate() {
               kidsCostByYear: plan.kidsCostByYear,
               oneOffByYear: plan.oneOffByYear,
               includeNzSuper: scenario.inputs.includeNzSuper,
-              currentLockedNetWorth: totals.lockedAssetsTotal,
+              currentLockedNetWorth: totals.fireLockedAssetsTotal,
               monthlyLockedSavings: lockedShare,
               includeKids: scenario.inputs.includeKids,
               numberOfKids: scenario.inputs.numberOfKids,
-              liabilities: totals.debts,
+              liabilities: totals.fireDebts,
               retirementIncome: income.retirementIncomeAnnual,
               baristaIncome: scenario.inputs.baristaIncome,
               baristaUntilAge: scenario.inputs.baristaUntilAge,
@@ -217,8 +217,8 @@ export default function Simulate() {
             comparisons={comparisons}
             current={currentProjection}
             retirementAge={inputs.retirementAge}
-            showAccessible={totals.lockedAssetsTotal > 0}
-            showDebt={totals.debts.length > 0}
+            showAccessible={totals.fireLockedAssetsTotal > 0}
+            showDebt={totals.fireDebts.length > 0}
             target={target}
           />
         </Card>

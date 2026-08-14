@@ -20,7 +20,7 @@ import {
   LIABILITY_TYPE_LABEL,
 } from "./labels";
 import { buildProjection } from "./plan";
-import { computeFireTargets, fireTargetFor } from "./fire";
+import { computeFireTargets, countsTowardFire, fireTargetFor } from "./fire";
 import { convert, toMonthly } from "./currency";
 import { yearsToTarget } from "./projection";
 import { formatMoney, formatPercent, formatYears } from "./format";
@@ -49,6 +49,13 @@ interface Totals {
   lockedAssetsTotal: number;
   lockedMonthlyContributions: number;
   debts: ProjectionLiability[];
+  fireNetWorth: number;
+  fireMonthlyContributions: number;
+  fireLockedAssetsTotal: number;
+  fireLockedMonthlyContributions: number;
+  fireDebts: ProjectionLiability[];
+  excludedNetWorth: number;
+  hasExclusions: boolean;
 }
 
 const computeTotals = (
@@ -63,6 +70,11 @@ const computeTotals = (
   let lockedAssetsTotal = 0;
   let monthlyContributions = 0;
   let lockedMonthlyContributions = 0;
+  let fireAssetsTotal = 0;
+  let fireLockedAssetsTotal = 0;
+  let fireMonthlyContributions = 0;
+  let fireLockedMonthlyContributions = 0;
+  let hasExclusions = false;
 
   for (const a of assets) {
     const v = convert(a.value, a.currency, display, rate);
@@ -70,38 +82,69 @@ const computeTotals = (
       convert(a.contribution, a.currency, display, rate),
       a.frequency,
     );
+    const locked = a.type === "kiwisaver";
 
     assetsTotal += v;
     monthlyContributions += m;
-    if (a.type === "kiwisaver") {
+    if (locked) {
       lockedAssetsTotal += v;
       lockedMonthlyContributions += m;
     }
+
+    if (!countsTowardFire(a)) {
+      hasExclusions = true;
+      continue;
+    }
+
+    fireAssetsTotal += v;
+    fireMonthlyContributions += m;
+    if (locked) {
+      fireLockedAssetsTotal += v;
+      fireLockedMonthlyContributions += m;
+    }
   }
 
-  const debts: ProjectionLiability[] = liabilities.map((l) => ({
+  const toDebt = (l: Liability): ProjectionLiability => ({
     balance: convert(l.balance, l.currency, display, rate),
     interestRate: l.interestRate,
     annualPayment:
       toMonthly(convert(l.payment, l.currency, display, rate), l.frequency) *
       12,
-  }));
+  });
 
-  const liabilitiesTotal = debts.reduce((sum, d) => sum + d.balance, 0);
+  const debts: ProjectionLiability[] = liabilities.map(toDebt);
+  const fireDebts: ProjectionLiability[] = liabilities
+    .filter(countsTowardFire)
+    .map(toDebt);
+
+  const sumBalance = (list: ProjectionLiability[]) =>
+    list.reduce((sum, d) => sum + d.balance, 0);
+
+  const liabilitiesTotal = sumBalance(debts);
   const monthlyDebtPayments = debts.reduce(
     (sum, d) => sum + d.annualPayment / 12,
     0,
   );
 
+  const netWorth = assetsTotal - liabilitiesTotal;
+  const fireNetWorth = fireAssetsTotal - sumBalance(fireDebts);
+
   return {
     assetsTotal,
     liabilitiesTotal,
-    netWorth: assetsTotal - liabilitiesTotal,
+    netWorth,
     monthlyContributions,
     monthlyDebtPayments,
     lockedAssetsTotal,
     lockedMonthlyContributions,
     debts,
+    fireNetWorth,
+    fireMonthlyContributions,
+    fireLockedAssetsTotal,
+    fireLockedMonthlyContributions,
+    fireDebts,
+    excludedNetWorth: netWorth - fireNetWorth,
+    hasExclusions: hasExclusions || fireDebts.length < debts.length,
   };
 };
 
@@ -113,7 +156,8 @@ const targetRow = (
   projection: ProjectionPoint[],
 ): string => {
   const years = yearsToTarget(projection, target);
-  const pct = target > 0 ? Math.min(100, (totals.netWorth / target) * 100) : 0;
+  const pct =
+    target > 0 ? Math.min(100, (totals.fireNetWorth / target) * 100) : 0;
 
   return `| ${label} | ${formatMoney(target, settings.displayCurrency)} | ${pct.toFixed(1)}% | ${formatYears(years)} |`;
 };
@@ -129,13 +173,13 @@ const projectionFor = (
 ): ProjectionPoint[] =>
   buildProjection(
     {
-      currentNetWorth: totals.netWorth,
-      monthlySavings: totals.monthlyContributions,
+      currentNetWorth: totals.fireNetWorth,
+      monthlySavings: totals.fireMonthlyContributions,
       expectedReturn: settings.expectedReturn,
       retirementAge: settings.retirementAge,
-      currentLockedNetWorth: totals.lockedAssetsTotal,
-      monthlyLockedSavings: totals.lockedMonthlyContributions,
-      liabilities: totals.debts,
+      currentLockedNetWorth: totals.fireLockedAssetsTotal,
+      monthlyLockedSavings: totals.fireLockedMonthlyContributions,
+      liabilities: totals.fireDebts,
       ...overrides,
     },
     settings,
@@ -237,6 +281,14 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   lines.push(
     `- Total monthly outflow into wealth-building: ${formatMoney(totals.monthlyContributions + totals.monthlyDebtPayments, display)}`,
   );
+  if (totals.hasExclusions) {
+    lines.push(
+      `- **Of which funds retirement: ${formatMoney(totals.fireNetWorth, display)}** (${formatMoney(totals.excludedNetWorth, display)} held outside the FIRE picture)`,
+    );
+    lines.push(
+      `- Monthly contributions into the retirement pot: ${formatMoney(totals.fireMonthlyContributions, display)}`,
+    );
+  }
   lines.push(``);
 
   // FIRE Targets
@@ -266,10 +318,10 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
     lines.push(`_No assets recorded._`);
   } else {
     lines.push(
-      `| Name | Type | Value (orig) | Currency | Value (${display}) | Contribution | Frequency | Monthly equiv. (${display}) | Notes |`,
+      `| Name | Type | Value (orig) | Currency | Value (${display}) | Contribution | Frequency | Monthly equiv. (${display}) | Counts toward FIRE | Notes |`,
     );
     lines.push(
-      `| :--- | :--- | ---: | :---: | ---: | ---: | :---: | ---: | :--- |`,
+      `| :--- | :--- | ---: | :---: | ---: | ---: | :---: | ---: | :---: | :--- |`,
     );
     for (const a of assets) {
       const valueDisplay = convert(
@@ -284,7 +336,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
       );
 
       lines.push(
-        `| ${a.name} | ${ASSET_TYPE_LABEL[a.type]} | ${formatMoney(a.value, a.currency)} | ${a.currency} | ${formatMoney(valueDisplay, display)} | ${formatMoney(a.contribution, a.currency)} | ${FREQUENCY_LABEL[a.frequency]} | ${formatMoney(monthlyDisplay, display)} | ${a.notes ?? ""} |`,
+        `| ${a.name} | ${ASSET_TYPE_LABEL[a.type]} | ${formatMoney(a.value, a.currency)} | ${a.currency} | ${formatMoney(valueDisplay, display)} | ${formatMoney(a.contribution, a.currency)} | ${FREQUENCY_LABEL[a.frequency]} | ${formatMoney(monthlyDisplay, display)} | ${countsTowardFire(a) ? "yes" : "no"} | ${a.notes ?? ""} |`,
       );
     }
   }
@@ -297,10 +349,10 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
     lines.push(`_No liabilities recorded._`);
   } else {
     lines.push(
-      `| Name | Type | Balance (orig) | Currency | Balance (${display}) | Rate | Payment | Frequency | Monthly equiv. (${display}) |`,
+      `| Name | Type | Balance (orig) | Currency | Balance (${display}) | Rate | Payment | Frequency | Monthly equiv. (${display}) | Counts toward FIRE |`,
     );
     lines.push(
-      `| :--- | :--- | ---: | :---: | ---: | ---: | ---: | :---: | ---: |`,
+      `| :--- | :--- | ---: | :---: | ---: | ---: | ---: | :---: | ---: | :---: |`,
     );
     for (const l of liabilities) {
       const balanceDisplay = convert(
@@ -315,7 +367,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
       );
 
       lines.push(
-        `| ${l.name} | ${LIABILITY_TYPE_LABEL[l.type]} | ${formatMoney(l.balance, l.currency)} | ${l.currency} | ${formatMoney(balanceDisplay, display)} | ${formatPercent(l.interestRate, 2)} | ${formatMoney(l.payment, l.currency)} | ${FREQUENCY_LABEL[l.frequency]} | ${formatMoney(monthlyDisplay, display)} |`,
+        `| ${l.name} | ${LIABILITY_TYPE_LABEL[l.type]} | ${formatMoney(l.balance, l.currency)} | ${l.currency} | ${formatMoney(balanceDisplay, display)} | ${formatPercent(l.interestRate, 2)} | ${formatMoney(l.payment, l.currency)} | ${FREQUENCY_LABEL[l.frequency]} | ${formatMoney(monthlyDisplay, display)} | ${countsTowardFire(l) ? "yes" : "no"} |`,
       );
     }
   }
@@ -407,6 +459,10 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   lines.push(``);
   lines.push(
     `Projections use real returns (nominal return − inflation) so all future amounts are in today's purchasing power. The 4%-rule "traditional" FIRE target equals \`annualExpenses / withdrawalRate\`. Lean = 60% of traditional, Fat = 150%, Coast discounts traditional by the real return over years remaining to retirement age. Time-to-FIRE figures compound at the real return too, so they line up with the projection chart. NZ Super, when enabled per scenario, reduces required portfolio withdrawals from its eligibility age onward. KiwiSaver assets are treated as a locked pot that compounds untouched and is unavailable for withdrawals before the unlock age — so any retirement that begins before that age must be funded from accessible (non-KiwiSaver) assets alone.`,
+  );
+  lines.push(``);
+  lines.push(
+    `Holdings and debts can be marked as not counting toward FIRE. Those still appear in net worth but are left out of the retirement pot entirely: their value isn't measured against the target, their contributions aren't projected, they don't weight the blended after-tax return, and an excluded debt is neither netted off nor amortised. This is what separates the home you live in — real wealth, but not something you can draw 4% a year from — from the assets that actually fund retirement. Progress percentages and every projection below are computed on the retirement pot alone.`,
   );
   lines.push(``);
   lines.push(

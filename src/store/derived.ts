@@ -11,7 +11,7 @@ import { usePortfolio } from "./portfolio";
 import { useSettings } from "./settings";
 
 import { convert, toMonthly } from "@/domain/currency";
-import { computeFireTargets } from "@/domain/fire";
+import { computeFireTargets, countsTowardFire } from "@/domain/fire";
 import { kidsCostByYear as kidsCostNzdByYear } from "@/domain/kids";
 import { buildProjection } from "@/domain/plan";
 import { checkAssumptions } from "@/domain/sanity";
@@ -39,6 +39,25 @@ export interface PortfolioTotals {
   lockedMonthlyContributions: number;
   /** Liabilities normalised to display currency for the projection engine. */
   debts: ProjectionLiability[];
+  /** Assets marked as funding retirement. */
+  fireAssetsTotal: number;
+  /** Debts netted off the retirement pot. */
+  fireLiabilitiesTotal: number;
+  /** The pot the FIRE target is measured against. */
+  fireNetWorth: number;
+  /** Contributions into assets that fund retirement. */
+  fireMonthlyContributions: number;
+  /** KiwiSaver that funds retirement — the locked pot the projection tracks. */
+  fireLockedAssetsTotal: number;
+  fireLockedMonthlyContributions: number;
+  /** Only the debts the projection should amortise. */
+  fireDebts: ProjectionLiability[];
+  /** Net worth held outside the FIRE picture, e.g. the home you live in. */
+  excludedNetWorth: number;
+  /** True when any holding or debt has been taken out of the FIRE picture. */
+  hasExclusions: boolean;
+  /** True when a debt is excluded, so its repayments aren't projected. */
+  hasExcludedDebt: boolean;
 }
 
 export const usePortfolioTotals = (): PortfolioTotals => {
@@ -54,6 +73,11 @@ export const usePortfolioTotals = (): PortfolioTotals => {
     let lockedAssetsTotal = 0;
     let monthlyContributions = 0;
     let lockedMonthlyContributions = 0;
+    let fireAssetsTotal = 0;
+    let fireLockedAssetsTotal = 0;
+    let fireMonthlyContributions = 0;
+    let fireLockedMonthlyContributions = 0;
+    let hasExclusions = false;
 
     for (const a of assets) {
       const valueDisplay = convert(a.value, a.currency, display, rate);
@@ -61,39 +85,77 @@ export const usePortfolioTotals = (): PortfolioTotals => {
         convert(a.contribution, a.currency, display, rate),
         a.frequency,
       );
+      const counts = countsTowardFire(a);
+      const locked = a.type === "kiwisaver";
 
       assetsTotal += valueDisplay;
       monthlyContributions += monthlyDisplay;
 
-      if (a.type === "kiwisaver") {
+      if (locked) {
         lockedAssetsTotal += valueDisplay;
         lockedMonthlyContributions += monthlyDisplay;
       }
+
+      if (!counts) {
+        hasExclusions = true;
+        continue;
+      }
+
+      fireAssetsTotal += valueDisplay;
+      fireMonthlyContributions += monthlyDisplay;
+
+      if (locked) {
+        fireLockedAssetsTotal += valueDisplay;
+        fireLockedMonthlyContributions += monthlyDisplay;
+      }
     }
 
-    const debts: ProjectionLiability[] = liabilities.map((l) => ({
+    const toDebt = (l: (typeof liabilities)[number]): ProjectionLiability => ({
       balance: convert(l.balance, l.currency, display, rate),
       interestRate: l.interestRate,
       annualPayment:
         toMonthly(convert(l.payment, l.currency, display, rate), l.frequency) *
         12,
-    }));
+    });
 
-    const liabilitiesTotal = debts.reduce((sum, d) => sum + d.balance, 0);
+    const debts: ProjectionLiability[] = liabilities.map(toDebt);
+    const fireDebts: ProjectionLiability[] = liabilities
+      .filter(countsTowardFire)
+      .map(toDebt);
+    const hasExcludedDebt = fireDebts.length < debts.length;
+
+    const sumBalance = (list: ProjectionLiability[]) =>
+      list.reduce((sum, d) => sum + d.balance, 0);
+
+    const liabilitiesTotal = sumBalance(debts);
+    const fireLiabilitiesTotal = sumBalance(fireDebts);
     const monthlyDebtPayments = debts.reduce(
       (sum, d) => sum + d.annualPayment / 12,
       0,
     );
 
+    const netWorth = assetsTotal - liabilitiesTotal;
+    const fireNetWorth = fireAssetsTotal - fireLiabilitiesTotal;
+
     return {
       assetsTotal,
       liabilitiesTotal,
-      netWorth: assetsTotal - liabilitiesTotal,
+      netWorth,
       monthlyContributions,
       monthlyDebtPayments,
       lockedAssetsTotal,
       lockedMonthlyContributions,
       debts,
+      fireAssetsTotal,
+      fireLiabilitiesTotal,
+      fireNetWorth,
+      fireMonthlyContributions,
+      fireLockedAssetsTotal,
+      fireLockedMonthlyContributions,
+      fireDebts,
+      excludedNetWorth: netWorth - fireNetWorth,
+      hasExclusions: hasExclusions || hasExcludedDebt,
+      hasExcludedDebt,
     };
   }, [assets, liabilities, settings]);
 };
@@ -110,7 +172,29 @@ export interface AllocationSummary {
   topType: AssetType | null;
   topPercent: number;
   diversityScore: number;
+  /**
+   * Largest share among the assets that fund retirement. Concentration only
+   * matters where the blended return is applied, and an excluded home isn't
+   * part of that.
+   */
+  fireTopPercent: number;
 }
+
+const emptyBreakdown = (): Record<AssetType, number> => ({
+  kiwisaver: 0,
+  shares: 0,
+  savings: 0,
+  crypto: 0,
+  property: 0,
+  other: 0,
+});
+
+const topShare = (breakdown: Record<AssetType, number>): number => {
+  const values = Object.values(breakdown);
+  const total = values.reduce((s, v) => s + v, 0);
+
+  return total > 0 ? Math.max(...values) / total : 0;
+};
 
 export const useAllocation = (): AllocationSummary => {
   const assets = usePortfolio((s) => s.assets);
@@ -119,17 +203,14 @@ export const useAllocation = (): AllocationSummary => {
   return useMemo(() => {
     const display = settings.displayCurrency;
     const rate = settings.usdToNzd;
-    const breakdown: Record<AssetType, number> = {
-      kiwisaver: 0,
-      shares: 0,
-      savings: 0,
-      crypto: 0,
-      property: 0,
-      other: 0,
-    };
+    const breakdown = emptyBreakdown();
+    const fireBreakdown = emptyBreakdown();
 
     for (const a of assets) {
-      breakdown[a.type] += convert(a.value, a.currency, display, rate);
+      const value = convert(a.value, a.currency, display, rate);
+
+      breakdown[a.type] += value;
+      if (countsTowardFire(a)) fireBreakdown[a.type] += value;
     }
 
     const total = Object.values(breakdown).reduce((s, v) => s + v, 0);
@@ -149,7 +230,14 @@ export const useAllocation = (): AllocationSummary => {
     const herf = slices.reduce((sum, s) => sum + s.percent ** 2, 0);
     const diversityScore = slices.length > 0 ? Math.max(0, 1 - herf) : 0;
 
-    return { total, slices, topType, topPercent, diversityScore };
+    return {
+      total,
+      slices,
+      topType,
+      topPercent,
+      diversityScore,
+      fireTopPercent: topShare(fireBreakdown),
+    };
   }, [assets, settings]);
 };
 
@@ -192,7 +280,7 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
     () =>
       buildProjection(
         {
-          currentNetWorth: totals.netWorth,
+          currentNetWorth: totals.fireNetWorth,
           monthlySavings: contributions.monthlyContributions,
           expectedReturn,
           retirementAge: settings.retirementAge,
@@ -200,9 +288,9 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
           retirementExpenses: budget.retirementExpenses,
           kidsCostByYear: budget.kidsCostByYear,
           oneOffByYear: budget.oneOffByYear,
-          currentLockedNetWorth: totals.lockedAssetsTotal,
+          currentLockedNetWorth: totals.fireLockedAssetsTotal,
           monthlyLockedSavings: contributions.monthlyLockedContributions,
-          liabilities: totals.debts,
+          liabilities: totals.fireDebts,
           retirementIncome: income.retirementIncomeAnnual,
         },
         settings,
@@ -367,7 +455,9 @@ export const useAfterTaxReturn = (nominalReturn?: number): number => {
 
     const display = settings.displayCurrency;
     const rate = settings.usdToNzd;
-    const weights = assets.map((a) => ({
+    // Only the retirement pot is projected, so only it should set the blend —
+    // an excluded home shouldn't lift the return on the assets being drawn on.
+    const weights = assets.filter(countsTowardFire).map((a) => ({
       type: a.type,
       value: convert(a.value, a.currency, display, rate),
     }));
@@ -391,6 +481,9 @@ export interface PlanContributions {
 /**
  * The contributions the plan should actually project.
  *
+ * Only contributions into assets that fund retirement are projected — money
+ * going into an excluded home builds net worth but not the FIRE pot.
+ *
  * Once a salary defines a KiwiSaver rate, the derived contributions replace
  * whatever was typed on the KiwiSaver asset — otherwise the same money would
  * be counted twice.
@@ -402,14 +495,14 @@ export const usePlanContributions = (): PlanContributions => {
   return useMemo(() => {
     if (!income.hasDerivedKiwisaver) {
       return {
-        monthlyContributions: totals.monthlyContributions,
-        monthlyLockedContributions: totals.lockedMonthlyContributions,
+        monthlyContributions: totals.fireMonthlyContributions,
+        monthlyLockedContributions: totals.fireLockedMonthlyContributions,
         kiwisaverFromSalary: false,
       };
     }
 
     const nonLocked =
-      totals.monthlyContributions - totals.lockedMonthlyContributions;
+      totals.fireMonthlyContributions - totals.fireLockedMonthlyContributions;
     const locked = income.kiwisaverAnnual / 12;
 
     return {
@@ -542,10 +635,11 @@ export const useSanityWarnings = (): SanityWarning[] => {
         retirementExpenses: budget.retirementExpenses,
         savingsRate: savings.savingsRate,
         hasIncome: savings.hasIncome,
-        topAssetShare: allocation.topPercent,
+        topAssetShare: allocation.fireTopPercent,
         hasNegativeAmortisation: totals.debts.some(
           (d) => d.balance > 0 && d.annualPayment < d.balance * d.interestRate,
         ),
+        hasExcludedDebt: totals.hasExcludedDebt,
       }),
     [settings, afterTax, budget, savings, allocation, totals],
   );
@@ -576,7 +670,7 @@ export const usePlanTracking = () => {
         retirementAge: settings.retirementAge,
         annualExpenses: budget.annualExpenses,
         retirementExpenses: budget.retirementExpenses,
-        currentLockedNetWorth: totals.lockedAssetsTotal,
+        currentLockedNetWorth: totals.fireLockedAssetsTotal,
         monthlyLockedSavings: contributions.monthlyLockedContributions,
       },
       settings,

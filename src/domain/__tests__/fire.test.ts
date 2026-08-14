@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { computeFireTargets, progressPercent } from "../fire";
+import { computeFireTargets, countsTowardFire, progressPercent } from "../fire";
+
+describe("countsTowardFire", () => {
+  it("counts anything recorded before the flag existed", () => {
+    expect(countsTowardFire({})).toBe(true);
+  });
+
+  it("counts an explicit true", () => {
+    expect(countsTowardFire({ countsTowardFire: true })).toBe(true);
+  });
+
+  it("only an explicit false takes something out of the FIRE picture", () => {
+    expect(countsTowardFire({ countsTowardFire: false })).toBe(false);
+  });
+
+  it("treats an absent flag as counting, not as unset-and-therefore-out", () => {
+    expect(countsTowardFire({ countsTowardFire: undefined })).toBe(true);
+  });
+});
 
 describe("computeFireTargets", () => {
   const base = {

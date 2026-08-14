@@ -1,5 +1,16 @@
 import type { FireTargets, FireType } from "@/types";
 
+/**
+ * Whether a holding or debt belongs to the pot that funds retirement.
+ *
+ * The flag is opt-out rather than opt-in: anything recorded before the flag
+ * existed, and anything added without a deliberate choice, counts. Only an
+ * explicit `false` takes something out of the FIRE picture.
+ */
+export const countsTowardFire = (item: {
+  countsTowardFire?: boolean;
+}): boolean => item.countsTowardFire !== false;
+
 export interface FireInputs {
   annualExpenses: number;
   withdrawalRate: number;

@@ -90,6 +90,38 @@ describe("parseBackup", () => {
     expect(result.payload.assets?.[0].id).toBe("a1");
   });
 
+  it("round-trips an explicit countsTowardFire flag", () => {
+    const result = parseBackup(
+      JSON.stringify({
+        ...validBackup,
+        assets: [
+          { ...asset, countsTowardFire: false },
+          { ...asset, id: "a2", countsTowardFire: true },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.payload.assets?.[0].countsTowardFire).toBe(false);
+    expect(result.payload.assets?.[1].countsTowardFire).toBe(true);
+  });
+
+  it("drops a non-boolean countsTowardFire rather than the whole row", () => {
+    const result = parseBackup(
+      JSON.stringify({
+        ...validBackup,
+        assets: [{ ...asset, countsTowardFire: "nope" }],
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // The holding survives, and falls back to counting.
+    expect(result.summary.assets).toBe(1);
+    expect(result.payload.assets?.[0]).not.toHaveProperty("countsTowardFire");
+  });
+
   it("ignores lists that aren't arrays", () => {
     const result = parseBackup(
       JSON.stringify({ ...validBackup, liabilities: "oops", kids: 42 }),

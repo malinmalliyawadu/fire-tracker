@@ -16,6 +16,7 @@ import {
   ASSET_TYPE_LABEL,
   FREQUENCY_LABEL,
 } from "@/domain/labels";
+import { countsTowardFire } from "@/domain/fire";
 import { formatMoney } from "@/domain/format";
 import { toMonthly } from "@/domain/currency";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
@@ -24,6 +25,7 @@ import { usePortfolio } from "@/store/portfolio";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
+import { FireInclusionToggle } from "@/components/ui/FireInclusionToggle";
 import { FrequencyPills } from "@/components/ui/FrequencyPills";
 import { TypeGrid } from "@/components/ui/TypeGrid";
 
@@ -40,6 +42,7 @@ interface FormState {
   currency: Currency;
   contribution: number | null;
   frequency: ContributionFrequency;
+  countsTowardFire: boolean;
   notes: string;
 }
 
@@ -50,6 +53,7 @@ const blank = (asset?: Asset): FormState => ({
   currency: asset?.currency ?? "NZD",
   contribution: asset?.contribution ?? 0,
   frequency: asset?.frequency ?? "monthly",
+  countsTowardFire: countsTowardFire(asset ?? {}),
   notes: asset?.notes ?? "",
 });
 
@@ -81,6 +85,7 @@ export function AssetEditor({ isOpen, onClose, asset }: AssetEditorProps) {
       currency: form.currency,
       contribution: form.contribution ?? 0,
       frequency: form.frequency,
+      countsTowardFire: form.countsTowardFire,
       notes: form.notes.trim() || undefined,
     });
     onClose();
@@ -207,6 +212,17 @@ export function AssetEditor({ isOpen, onClose, asset }: AssetEditorProps) {
           />
         </div>
       </div>
+
+      <FireInclusionToggle
+        excludedHint={
+          form.type === "property"
+            ? "A home you live in can't be drawn down"
+            : "Held, but not to retire on"
+        }
+        includedHint="Part of the pot you'll retire on"
+        value={form.countsTowardFire}
+        onChange={(v) => set("countsTowardFire", v)}
+      />
 
       <Input
         classNames={{

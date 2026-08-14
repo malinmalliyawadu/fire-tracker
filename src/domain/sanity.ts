@@ -22,6 +22,8 @@ export interface SanityInputs {
   topAssetShare: number;
   /** True when any liability's payment doesn't cover its interest. */
   hasNegativeAmortisation: boolean;
+  /** True when a debt has been taken out of the FIRE picture. */
+  hasExcludedDebt?: boolean;
 }
 
 /**
@@ -117,8 +119,18 @@ export const checkAssumptions = (input: SanityInputs): SanityWarning[] => {
     warnings.push({
       id: "concentrated",
       level: "note",
-      title: "Portfolio is highly concentrated",
-      detail: `${pct(input.topAssetShare)} sits in a single asset type. The projection applies one blended return to everything, so it can't show the swings a concentrated portfolio actually experiences.`,
+      title: "Retirement pot is highly concentrated",
+      detail: `${pct(input.topAssetShare)} of the assets funding retirement sit in a single asset type. The projection applies one blended return to everything, so it can't show the swings a concentrated portfolio actually experiences.`,
+    });
+  }
+
+  if (input.hasExcludedDebt) {
+    warnings.push({
+      id: "excluded-debt-unmodelled",
+      level: "note",
+      title: "An excluded debt isn't being serviced in the projection",
+      detail:
+        "Debts left out of the FIRE picture don't amortise and their repayments never draw on the portfolio. That's right when the debt clears with the asset behind it — selling the house repays the mortgage — but if you'll still be paying it in retirement, record the repayment on the Spending page so the target covers it.",
     });
   }
 
