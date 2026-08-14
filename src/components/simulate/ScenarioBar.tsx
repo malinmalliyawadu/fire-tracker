@@ -5,7 +5,6 @@ import { Button } from "@heroui/button";
 import clsx from "clsx";
 
 import { useScenarios } from "@/store/scenarios";
-
 import { Card } from "@/components/ui/Card";
 
 interface ScenarioBarProps {
@@ -79,8 +78,8 @@ function ScenarioChip({
     >
       <button
         className="flex items-center gap-2"
-        onClick={onToggle}
         title={compared ? "Hide on chart" : "Show on chart"}
+        onClick={onToggle}
       >
         <span
           className={clsx(

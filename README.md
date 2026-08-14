@@ -17,17 +17,22 @@ A comprehensive Financial Independence, Retire Early (FIRE) calculator and track
 - **Coast FIRE**: Amount needed today to reach FIRE by retirement age
 - **Time to FIRE**: Calculate years remaining based on current contributions
 
-### 📈 Projections & Charts
-- **Interactive Charts**: Visualize your journey to FIRE with detailed projections
-- **Advanced Filtering**: Filter charts by asset types, liability types, or specific assets
-- **Debt Scenarios**: Accurate modeling of debt payoff with proper interest rates
-- **Retirement Phase**: Model withdrawal phase with configurable rates
+### 📈 Projections & Scenarios
+- **Interactive Chart**: Visualize your journey to FIRE, in today's dollars
+- **Saved Scenarios**: Pin a set of assumptions and overlay them on the chart to compare
+- **Debt Payoff**: Loans amortise monthly at their own rate; repayments redirect into savings once a loan clears
+- **Retirement Phase**: Model the withdrawal years, including any debt still being serviced
+
+### 🇳🇿 New Zealand Specifics
+- **NZ Super**: Optionally offset retirement withdrawals from the eligibility age onward
+- **KiwiSaver Lock**: Treated as a pot that compounds untouched and can't fund a retirement that starts before the unlock age
+- **Kids**: Model the cost of dependent children against the plan
 
 ### ⚙️ Advanced Features
 - **Payment Frequencies**: Support for weekly, fortnightly, monthly, quarterly, and annual contributions
 - **Realistic Modeling**: Separate interest rates for debts vs investment returns
 - **Currency Conversion**: Automatic conversion between supported currencies
-- **Responsive Design**: Works seamlessly on desktop and mobile
+- **Net Worth History**: Snapshots recorded as you edit, charted over time
 
 ## Tech Stack
 
@@ -83,8 +88,9 @@ npm run lint        # Run ESLint with auto-fix
 2. **Add Assets**: Input your current investments, savings, and other assets
 3. **Track Liabilities**: Add mortgages, loans, and debts with accurate interest rates
 4. **Monitor Progress**: View your progress towards FIRE with real-time calculations
-5. **Analyze Projections**: Use the Charts page to visualize different scenarios and filter data
+5. **Analyze Projections**: Use the Simulate page to model different assumptions and save scenarios to compare
 6. **Plan Your Journey**: Adjust contributions and see how it affects your timeline
+7. **Export**: Produce a Markdown or JSON snapshot for backup or for pasting into an LLM
 
 ## Key Concepts
 
@@ -95,9 +101,18 @@ npm run lint        # Run ESLint with auto-fix
 - **Coast FIRE**: Let compound interest do the work until retirement
 
 ### Financial Modeling
-- **Debt Phase**: Uses actual liability interest rates for accurate projections
-- **Savings Phase**: Applies investment returns once debts are paid off
-- **Retirement Phase**: Models withdrawal period with optional contributions
+Projections run in **today's dollars**, compounding at the real return (nominal return − inflation), so time-to-FIRE figures on every screen agree with the chart.
+
+- **Debt**: Each liability amortises monthly at its own nominal rate. Before retirement, repayments are assumed to come from income (which the model does not track), so servicing a loan doesn't drain the portfolio — meaning net worth for someone carrying debt is **not** directly comparable to a debt-free run of the same inputs. Once a loan clears, its repayment is redirected into savings. After retirement, remaining debt service is withdrawn from the portfolio on top of living expenses.
+- **Annual expenses** are treated as **excluding** loan repayments, since those are modelled separately from each liability's balance and rate.
+- **Retirement Phase**: Withdrawals cover expenses, dependent kids, and any remaining debt service, less NZ Super once eligible.
+
+#### Known limitations
+- There is no income input, so savings rate and the cash flow funding debt repayments are not modelled.
+- Returns are a single deterministic path — no Monte Carlo or sequence-of-returns risk.
+- Net worth includes owner-occupied property, which compounds at the investment return and counts toward the FIRE target even though a home can't fund withdrawals.
+- Returns are modelled before tax (no PIE/PIR, FIF/FDR, or RWT).
+- The layout is desktop-only; there is no mobile view yet.
 
 ## Contributing
 
@@ -109,11 +124,11 @@ npm run lint        # Run ESLint with auto-fix
 
 ## Testing
 
-The project includes comprehensive unit tests covering:
-- FIRE calculation algorithms
-- Currency conversion utilities
-- Chart filtering logic
-- Financial projection modeling
+The project includes unit tests covering:
+- FIRE target calculations
+- Numeric input parsing and formatting
+- Financial projection modeling, including debt amortisation and the KiwiSaver lock
+- The exported snapshot
 
 Run tests with `npm test` or use the UI with `npm run test:ui`.
 

@@ -3,7 +3,6 @@ import { Input } from "@heroui/input";
 
 import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 
 export function KiwiSaverCard() {
@@ -32,8 +31,8 @@ export function KiwiSaverCard() {
       <p className="mb-5 text-sm text-ink-300">
         KiwiSaver funds are locked until eligibility age. Projections will keep
         them compounding but exclude them from any pre-unlock retirement
-        withdrawals — so an early retirement before this age must be funded
-        from accessible assets alone.
+        withdrawals — so an early retirement before this age must be funded from
+        accessible assets alone.
       </p>
       <div className="grid grid-cols-[auto_1fr] items-center gap-4">
         <div className="grid h-12 w-12 place-items-center rounded-xl border border-white/[0.06] bg-white/[0.02]">

@@ -42,8 +42,6 @@ export function Sidebar() {
         {items.map((item) => (
           <NavLink
             key={item.to}
-            end={item.to === "/"}
-            to={item.to}
             className={({ isActive }) =>
               clsx(
                 "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150",
@@ -52,6 +50,8 @@ export function Sidebar() {
                   : "text-ink-300 hover:bg-white/[0.03] hover:text-white",
               )
             }
+            end={item.to === "/"}
+            to={item.to}
           >
             {({ isActive }) => (
               <>

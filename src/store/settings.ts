@@ -1,7 +1,7 @@
+import type { Settings } from "@/types";
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-import type { Settings } from "@/types";
 
 import { FALLBACK_USD_TO_NZD, fetchUsdToNzd } from "@/domain/currency";
 
@@ -32,8 +32,7 @@ export const useSettings = create<SettingsState>()(
     (set, get) => ({
       settings: DEFAULT_SETTINGS,
       fxLoading: false,
-      update: (patch) =>
-        set({ settings: { ...get().settings, ...patch } }),
+      update: (patch) => set({ settings: { ...get().settings, ...patch } }),
       refreshExchangeRate: async () => {
         set({ fxLoading: true });
         const result = await fetchUsdToNzd();

@@ -13,7 +13,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route element={<Dashboard />} index />
+        <Route index element={<Dashboard />} />
         <Route element={<Simulate />} path="/simulate" />
         <Route element={<Export />} path="/export" />
         <Route element={<Settings />} path="/settings" />

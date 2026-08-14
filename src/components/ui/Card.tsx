@@ -43,10 +43,14 @@ export function Card({
               </h2>
             )}
           </div>
-          {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+          {action && (
+            <div className="flex shrink-0 items-center gap-2">{action}</div>
+          )}
         </header>
       )}
-      <div className={clsx(showHeader ? "px-6 pb-6 pt-1" : "p-6", bodyClassName)}>
+      <div
+        className={clsx(showHeader ? "px-6 pb-6 pt-1" : "p-6", bodyClassName)}
+      >
         {children}
       </div>
     </section>

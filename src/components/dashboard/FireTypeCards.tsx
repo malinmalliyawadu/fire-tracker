@@ -3,10 +3,12 @@ import type { FireType } from "@/types";
 import clsx from "clsx";
 
 import { FIRE_TYPE_META, FIRE_TYPES } from "@/domain/labels";
-import { progressPercent, yearsToFire } from "@/domain/fire";
+import { progressPercent } from "@/domain/fire";
+import { yearsToTarget } from "@/domain/projection";
 import { formatMoneyCompact, formatYears } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import {
+  useCurrentProjection,
   useFireTargets,
   usePortfolioTotals,
 } from "@/store/derived";
@@ -28,6 +30,7 @@ const STROKE_FOR: Record<FireType, string> = {
 export function FireTypeCards() {
   const targets = useFireTargets();
   const totals = usePortfolioTotals();
+  const projection = useCurrentProjection();
   const settings = useSettings((s) => s.settings);
 
   return (
@@ -35,12 +38,7 @@ export function FireTypeCards() {
       {FIRE_TYPES.map((type) => {
         const target = targets[type];
         const pct = progressPercent(totals.netWorth, target);
-        const years = yearsToFire({
-          netWorth: totals.netWorth,
-          monthlyContribution: totals.monthlyContributions,
-          target,
-          expectedReturn: settings.expectedReturn,
-        });
+        const years = yearsToTarget(projection, target);
 
         return (
           <div

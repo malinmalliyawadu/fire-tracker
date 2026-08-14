@@ -5,7 +5,6 @@ import { useHistory } from "@/store/history";
 import { usePortfolio } from "@/store/portfolio";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 
 export function DangerZone() {

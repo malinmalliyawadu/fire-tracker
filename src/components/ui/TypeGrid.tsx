@@ -53,8 +53,8 @@ export function TypeGrid<T extends string>({
                 ? clsx(activeBorder, activeGlow)
                 : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
             )}
-            onClick={() => onChange(opt.value)}
             type="button"
+            onClick={() => onChange(opt.value)}
           >
             <opt.icon
               className={clsx(

@@ -3,18 +3,19 @@ import type { SimulationInputs } from "@/types";
 import { useEffect, useMemo, useState } from "react";
 
 import { convert } from "@/domain/currency";
-import { fireTargetFor, yearsToFire } from "@/domain/fire";
-import { generateProjection } from "@/domain/projection";
+import { fireTargetFor } from "@/domain/fire";
+import {
+  generateProjection,
+  yearsToTarget as yearsUntilTarget,
+} from "@/domain/projection";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
 import {
   buildProjection,
   KID_ANNUAL_COST_NZD,
   KID_DEPENDENT_YEARS,
-  useFireTargets,
-  usePortfolioTotals,
-} from "@/store/derived";
-
+} from "@/domain/plan";
+import { useFireTargets, usePortfolioTotals } from "@/store/derived";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { ProjectionChart } from "@/components/simulate/ProjectionChart";
@@ -74,12 +75,12 @@ export default function Simulate() {
         monthlySavings: inputs.monthlySavings,
         expectedReturn: inputs.expectedReturn,
         retirementAge: inputs.retirementAge,
-        withdrawalRate: inputs.withdrawalRate,
         includeNzSuper: inputs.includeNzSuper,
         currentLockedNetWorth: totals.lockedAssetsTotal,
         monthlyLockedSavings: lockedShare,
         includeKids: inputs.includeKids,
         numberOfKids: inputs.numberOfKids,
+        liabilities: totals.debts,
       },
       settings,
       PROJECTION_YEARS,
@@ -87,14 +88,8 @@ export default function Simulate() {
   }, [totals, inputs, settings]);
 
   const yearsToTarget = useMemo(
-    () =>
-      yearsToFire({
-        netWorth: totals.netWorth,
-        monthlyContribution: inputs.monthlySavings,
-        target,
-        expectedReturn: inputs.expectedReturn,
-      }),
-    [totals.netWorth, inputs.monthlySavings, inputs.expectedReturn, target],
+    () => yearsUntilTarget(currentProjection, target),
+    [currentProjection, target],
   );
 
   const comparedScenarios = useMemo(
@@ -154,6 +149,7 @@ export default function Simulate() {
             unlockAge: settings.kiwisaverUnlockAge ?? 65,
             kidsAnnualCost,
             kidsYears: KID_DEPENDENT_YEARS,
+            liabilities: totals.debts,
           }),
         };
       }),
@@ -187,6 +183,7 @@ export default function Simulate() {
             current={currentProjection}
             retirementAge={inputs.retirementAge}
             showAccessible={totals.lockedAssetsTotal > 0}
+            showDebt={totals.debts.length > 0}
             target={target}
           />
         </Card>

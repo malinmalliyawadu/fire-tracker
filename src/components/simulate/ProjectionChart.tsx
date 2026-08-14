@@ -26,6 +26,7 @@ interface ProjectionChartProps {
   target: number;
   retirementAge: number;
   showAccessible?: boolean;
+  showDebt?: boolean;
 }
 
 interface ChartRow {
@@ -33,6 +34,7 @@ interface ChartRow {
   age: number;
   current: number;
   accessible?: number;
+  debt?: number;
   [scenarioKey: string]: number | undefined;
 }
 
@@ -42,9 +44,17 @@ export function ProjectionChart({
   target,
   retirementAge,
   showAccessible = false,
+  showDebt = false,
 }: ProjectionChartProps) {
   const settings = useSettings((s) => s.settings);
   const currency = settings.displayCurrency;
+
+  // The debt curve is dwarfed by net worth on a shared axis, so it gets its
+  // own scale — and the age it clears is the fact worth calling out.
+  const debtFreeAge = showDebt
+    ? (current.find((p) => p.debt === 0)?.age ?? null)
+    : null;
+  const peakDebt = showDebt ? Math.max(...current.map((p) => p.debt), 0) : 0;
 
   const data: ChartRow[] = current.map((point, i) => {
     const row: ChartRow = {
@@ -55,6 +65,10 @@ export function ProjectionChart({
 
     if (showAccessible) {
       row.accessible = point.accessible;
+    }
+
+    if (showDebt) {
+      row.debt = point.debt;
     }
 
     for (const c of comparisons) {
@@ -96,7 +110,21 @@ export function ProjectionChart({
               tickLine={false}
               tickMargin={6}
               width={64}
+              yAxisId="main"
             />
+            {showDebt && (
+              <YAxis
+                axisLine={false}
+                domain={[0, peakDebt]}
+                orientation="right"
+                tick={{ fill: "#f43f5e", fontSize: 11 }}
+                tickFormatter={(v) => formatMoneyCompact(v, currency)}
+                tickLine={false}
+                tickMargin={6}
+                width={64}
+                yAxisId="debt"
+              />
+            )}
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
@@ -139,6 +167,7 @@ export function ProjectionChart({
               strokeDasharray="4 4"
               strokeOpacity={0.5}
               y={target}
+              yAxisId="main"
             />
             <ReferenceLine
               label={{
@@ -151,7 +180,23 @@ export function ProjectionChart({
               stroke="rgba(255,255,255,0.15)"
               strokeDasharray="3 3"
               x={retirementAge}
+              yAxisId="main"
             />
+            {debtFreeAge !== null && (
+              <ReferenceLine
+                label={{
+                  value: `Debt free ${debtFreeAge}`,
+                  position: "insideBottom",
+                  offset: 8,
+                  fill: "#f43f5e",
+                  fontSize: 10,
+                }}
+                stroke="rgba(244,63,94,0.4)"
+                strokeDasharray="2 4"
+                x={debtFreeAge}
+                yAxisId="main"
+              />
+            )}
             {showAccessible && settings.kiwisaverUnlockAge != null && (
               <ReferenceLine
                 label={{
@@ -164,42 +209,60 @@ export function ProjectionChart({
                 stroke="rgba(34,197,94,0.35)"
                 strokeDasharray="2 4"
                 x={settings.kiwisaverUnlockAge}
+                yAxisId="main"
               />
             )}
             <Area
+              isAnimationActive
               animationDuration={500}
               dataKey="current"
               fill="url(#grad-current)"
-              isAnimationActive
               name="Total net worth"
               stroke="#7c83e7"
               strokeWidth={2.5}
               type="monotone"
+              yAxisId="main"
             />
             {showAccessible && (
               <Area
+                isAnimationActive
                 animationDuration={500}
                 dataKey="accessible"
                 fill="url(#grad-accessible)"
-                isAnimationActive
                 name="Accessible"
                 stroke="#22c55e"
                 strokeWidth={2}
                 type="monotone"
+                yAxisId="main"
+              />
+            )}
+            {showDebt && (
+              <Line
+                isAnimationActive
+                animationDuration={500}
+                dataKey="debt"
+                dot={false}
+                name="Debt outstanding"
+                stroke="#f43f5e"
+                strokeDasharray="5 3"
+                strokeWidth={2}
+                type="monotone"
+                yAxisId="debt"
               />
             )}
             {comparisons.map((c) => (
               <Line
                 key={c.scenario.id}
+                isAnimationActive
                 animationDuration={400}
                 dataKey={`s_${c.scenario.id}`}
                 dot={false}
-                isAnimationActive
                 name={c.scenario.name}
                 stroke={c.scenario.color}
                 strokeDasharray="6 4"
                 strokeWidth={1.75}
                 type="monotone"
+                yAxisId="main"
               />
             ))}
           </AreaChart>
@@ -208,6 +271,12 @@ export function ProjectionChart({
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-ink-300">
         <LegendDot color="#7c83e7" label="Total net worth" />
+        {showDebt && (
+          <>
+            <LegendDot color="#f43f5e" label="Debt outstanding" />
+            <span className="text-ink-500">· right axis</span>
+          </>
+        )}
         {showAccessible && (
           <>
             <LegendDot color="#22c55e" label="Accessible (excl. KiwiSaver)" />

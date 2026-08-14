@@ -26,7 +26,9 @@ export function PageHeader({
           <p className="mt-2 max-w-xl text-sm text-ink-300">{description}</p>
         )}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex shrink-0 items-center gap-2">{actions}</div>
+      )}
     </header>
   );
 }

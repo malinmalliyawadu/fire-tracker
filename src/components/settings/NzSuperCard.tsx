@@ -5,7 +5,6 @@ import { convert } from "@/domain/currency";
 import { formatMoney } from "@/domain/format";
 import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 
 export function NzSuperCard() {

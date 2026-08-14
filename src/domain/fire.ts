@@ -30,41 +30,6 @@ export const fireTargetFor = (type: FireType, targets: FireTargets): number => {
   return targets[type];
 };
 
-export interface YearsToFireInputs {
-  netWorth: number;
-  monthlyContribution: number;
-  target: number;
-  expectedReturn: number;
-}
-
-export const yearsToFire = ({
-  netWorth,
-  monthlyContribution,
-  target,
-  expectedReturn,
-}: YearsToFireInputs): number => {
-  if (target <= 0) return 0;
-  if (netWorth >= target) return 0;
-
-  const monthlyReturn = expectedReturn / 12;
-
-  if (monthlyReturn === 0) {
-    if (monthlyContribution <= 0) return Infinity;
-
-    return (target - netWorth) / (monthlyContribution * 12);
-  }
-
-  const numerator = target * monthlyReturn + monthlyContribution;
-  const denominator = netWorth * monthlyReturn + monthlyContribution;
-
-  if (denominator <= 0) return Infinity;
-  if (numerator / denominator <= 0) return Infinity;
-
-  const months = Math.log(numerator / denominator) / Math.log(1 + monthlyReturn);
-
-  return Math.max(0, months / 12);
-};
-
 export const progressPercent = (netWorth: number, target: number): number => {
   if (target <= 0) return netWorth >= 0 ? 100 : 0;
   if (netWorth <= 0) return 0;

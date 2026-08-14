@@ -5,7 +5,6 @@ import clsx from "clsx";
 
 import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 
 export function ProfileCard() {
@@ -51,11 +50,7 @@ export function ProfileCard() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Current age"
-            variant="bordered"
-            {...currentAgeField}
-          />
+          <Input label="Current age" variant="bordered" {...currentAgeField} />
           <Input
             label="Retirement age"
             variant="bordered"

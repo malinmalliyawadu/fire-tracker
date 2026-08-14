@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import clsx from "clsx";
 
+import { useAutoFocus } from "@/hooks/useAutoFocus";
 import { useNumericField } from "@/hooks/useNumericField";
 
 interface AmountInputProps {
@@ -31,6 +32,7 @@ export function AmountInput({
   autoFocus,
 }: AmountInputProps) {
   const field = useNumericField({ value, onChange });
+  const focusRef = useAutoFocus<HTMLInputElement>(autoFocus);
   const symbol = currency === "NZD" ? "NZ$" : "US$";
   const focusRing =
     tone === "accent"
@@ -60,7 +62,7 @@ export function AmountInput({
           {symbol}
         </span>
         <input
-          autoFocus={autoFocus}
+          ref={focusRef}
           className={clsx(
             "min-w-0 flex-1 bg-transparent font-mono tabular font-semibold tracking-tight outline-none placeholder:text-ink-600",
             size === "lg" ? "text-3xl" : "text-xl",

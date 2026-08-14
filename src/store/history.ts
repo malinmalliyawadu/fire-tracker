@@ -1,7 +1,7 @@
+import type { Currency } from "@/types";
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-import type { Currency } from "@/types";
 
 export interface NetWorthSnapshot {
   id: string;
@@ -42,6 +42,7 @@ export const useHistory = create<HistoryState>()(
 
         if (existingIdx >= 0) {
           const updated = [...get().snapshots];
+
           updated[existingIdx] = {
             ...updated[existingIdx],
             ...snap,

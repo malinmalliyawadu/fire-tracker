@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 
 import { SCENARIO_COLORS, useScenarios } from "@/store/scenarios";
-
+import { useAutoFocus } from "@/hooks/useAutoFocus";
 import { DialogShell } from "@/components/ui/DialogShell";
 
 interface SaveScenarioModalProps {
@@ -24,6 +24,7 @@ export function SaveScenarioModal({
   const save = useScenarios((s) => s.save);
   const existingCount = useScenarios((s) => s.scenarios.length);
   const [name, setName] = useState("");
+  const nameRef = useAutoFocus<HTMLInputElement>();
   const [color, setColor] = useState(SCENARIO_COLORS[0]);
 
   useEffect(() => {
@@ -66,12 +67,12 @@ export function SaveScenarioModal({
       onClose={onClose}
     >
       <Input
-        autoFocus
+        ref={nameRef}
+        isRequired
         classNames={{
           inputWrapper:
             "border border-white/[0.08] bg-white/[0.02] data-[hover=true]:border-white/15 group-data-[focus=true]:border-accent/40 group-data-[focus=true]:bg-accent/[0.04]",
         }}
-        isRequired
         label="Name"
         labelPlacement="outside"
         placeholder="e.g. Conservative"
@@ -98,10 +99,12 @@ export function SaveScenarioModal({
                     : "ring-0 hover:scale-105",
                 )}
                 style={{ backgroundColor: c }}
-                onClick={() => setColor(c)}
                 type="button"
+                onClick={() => setColor(c)}
               >
-                {active && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
+                {active && (
+                  <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                )}
               </button>
             );
           })}

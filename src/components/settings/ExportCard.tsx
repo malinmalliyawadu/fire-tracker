@@ -1,5 +1,12 @@
 import { Button } from "@heroui/button";
-import { Check, ChevronDown, Copy, Download, FileJson, FileText } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  Download,
+  FileJson,
+  FileText,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
 
@@ -8,7 +15,6 @@ import { useHistory } from "@/store/history";
 import { usePortfolio } from "@/store/portfolio";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 
 type Format = "markdown" | "json";
@@ -154,8 +160,8 @@ function FormatPill({ active, icon: Icon, label, onClick }: FormatPillProps) {
           ? "bg-white/[0.12] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)_inset]"
           : "text-ink-400 hover:text-white",
       )}
-      onClick={onClick}
       type="button"
+      onClick={onClick}
     >
       <Icon className="h-3 w-3" />
       {label}

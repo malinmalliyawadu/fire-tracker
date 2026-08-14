@@ -46,6 +46,7 @@ export function DialogShell({
 }: DialogShellProps) {
   return (
     <Modal
+      hideCloseButton
       backdrop="blur"
       classNames={{
         backdrop: "bg-ink-950/70",
@@ -59,7 +60,6 @@ export function DialogShell({
         body: "p-0",
         footer: "p-0 border-t border-white/[0.06] bg-black/20",
       }}
-      hideCloseButton
       isOpen={isOpen}
       size={size}
       onClose={onClose}
