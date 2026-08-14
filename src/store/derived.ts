@@ -1,13 +1,14 @@
+import type { AssetType, FireTargets, ProjectionPoint } from "@/types";
+import type { ProjectionLiability } from "@/domain/projection";
+
 import { useMemo } from "react";
-
-import type { AssetType, FireTargets, ProjectionPoint, Settings } from "@/types";
-
-import { convert, toMonthly } from "@/domain/currency";
-import { computeFireTargets } from "@/domain/fire";
-import { generateProjection } from "@/domain/projection";
 
 import { usePortfolio } from "./portfolio";
 import { useSettings } from "./settings";
+
+import { convert, toMonthly } from "@/domain/currency";
+import { computeFireTargets } from "@/domain/fire";
+import { buildProjection } from "@/domain/plan";
 
 export interface PortfolioTotals {
   assetsTotal: number;
@@ -15,11 +16,12 @@ export interface PortfolioTotals {
   netWorth: number;
   monthlyContributions: number;
   monthlyDebtPayments: number;
-  monthlySavings: number;
   /** KiwiSaver portion of assets, in display currency. */
   lockedAssetsTotal: number;
   /** Monthly contributions flowing into KiwiSaver, in display currency. */
   lockedMonthlyContributions: number;
+  /** Liabilities normalised to display currency for the projection engine. */
+  debts: ProjectionLiability[];
 }
 
 export const usePortfolioTotals = (): PortfolioTotals => {
@@ -52,14 +54,17 @@ export const usePortfolioTotals = (): PortfolioTotals => {
       }
     }
 
-    const liabilitiesTotal = liabilities.reduce(
-      (sum, l) => sum + convert(l.balance, l.currency, display, rate),
-      0,
-    );
-    const monthlyDebtPayments = liabilities.reduce(
-      (sum, l) =>
-        sum +
-        toMonthly(convert(l.payment, l.currency, display, rate), l.frequency),
+    const debts: ProjectionLiability[] = liabilities.map((l) => ({
+      balance: convert(l.balance, l.currency, display, rate),
+      interestRate: l.interestRate,
+      annualPayment:
+        toMonthly(convert(l.payment, l.currency, display, rate), l.frequency) *
+        12,
+    }));
+
+    const liabilitiesTotal = debts.reduce((sum, d) => sum + d.balance, 0);
+    const monthlyDebtPayments = debts.reduce(
+      (sum, d) => sum + d.annualPayment / 12,
       0,
     );
 
@@ -69,9 +74,9 @@ export const usePortfolioTotals = (): PortfolioTotals => {
       netWorth: assetsTotal - liabilitiesTotal,
       monthlyContributions,
       monthlyDebtPayments,
-      monthlySavings: monthlyContributions + monthlyDebtPayments,
       lockedAssetsTotal,
       lockedMonthlyContributions,
+      debts,
     };
   }, [assets, liabilities, settings]);
 };
@@ -148,72 +153,33 @@ export const useFireTargets = (): FireTargets => {
   );
 };
 
+/** How far out the dashboard projects when deriving time-to-target. */
+const DASHBOARD_HORIZON_YEARS = 60;
+
 /**
- * Indicative annual cost per dependent child in NZD. Roughly tracks NZ
- * household estimates of ~$200–$300/wk per child once accounting for food,
- * activities, childcare, and education extras.
+ * The projection implied by the portfolio and settings as they stand, with no
+ * simulation overrides. Time-to-target figures on the dashboard are read off
+ * this so they agree with the Simulate chart.
  */
-export const KID_ANNUAL_COST_NZD = 15_000;
+export const useCurrentProjection = (): ProjectionPoint[] => {
+  const totals = usePortfolioTotals();
+  const settings = useSettings((s) => s.settings);
 
-/** How long a kid is treated as a dependent in the simulation. */
-export const KID_DEPENDENT_YEARS = 18;
-
-export interface ProjectionInputBundle {
-  currentNetWorth: number;
-  monthlySavings: number;
-  expectedReturn: number;
-  retirementAge: number;
-  withdrawalRate: number;
-  includeNzSuper?: boolean;
-  /** KiwiSaver portion of currentNetWorth (display currency). */
-  currentLockedNetWorth?: number;
-  /** KiwiSaver portion of monthlySavings (display currency). */
-  monthlyLockedSavings?: number;
-  includeKids?: boolean;
-  numberOfKids?: number;
-}
-
-export const buildProjection = (
-  bundle: ProjectionInputBundle,
-  settings: Settings,
-  years = 40,
-): ProjectionPoint[] => {
-  const annualNzd = settings.nzSuperAnnual ?? 28_000;
-  const nzSuperInDisplay = bundle.includeNzSuper
-    ? convert(
-        annualNzd,
-        "NZD",
-        settings.displayCurrency,
-        settings.usdToNzd,
-      )
-    : 0;
-
-  const kids = bundle.includeKids ? Math.max(0, bundle.numberOfKids ?? 0) : 0;
-  const kidsAnnualCost =
-    kids > 0
-      ? convert(
-          KID_ANNUAL_COST_NZD * kids,
-          "NZD",
-          settings.displayCurrency,
-          settings.usdToNzd,
-        )
-      : 0;
-
-  return generateProjection({
-    currentNetWorth: bundle.currentNetWorth,
-    monthlySavings: bundle.monthlySavings,
-    expectedReturn: bundle.expectedReturn,
-    inflationRate: settings.inflationRate,
-    currentAge: settings.currentAge,
-    retirementAge: bundle.retirementAge,
-    annualExpenses: settings.annualExpenses,
-    years,
-    nzSuperAnnualInDisplay: nzSuperInDisplay,
-    nzSuperStartAge: settings.nzSuperStartAge ?? 65,
-    currentLockedNetWorth: bundle.currentLockedNetWorth ?? 0,
-    monthlyLockedSavings: bundle.monthlyLockedSavings ?? 0,
-    unlockAge: settings.kiwisaverUnlockAge ?? 65,
-    kidsAnnualCost,
-    kidsYears: KID_DEPENDENT_YEARS,
-  });
+  return useMemo(
+    () =>
+      buildProjection(
+        {
+          currentNetWorth: totals.netWorth,
+          monthlySavings: totals.monthlyContributions,
+          expectedReturn: settings.expectedReturn,
+          retirementAge: settings.retirementAge,
+          currentLockedNetWorth: totals.lockedAssetsTotal,
+          monthlyLockedSavings: totals.lockedMonthlyContributions,
+          liabilities: totals.debts,
+        },
+        settings,
+        DASHBOARD_HORIZON_YEARS,
+      ),
+    [totals, settings],
+  );
 };

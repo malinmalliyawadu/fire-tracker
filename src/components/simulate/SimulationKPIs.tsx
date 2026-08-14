@@ -4,7 +4,6 @@ import { CheckCircle2, Hourglass, Target, TrendingUp } from "lucide-react";
 
 import { formatMoneyCompact, formatYears } from "@/domain/format";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 
 interface SimulationKPIsProps {
@@ -82,9 +81,7 @@ export function SimulationKPIs({
           <div
             key={k.label}
             className={
-              idx > 0
-                ? "border-l border-white/[0.05] px-5 py-4"
-                : "px-5 py-4"
+              idx > 0 ? "border-l border-white/[0.05] px-5 py-4" : "px-5 py-4"
             }
           >
             <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-ink-400">

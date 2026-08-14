@@ -4,19 +4,15 @@ import { Lock, Pencil, Wallet } from "lucide-react";
 import { Button } from "@heroui/button";
 import { useState } from "react";
 
-import {
-  ASSET_TYPE_LABEL,
-  FREQUENCY_SHORT,
-} from "@/domain/labels";
+import { AssetEditor } from "./AssetEditor";
+
+import { ASSET_TYPE_LABEL, FREQUENCY_SHORT } from "@/domain/labels";
 import { convert, toMonthly } from "@/domain/currency";
 import { useSettings } from "@/store/settings";
 import { usePortfolio } from "@/store/portfolio";
-
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Money } from "@/components/ui/Money";
-
-import { AssetEditor } from "./AssetEditor";
 
 export function AssetTable() {
   const assets = usePortfolio((s) => s.assets);
@@ -40,11 +36,7 @@ export function AssetTable() {
   return (
     <Card
       action={
-        <Button
-          className="bg-accent text-white"
-          size="sm"
-          onPress={startAdd}
-        >
+        <Button className="bg-accent text-white" size="sm" onPress={startAdd}>
           + Add asset
         </Button>
       }

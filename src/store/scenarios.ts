@@ -1,7 +1,7 @@
+import type { Scenario, SimulationInputs } from "@/types";
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-import type { Scenario, SimulationInputs } from "@/types";
 
 interface ScenariosState {
   scenarios: Scenario[];

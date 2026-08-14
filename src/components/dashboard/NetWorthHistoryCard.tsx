@@ -1,9 +1,4 @@
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Camera,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Camera, TrendingUp } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -17,11 +12,14 @@ import { Button } from "@heroui/button";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { useMemo } from "react";
 
-import { formatMoney, formatMoneyCompact, formatPercent } from "@/domain/format";
+import {
+  formatMoney,
+  formatMoneyCompact,
+  formatPercent,
+} from "@/domain/format";
 import { useHistory } from "@/store/history";
 import { usePortfolioTotals } from "@/store/derived";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Money } from "@/components/ui/Money";
@@ -85,7 +83,8 @@ export function NetWorthHistoryCard() {
   const first = data[0];
   const last = data[data.length - 1];
   const totalDelta = last.netWorth - first.netWorth;
-  const totalPct = first.netWorth !== 0 ? totalDelta / Math.abs(first.netWorth) : 0;
+  const totalPct =
+    first.netWorth !== 0 ? totalDelta / Math.abs(first.netWorth) : 0;
   const isUp = totalDelta >= 0;
 
   // Last 30 days delta

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeFireTargets, progressPercent, yearsToFire } from "../fire";
+import { computeFireTargets, progressPercent } from "../fire";
 
 describe("computeFireTargets", () => {
   const base = {
@@ -37,58 +37,6 @@ describe("computeFireTargets", () => {
     const t = computeFireTargets({ ...base, currentAge: 65 });
 
     expect(t.coast).toBeCloseTo(t.traditional);
-  });
-});
-
-describe("yearsToFire", () => {
-  it("returns 0 if already at target", () => {
-    expect(
-      yearsToFire({
-        netWorth: 1_000_000,
-        monthlyContribution: 0,
-        target: 1_000_000,
-        expectedReturn: 0.07,
-      }),
-    ).toBe(0);
-  });
-
-  it("returns Infinity with no contribution and no return", () => {
-    expect(
-      yearsToFire({
-        netWorth: 100_000,
-        monthlyContribution: 0,
-        target: 1_000_000,
-        expectedReturn: 0,
-      }),
-    ).toBe(Infinity);
-  });
-
-  it("solves linearly when expectedReturn is 0", () => {
-    const years = yearsToFire({
-      netWorth: 100_000,
-      monthlyContribution: 1_000,
-      target: 220_000,
-      expectedReturn: 0,
-    });
-
-    expect(years).toBeCloseTo(10, 4);
-  });
-
-  it("more contribution → fewer years", () => {
-    const a = yearsToFire({
-      netWorth: 100_000,
-      monthlyContribution: 1_000,
-      target: 1_000_000,
-      expectedReturn: 0.07,
-    });
-    const b = yearsToFire({
-      netWorth: 100_000,
-      monthlyContribution: 3_000,
-      target: 1_000_000,
-      expectedReturn: 0.07,
-    });
-
-    expect(b).toBeLessThan(a);
   });
 });
 

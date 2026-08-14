@@ -18,9 +18,9 @@ import {
 } from "@/domain/labels";
 import { formatMoney } from "@/domain/format";
 import { toMonthly } from "@/domain/currency";
+import { useAutoFocus } from "@/hooks/useAutoFocus";
 import { useNumericField } from "@/hooks/useNumericField";
 import { usePortfolio } from "@/store/portfolio";
-
 import { AmountInput } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
@@ -57,6 +57,7 @@ export function AssetEditor({ isOpen, onClose, asset }: AssetEditorProps) {
   const upsertAsset = usePortfolio((s) => s.upsertAsset);
   const removeAsset = usePortfolio((s) => s.removeAsset);
   const [form, setForm] = useState<FormState>(blank(asset));
+  const nameRef = useAutoFocus<HTMLInputElement>();
 
   useEffect(() => {
     if (isOpen) setForm(blank(asset));
@@ -134,12 +135,12 @@ export function AssetEditor({ isOpen, onClose, asset }: AssetEditorProps) {
       onClose={onClose}
     >
       <Input
-        autoFocus
+        ref={nameRef}
+        isRequired
         classNames={{
           inputWrapper:
             "border border-white/[0.08] bg-white/[0.02] data-[hover=true]:border-white/15 group-data-[focus=true]:border-accent/40 group-data-[focus=true]:bg-accent/[0.04]",
         }}
-        isRequired
         label="Name"
         labelPlacement="outside"
         placeholder="e.g. Simplicity Growth Fund"

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 
-import { progressPercent, yearsToFire } from "@/domain/fire";
+import { progressPercent } from "@/domain/fire";
+import { yearsToTarget } from "@/domain/projection";
 import { formatPercent, formatYears } from "@/domain/format";
-import { useSettings } from "@/store/settings";
-import { usePortfolioTotals } from "@/store/derived";
+import { useCurrentProjection } from "@/store/derived";
 
 interface ProgressRingProps {
   current: number;
@@ -16,30 +16,18 @@ const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function ProgressRing({ current, target }: ProgressRingProps) {
-  const settings = useSettings((s) => s.settings);
-  const totals = usePortfolioTotals();
+  const projection = useCurrentProjection();
 
   const pct = progressPercent(current, target);
   const offset = CIRCUMFERENCE * (1 - pct / 100);
-
-  const years = yearsToFire({
-    netWorth: current,
-    monthlyContribution: totals.monthlyContributions,
-    target,
-    expectedReturn: settings.expectedReturn,
-  });
+  const years = yearsToTarget(projection, target);
 
   return (
     <div
       className="relative grid place-items-center"
       style={{ width: SIZE, height: SIZE }}
     >
-      <svg
-        width={SIZE}
-        height={SIZE}
-        className="-rotate-90"
-        aria-hidden
-      >
+      <svg aria-hidden className="-rotate-90" height={SIZE} width={SIZE}>
         <defs>
           <linearGradient id="ring-gradient" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0%" stopColor="#7c83e7" />
@@ -49,22 +37,22 @@ export function ProgressRing({ current, target }: ProgressRingProps) {
         <circle
           cx={SIZE / 2}
           cy={SIZE / 2}
-          r={RADIUS}
           fill="none"
+          r={RADIUS}
           stroke="rgba(255,255,255,0.06)"
           strokeWidth={STROKE}
         />
         <motion.circle
+          animate={{ strokeDashoffset: offset }}
           cx={SIZE / 2}
           cy={SIZE / 2}
-          r={RADIUS}
           fill="none"
-          stroke="url(#ring-gradient)"
-          strokeWidth={STROKE}
-          strokeLinecap="round"
-          strokeDasharray={CIRCUMFERENCE}
           initial={{ strokeDashoffset: CIRCUMFERENCE }}
-          animate={{ strokeDashoffset: offset }}
+          r={RADIUS}
+          stroke="url(#ring-gradient)"
+          strokeDasharray={CIRCUMFERENCE}
+          strokeLinecap="round"
+          strokeWidth={STROKE}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         />
       </svg>

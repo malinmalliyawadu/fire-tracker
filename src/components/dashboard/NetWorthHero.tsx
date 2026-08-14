@@ -1,13 +1,13 @@
 import { ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react";
 
+import { ProgressRing } from "./ProgressRing";
+
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import { useFireTargets, usePortfolioTotals } from "@/store/derived";
-
 import { Card } from "@/components/ui/Card";
 import { Money } from "@/components/ui/Money";
 import { Stat } from "@/components/ui/Stat";
-import { ProgressRing } from "./ProgressRing";
 
 export function NetWorthHero() {
   const totals = usePortfolioTotals();
@@ -49,23 +49,20 @@ export function NetWorthHero() {
           <div className="mt-8 grid grid-cols-3 gap-6 border-t border-white/5 pt-6">
             <Stat
               label="Assets"
-              value={<Money amount={assetsTotal} currency={currency} />}
               tone="gain"
+              value={<Money amount={assetsTotal} currency={currency} />}
             />
             <Stat
               label="Liabilities"
-              value={<Money amount={liabilitiesTotal} currency={currency} />}
               tone={liabilitiesTotal > 0 ? "loss" : "default"}
+              value={<Money amount={liabilitiesTotal} currency={currency} />}
             />
             <Stat
+              hint={`${formatMoney(annualSavings, currency)} per year`}
               label="Monthly Savings"
               value={
-                <Money
-                  amount={monthlyContributions}
-                  currency={currency}
-                />
+                <Money amount={monthlyContributions} currency={currency} />
               }
-              hint={`${formatMoney(annualSavings, currency)} per year`}
             />
           </div>
         </div>

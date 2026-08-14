@@ -3,7 +3,6 @@ import { RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 
 export function ExchangeRateCard() {
@@ -24,9 +23,7 @@ export function ExchangeRateCard() {
           <div className="font-mono tabular text-3xl font-semibold tracking-tight">
             {settings.usdToNzd.toFixed(4)}
           </div>
-          <div className="mt-1 text-xs text-ink-400">
-            Updated {updated}
-          </div>
+          <div className="mt-1 text-xs text-ink-400">Updated {updated}</div>
         </div>
         <Button
           isLoading={loading}

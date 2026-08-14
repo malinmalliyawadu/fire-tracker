@@ -23,8 +23,8 @@ export function CurrencyToggle({ value, onChange }: CurrencyToggleProps) {
                 ? "bg-white/[0.12] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)_inset]"
                 : "text-ink-400 hover:text-white",
             )}
-            onClick={() => onChange(c)}
             type="button"
+            onClick={() => onChange(c)}
           >
             {c}
           </button>

@@ -1,5 +1,13 @@
-import type { Asset, Liability, Scenario, Settings } from "@/types";
+import type {
+  Asset,
+  Liability,
+  ProjectionPoint,
+  Scenario,
+  Settings,
+} from "@/types";
 import type { NetWorthSnapshot } from "@/store/history";
+import type { ProjectionInputBundle } from "./plan";
+import type { ProjectionLiability } from "./projection";
 
 import {
   ASSET_TYPE_LABEL,
@@ -7,8 +15,10 @@ import {
   FREQUENCY_LABEL,
   LIABILITY_TYPE_LABEL,
 } from "./labels";
-import { computeFireTargets, fireTargetFor, yearsToFire } from "./fire";
+import { buildProjection } from "./plan";
+import { computeFireTargets, fireTargetFor } from "./fire";
 import { convert, toMonthly } from "./currency";
+import { yearsToTarget } from "./projection";
 import { formatMoney, formatPercent, formatYears } from "./format";
 
 export interface SnapshotInput {
@@ -19,6 +29,9 @@ export interface SnapshotInput {
   history?: NetWorthSnapshot[];
 }
 
+/** Matches the dashboard's projection horizon so figures line up. */
+const HORIZON_YEARS = 60;
+
 interface Totals {
   assetsTotal: number;
   liabilitiesTotal: number;
@@ -27,6 +40,7 @@ interface Totals {
   monthlyDebtPayments: number;
   lockedAssetsTotal: number;
   lockedMonthlyContributions: number;
+  debts: ProjectionLiability[];
 }
 
 const computeTotals = (
@@ -57,14 +71,17 @@ const computeTotals = (
     }
   }
 
-  const liabilitiesTotal = liabilities.reduce(
-    (sum, l) => sum + convert(l.balance, l.currency, display, rate),
-    0,
-  );
-  const monthlyDebtPayments = liabilities.reduce(
-    (sum, l) =>
-      sum +
-      toMonthly(convert(l.payment, l.currency, display, rate), l.frequency),
+  const debts: ProjectionLiability[] = liabilities.map((l) => ({
+    balance: convert(l.balance, l.currency, display, rate),
+    interestRate: l.interestRate,
+    annualPayment:
+      toMonthly(convert(l.payment, l.currency, display, rate), l.frequency) *
+      12,
+  }));
+
+  const liabilitiesTotal = debts.reduce((sum, d) => sum + d.balance, 0);
+  const monthlyDebtPayments = debts.reduce(
+    (sum, d) => sum + d.annualPayment / 12,
     0,
   );
 
@@ -76,25 +93,52 @@ const computeTotals = (
     monthlyDebtPayments,
     lockedAssetsTotal,
     lockedMonthlyContributions,
+    debts,
   };
 };
 
-const targetRow = (label: string, target: number, settings: Settings, totals: Totals): string => {
-  const years = yearsToFire({
-    netWorth: totals.netWorth,
-    monthlyContribution: totals.monthlyContributions,
-    target,
-    expectedReturn: settings.expectedReturn,
-  });
+const targetRow = (
+  label: string,
+  target: number,
+  settings: Settings,
+  totals: Totals,
+  projection: ProjectionPoint[],
+): string => {
+  const years = yearsToTarget(projection, target);
   const pct = target > 0 ? Math.min(100, (totals.netWorth / target) * 100) : 0;
 
   return `| ${label} | ${formatMoney(target, settings.displayCurrency)} | ${pct.toFixed(1)}% | ${formatYears(years)} |`;
 };
 
+/**
+ * Projection for a set of scenario inputs against the current portfolio.
+ * Passing no overrides yields the "as things stand today" projection.
+ */
+const projectionFor = (
+  totals: Totals,
+  settings: Settings,
+  overrides: Partial<ProjectionInputBundle> = {},
+): ProjectionPoint[] =>
+  buildProjection(
+    {
+      currentNetWorth: totals.netWorth,
+      monthlySavings: totals.monthlyContributions,
+      expectedReturn: settings.expectedReturn,
+      retirementAge: settings.retirementAge,
+      currentLockedNetWorth: totals.lockedAssetsTotal,
+      monthlyLockedSavings: totals.lockedMonthlyContributions,
+      liabilities: totals.debts,
+      ...overrides,
+    },
+    settings,
+    HORIZON_YEARS,
+  );
+
 export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   const { settings, assets, liabilities, scenarios, history = [] } = input;
   const display = settings.displayCurrency;
   const totals = computeTotals(assets, liabilities, settings);
+  const baseProjection = projectionFor(totals, settings);
   const targets = computeFireTargets({
     annualExpenses: settings.annualExpenses,
     withdrawalRate: settings.withdrawalRate,
@@ -132,7 +176,9 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   lines.push(
     `- Expected nominal return: **${formatPercent(settings.expectedReturn, 2)}**`,
   );
-  lines.push(`- Inflation rate: **${formatPercent(settings.inflationRate, 2)}**`);
+  lines.push(
+    `- Inflation rate: **${formatPercent(settings.inflationRate, 2)}**`,
+  );
   lines.push(
     `- Real return (nominal − inflation): **${formatPercent(settings.expectedReturn - settings.inflationRate, 2)}**`,
   );
@@ -199,6 +245,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
         target,
         settings,
         totals,
+        baseProjection,
       ),
     );
   });
@@ -217,7 +264,12 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
       `| :--- | :--- | ---: | :---: | ---: | ---: | :---: | ---: | :--- |`,
     );
     for (const a of assets) {
-      const valueDisplay = convert(a.value, a.currency, display, settings.usdToNzd);
+      const valueDisplay = convert(
+        a.value,
+        a.currency,
+        display,
+        settings.usdToNzd,
+      );
       const monthlyDisplay = toMonthly(
         convert(a.contribution, a.currency, display, settings.usdToNzd),
         a.frequency,
@@ -269,12 +321,17 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   } else {
     for (const s of scenarios) {
       const scenarioTarget = fireTargetFor(s.inputs.fireType, targets);
-      const scenarioYears = yearsToFire({
-        netWorth: totals.netWorth,
-        monthlyContribution: s.inputs.monthlySavings,
-        target: scenarioTarget,
-        expectedReturn: s.inputs.expectedReturn,
-      });
+      const scenarioYears = yearsToTarget(
+        projectionFor(totals, settings, {
+          monthlySavings: s.inputs.monthlySavings,
+          expectedReturn: s.inputs.expectedReturn,
+          retirementAge: s.inputs.retirementAge,
+          includeNzSuper: s.inputs.includeNzSuper,
+          includeKids: s.inputs.includeKids,
+          numberOfKids: s.inputs.numberOfKids,
+        }),
+        scenarioTarget,
+      );
 
       lines.push(`### ${s.name}`);
       lines.push(``);
@@ -294,9 +351,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
       );
       lines.push(
         `- Plans with kids: **${
-          s.inputs.includeKids
-            ? `yes (${s.inputs.numberOfKids})`
-            : "no"
+          s.inputs.includeKids ? `yes (${s.inputs.numberOfKids})` : "no"
         }**`,
       );
       lines.push(`- Implied target: ${formatMoney(scenarioTarget, display)}`);
@@ -343,7 +398,11 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   lines.push(`## Methodology`);
   lines.push(``);
   lines.push(
-    `Projections use real returns (nominal return − inflation) so all future amounts are in today's purchasing power. The 4%-rule "traditional" FIRE target equals \`annualExpenses / withdrawalRate\`. Lean = 60% of traditional, Fat = 150%, Coast discounts traditional by the real return over years remaining to retirement age. NZ Super, when enabled per scenario, reduces required portfolio withdrawals from its eligibility age onward. KiwiSaver assets are treated as a locked pot that compounds untouched and is unavailable for withdrawals before the unlock age — so any retirement that begins before that age must be funded from accessible (non-KiwiSaver) assets alone.`,
+    `Projections use real returns (nominal return − inflation) so all future amounts are in today's purchasing power. The 4%-rule "traditional" FIRE target equals \`annualExpenses / withdrawalRate\`. Lean = 60% of traditional, Fat = 150%, Coast discounts traditional by the real return over years remaining to retirement age. Time-to-FIRE figures compound at the real return too, so they line up with the projection chart. NZ Super, when enabled per scenario, reduces required portfolio withdrawals from its eligibility age onward. KiwiSaver assets are treated as a locked pot that compounds untouched and is unavailable for withdrawals before the unlock age — so any retirement that begins before that age must be funded from accessible (non-KiwiSaver) assets alone.`,
+  );
+  lines.push(``);
+  lines.push(
+    `Liabilities amortise monthly at their own nominal interest rate: interest accrues on the outstanding balance, the scheduled repayment is applied, and the balance is converted back into today's dollars for reporting. Once a loan is repaid, its repayment is redirected into savings. Before retirement, repayments are assumed to be funded from income (which this model does not track), so servicing a loan does not draw down the portfolio — meaning net worth for someone carrying debt is not directly comparable to a debt-free run of the same inputs. After retirement there is no income, so remaining debt service is withdrawn from the portfolio on top of living expenses. A repayment smaller than the interest charge will let the balance grow, which the projection shows rather than hides. Annual expenses are treated as **excluding** loan repayments, since those are modelled separately from each liability's balance and rate.`,
   );
 
   return lines.join("\n");

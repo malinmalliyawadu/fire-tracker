@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { generateProjection } from "../projection";
+import { generateProjection, yearsToTarget } from "../projection";
 
 describe("generateProjection", () => {
   const base = {
@@ -143,6 +143,19 @@ describe("generateProjection", () => {
       expect(at65.accessible).toBe(at65.netWorth);
     });
 
+    it("locked pot ignores debt when summing to netWorth", () => {
+      const points = generateProjection({
+        ...lockedBase,
+        liabilities: [
+          { balance: 300_000, interestRate: 0.06, annualPayment: 30_000 },
+        ],
+      });
+
+      for (const p of points) {
+        expect(p.accessible + p.locked - p.debt).toBe(p.netWorth);
+      }
+    });
+
     it("setting locked = 0 behaves like the no-lock projection", () => {
       const withLocked0 = generateProjection({
         ...lockedBase,
@@ -164,5 +177,178 @@ describe("generateProjection", () => {
         expect(withLocked0[i].netWorth).toBe(withoutLockField[i].netWorth);
       }
     });
+  });
+
+  describe("liabilities", () => {
+    const mortgage = {
+      balance: 400_000,
+      interestRate: 0.06,
+      annualPayment: 36_000,
+    };
+    const withDebt = { ...base, liabilities: [mortgage] };
+
+    it("starting net worth is unchanged — debt is already netted off", () => {
+      const points = generateProjection(withDebt);
+
+      expect(points[0].netWorth).toBe(base.currentNetWorth);
+      expect(points[0].debt).toBe(mortgage.balance);
+    });
+
+    it("no liabilities means no debt at any point", () => {
+      const points = generateProjection(base);
+
+      expect(points.every((p) => p.debt === 0)).toBe(true);
+    });
+
+    it("balance falls every year until it clears", () => {
+      const points = generateProjection(withDebt);
+
+      for (let i = 1; i < points.length; i++) {
+        expect(points[i].debt).toBeLessThan(points[i - 1].debt);
+        if (points[i].debt === 0) break;
+      }
+
+      expect(points.at(-1)!.debt).toBe(0);
+    });
+
+    it("a payment below the interest charge lets the balance grow", () => {
+      const points = generateProjection({
+        ...base,
+        liabilities: [
+          { balance: 100_000, interestRate: 0.1, annualPayment: 1_000 },
+        ],
+      });
+
+      // Nominal balance grows; real terms still outpace 2.5% inflation.
+      expect(points[10].debt).toBeGreaterThan(points[0].debt);
+    });
+
+    it("freed-up repayments are redirected into savings after payoff", () => {
+      const withRepayments = generateProjection(withDebt);
+      const noRedirect = generateProjection({
+        ...base,
+        // Same debt, but a payment so small it never clears within the horizon.
+        liabilities: [
+          { balance: 400_000, interestRate: 0.06, annualPayment: 24_001 },
+        ],
+      });
+      const payoff = withRepayments.find((p) => p.debt === 0)!;
+      const later = withRepayments.find((p) => p.age === payoff.age + 10)!;
+      const laterNoRedirect = noRedirect.find(
+        (p) => p.age === payoff.age + 10,
+      )!;
+
+      expect(later.accessible).toBeGreaterThan(laterNoRedirect.accessible);
+      expect(later.contributed).toBeGreaterThan(laterNoRedirect.contributed);
+    });
+
+    it("debt service is funded from the portfolio once retired", () => {
+      const retireEarly = {
+        ...base,
+        retirementAge: 40,
+        years: 30,
+      };
+      const without = generateProjection(retireEarly);
+      const withMortgage = generateProjection({
+        ...retireEarly,
+        liabilities: [mortgage],
+      });
+      const at45 = withMortgage.find((p) => p.age === 45)!;
+      const at45Without = without.find((p) => p.age === 45)!;
+
+      // Retirement withdrawals now cover expenses *and* the mortgage.
+      expect(at45.withdrawn).toBeGreaterThan(at45Without.withdrawn);
+    });
+
+    it("more debt against the same assets means lower net worth", () => {
+      // Both start with $500k gross assets; only the debt differs.
+      const light = generateProjection({
+        ...base,
+        currentNetWorth: 100_000,
+        liabilities: [
+          { balance: 400_000, interestRate: 0.06, annualPayment: 36_000 },
+        ],
+      });
+      const heavy = generateProjection({
+        ...base,
+        currentNetWorth: -100_000,
+        liabilities: [
+          { balance: 600_000, interestRate: 0.06, annualPayment: 36_000 },
+        ],
+      });
+
+      for (let i = 0; i < light.length; i++) {
+        expect(heavy[i].netWorth).toBeLessThan(light[i].netWorth);
+      }
+    });
+  });
+});
+
+describe("yearsToTarget", () => {
+  const base = {
+    currentNetWorth: 100_000,
+    monthlySavings: 1_000,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 30,
+    retirementAge: 65,
+    annualExpenses: 40_000,
+    years: 40,
+  };
+
+  it("returns 0 when already at or past the target", () => {
+    const points = generateProjection(base);
+
+    expect(yearsToTarget(points, 100_000)).toBe(0);
+    expect(yearsToTarget(points, 50_000)).toBe(0);
+  });
+
+  it("returns 0 for a non-positive target", () => {
+    expect(yearsToTarget(generateProjection(base), 0)).toBe(0);
+  });
+
+  it("returns Infinity when the target is never reached", () => {
+    expect(yearsToTarget(generateProjection(base), 500_000_000)).toBe(Infinity);
+  });
+
+  it("interpolates between the bracketing years", () => {
+    const points = generateProjection(base);
+    const target = (points[10].netWorth + points[11].netWorth) / 2;
+    const years = yearsToTarget(points, target);
+
+    expect(years).toBeGreaterThan(10);
+    expect(years).toBeLessThan(11);
+    expect(years).toBeCloseTo(10.5, 1);
+  });
+
+  it("lands on the year the projection first crosses the target", () => {
+    const points = generateProjection(base);
+    const years = yearsToTarget(points, points[20].netWorth);
+
+    expect(years).toBeCloseTo(20, 6);
+  });
+
+  it("a bigger target takes longer", () => {
+    const points = generateProjection(base);
+
+    expect(yearsToTarget(points, 600_000)).toBeLessThan(
+      yearsToTarget(points, 900_000),
+    );
+  });
+
+  it("agrees with the projection once debt is in play", () => {
+    const points = generateProjection({
+      ...base,
+      liabilities: [
+        { balance: 400_000, interestRate: 0.06, annualPayment: 36_000 },
+      ],
+    });
+    const target = 1_000_000;
+    const years = yearsToTarget(points, target);
+    const crossing = points.find((p) => p.netWorth >= target)!;
+
+    // The interpolated answer sits in the year before the first crossing.
+    expect(years).toBeGreaterThan(crossing.year - 1);
+    expect(years).toBeLessThanOrEqual(crossing.year);
   });
 });

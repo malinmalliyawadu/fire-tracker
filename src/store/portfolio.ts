@@ -1,7 +1,7 @@
+import type { Asset, Liability } from "@/types";
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-import type { Asset, Liability } from "@/types";
 
 interface PortfolioState {
   assets: Asset[];

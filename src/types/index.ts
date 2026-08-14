@@ -92,6 +92,8 @@ export interface ProjectionPoint {
   netWorth: number;
   accessible: number;
   locked: number;
+  /** Outstanding debt across all liabilities, in today's dollars. */
+  debt: number;
   contributed: number;
   withdrawn: number;
 }

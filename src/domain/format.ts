@@ -3,7 +3,10 @@ import type { Currency } from "@/types";
 const localeFor = (currency: Currency): string =>
   currency === "NZD" ? "en-NZ" : "en-US";
 
-export const formatMoney = (amount: number, currency: Currency = "NZD"): string => {
+export const formatMoney = (
+  amount: number,
+  currency: Currency = "NZD",
+): string => {
   return new Intl.NumberFormat(localeFor(currency), {
     style: "currency",
     currency,
@@ -17,6 +20,7 @@ export const formatMoneyCompact = (
   currency: Currency = "NZD",
 ): string => {
   const abs = Math.abs(amount);
+
   // Intl compact rounds aggressively at small magnitudes; fall back to full for < 1k
   if (abs < 1000) return formatMoney(amount, currency);
 

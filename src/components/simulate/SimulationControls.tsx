@@ -3,14 +3,14 @@ import type { FireType, SimulationInputs } from "@/types";
 import clsx from "clsx";
 import { Baby, Landmark, Minus, Plus } from "lucide-react";
 
+import { SliderField } from "./SliderField";
+
 import { convert } from "@/domain/currency";
 import { FIRE_TYPES, FIRE_TYPE_META } from "@/domain/labels";
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
-import { KID_ANNUAL_COST_NZD, KID_DEPENDENT_YEARS } from "@/store/derived";
-
+import { KID_ANNUAL_COST_NZD, KID_DEPENDENT_YEARS } from "@/domain/plan";
 import { Card } from "@/components/ui/Card";
-import { SliderField } from "./SliderField";
 
 interface SimulationControlsProps {
   inputs: SimulationInputs;
@@ -61,7 +61,9 @@ export function SimulationControls({
                 )}
                 onClick={() => set("fireType", type as FireType)}
               >
-                <div className="font-semibold">{FIRE_TYPE_META[type].label}</div>
+                <div className="font-semibold">
+                  {FIRE_TYPE_META[type].label}
+                </div>
                 <div className="mt-0.5 text-[10px] text-ink-400">
                   {FIRE_TYPE_META[type].description}
                 </div>
@@ -215,6 +217,7 @@ function KidsToggle({
 
   const adjust = (delta: number) => {
     const next = Math.min(MAX_KIDS, Math.max(1, safeCount + delta));
+
     onCountChange(next);
   };
 
@@ -241,9 +244,7 @@ function KidsToggle({
           <Baby className="h-4 w-4" strokeWidth={2} />
         </div>
         <div className="flex-1">
-          <div className="text-sm font-semibold text-white">
-            Plan with kids
-          </div>
+          <div className="text-sm font-semibold text-white">Plan with kids</div>
           <div className="mt-0.5 text-[11px] text-ink-400">
             {enabled
               ? `${formatMoney(totalAnnual, settings.displayCurrency)}/yr for ${KID_DEPENDENT_YEARS} years`

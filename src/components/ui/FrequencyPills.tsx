@@ -25,8 +25,8 @@ export function FrequencyPills({ value, onChange }: FrequencyPillsProps) {
                 ? "bg-accent/20 text-white ring-1 ring-accent/40"
                 : "bg-white/[0.03] text-ink-300 hover:bg-white/[0.06] hover:text-white",
             )}
-            onClick={() => onChange(f)}
             type="button"
+            onClick={() => onChange(f)}
           >
             {FREQUENCY_PILL[f]}
           </button>

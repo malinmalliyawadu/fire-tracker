@@ -40,9 +40,7 @@ export function Stat({
       >
         {value}
       </div>
-      {hint && (
-        <div className="mt-1 text-xs text-ink-400">{hint}</div>
-      )}
+      {hint && <div className="mt-1 text-xs text-ink-400">{hint}</div>}
     </div>
   );
 }

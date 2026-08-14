@@ -4,7 +4,6 @@ import { computeFireTargets } from "@/domain/fire";
 import { formatMoneyCompact, formatPercent } from "@/domain/format";
 import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 import { SliderField } from "@/components/simulate/SliderField";
 
@@ -30,7 +29,8 @@ export function GoalsCard() {
     <Card
       action={
         <span className="font-mono tabular text-xs text-ink-300">
-          Target: {formatMoneyCompact(targets.traditional, settings.displayCurrency)}
+          Target:{" "}
+          {formatMoneyCompact(targets.traditional, settings.displayCurrency)}
         </span>
       }
       eyebrow="Defaults used everywhere"

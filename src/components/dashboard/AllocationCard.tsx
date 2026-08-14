@@ -6,15 +6,19 @@ import {
   ASSET_TYPE_ICON,
   ASSET_TYPE_LABEL,
 } from "@/domain/labels";
-import { formatMoney, formatMoneyCompact, formatPercent } from "@/domain/format";
+import {
+  formatMoney,
+  formatMoneyCompact,
+  formatPercent,
+} from "@/domain/format";
 import { useAllocation } from "@/store/derived";
 import { useSettings } from "@/store/settings";
-
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export function AllocationCard() {
-  const { slices, total, topType, topPercent, diversityScore } = useAllocation();
+  const { slices, total, topType, topPercent, diversityScore } =
+    useAllocation();
   const settings = useSettings((s) => s.settings);
   const currency = settings.displayCurrency;
 
@@ -48,7 +52,9 @@ export function AllocationCard() {
   return (
     <Card
       action={
-        <span className={`text-[11px] uppercase tracking-[0.18em] ${concentrationTone}`}>
+        <span
+          className={`text-[11px] uppercase tracking-[0.18em] ${concentrationTone}`}
+        >
           {concentrationLabel}
         </span>
       }
@@ -61,12 +67,12 @@ export function AllocationCard() {
             <ResponsiveContainer height="100%" width="100%">
               <PieChart>
                 <Pie
+                  isAnimationActive
                   cornerRadius={3}
                   data={slices as unknown as Array<Record<string, unknown>>}
                   dataKey="value"
                   endAngle={-270}
                   innerRadius={75}
-                  isAnimationActive
                   nameKey="type"
                   outerRadius={108}
                   paddingAngle={2}
@@ -134,10 +140,7 @@ export function AllocationCard() {
           {topType && topPercent >= 0.5 && (
             <p className="mt-2 text-[11px] text-ink-400">
               {formatPercent(topPercent, 0)} of your portfolio sits in{" "}
-              <span className="text-ink-200">
-                {ASSET_TYPE_LABEL[topType]}
-              </span>
-              .{" "}
+              <span className="text-ink-200">{ASSET_TYPE_LABEL[topType]}</span>.{" "}
               {topPercent >= 0.7
                 ? "Consider whether this concentration matches your risk tolerance."
                 : "Diversifying further may reduce volatility."}

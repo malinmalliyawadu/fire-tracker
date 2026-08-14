@@ -4,20 +4,16 @@ import { CreditCard, Pencil } from "lucide-react";
 import { Button } from "@heroui/button";
 import { useState } from "react";
 
-import {
-  FREQUENCY_SHORT,
-  LIABILITY_TYPE_LABEL,
-} from "@/domain/labels";
+import { LiabilityEditor } from "./LiabilityEditor";
+
+import { FREQUENCY_SHORT, LIABILITY_TYPE_LABEL } from "@/domain/labels";
 import { convert, toMonthly } from "@/domain/currency";
 import { formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import { usePortfolio } from "@/store/portfolio";
-
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Money } from "@/components/ui/Money";
-
-import { LiabilityEditor } from "./LiabilityEditor";
 
 export function LiabilityTable() {
   const liabilities = usePortfolio((s) => s.liabilities);
@@ -112,10 +108,7 @@ export function LiabilityTable() {
                     <td className="py-3.5 text-right text-ink-200">
                       {l.payment > 0 ? (
                         <>
-                          <Money
-                            amount={monthlyPayment}
-                            currency={display}
-                          />
+                          <Money amount={monthlyPayment} currency={display} />
                           <span className="ml-1 text-xs text-ink-400">
                             {FREQUENCY_SHORT.monthly}
                           </span>
