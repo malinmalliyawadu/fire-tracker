@@ -232,6 +232,49 @@ describe("buildSnapshotMarkdown", () => {
     });
   });
 
+  describe("debt repayments as a spending line", () => {
+    it("lists each loan with its payoff horizon", () => {
+      const md = buildSnapshotMarkdown(base);
+
+      expect(md).toContain("## Debt Repayments");
+      // 750/wk on a 520k mortgage at 6.2%
+      expect(md).toContain("| Mortgage | $39,000 |");
+    });
+
+    it("separates what's still running after retirement", () => {
+      const early = {
+        ...base,
+        settings: { ...settings, currentAge: 38, retirementAge: 40 },
+      };
+      const late = {
+        ...base,
+        settings: { ...settings, currentAge: 38, retirementAge: 90 },
+      };
+
+      expect(buildSnapshotMarkdown(early)).toContain(
+        "Still being repaid after retirement: **$39,000**",
+      );
+      expect(buildSnapshotMarkdown(late)).toContain(
+        "Still being repaid after retirement: **$0**",
+      );
+    });
+
+    it("says a loan never clears when the payment can't cover interest", () => {
+      const md = buildSnapshotMarkdown({
+        ...base,
+        liabilities: [{ ...liabilities[0], payment: 50, frequency: "weekly" }],
+      });
+
+      expect(md).toContain("| never |");
+    });
+
+    it("skips the section entirely with no debts", () => {
+      const md = buildSnapshotMarkdown({ ...base, liabilities: [] });
+
+      expect(md).not.toContain("## Debt Repayments");
+    });
+  });
+
   it("handles an empty portfolio without throwing", () => {
     const md = buildSnapshotMarkdown({
       settings,

@@ -1,4 +1,9 @@
-import type { AssetType, FireTargets, ProjectionPoint } from "@/types";
+import type {
+  AssetType,
+  FireTargets,
+  LiabilityType,
+  ProjectionPoint,
+} from "@/types";
 import type { ProjectionLiability } from "@/domain/projection";
 import type { SanityWarning } from "@/domain/sanity";
 
@@ -15,6 +20,7 @@ import { computeFireTargets, countsTowardFire } from "@/domain/fire";
 import { kidsCostByYear as kidsCostNzdByYear } from "@/domain/kids";
 import { buildProjection } from "@/domain/plan";
 import { checkAssumptions } from "@/domain/sanity";
+import { yearsToPayoff } from "@/domain/projection";
 import { attributeGrowth, comparePlan } from "@/domain/tracking";
 import {
   accLevy,
@@ -50,14 +56,14 @@ export interface PortfolioTotals {
   /** KiwiSaver that funds retirement — the locked pot the projection tracks. */
   fireLockedAssetsTotal: number;
   fireLockedMonthlyContributions: number;
-  /** Only the debts the projection should amortise. */
+  /** Debts netted off the pot and reported in the projection's debt line. */
   fireDebts: ProjectionLiability[];
+  /** Debts serviced by the projection but held outside the pot. */
+  externalDebts: ProjectionLiability[];
   /** Net worth held outside the FIRE picture, e.g. the home you live in. */
   excludedNetWorth: number;
   /** True when any holding or debt has been taken out of the FIRE picture. */
   hasExclusions: boolean;
-  /** True when a debt is excluded, so its repayments aren't projected. */
-  hasExcludedDebt: boolean;
 }
 
 export const usePortfolioTotals = (): PortfolioTotals => {
@@ -122,8 +128,9 @@ export const usePortfolioTotals = (): PortfolioTotals => {
     const fireDebts: ProjectionLiability[] = liabilities
       .filter(countsTowardFire)
       .map(toDebt);
-    const hasExcludedDebt = fireDebts.length < debts.length;
-
+    const externalDebts: ProjectionLiability[] = liabilities
+      .filter((l) => !countsTowardFire(l))
+      .map(toDebt);
     const sumBalance = (list: ProjectionLiability[]) =>
       list.reduce((sum, d) => sum + d.balance, 0);
 
@@ -153,9 +160,9 @@ export const usePortfolioTotals = (): PortfolioTotals => {
       fireLockedAssetsTotal,
       fireLockedMonthlyContributions,
       fireDebts,
+      externalDebts,
       excludedNetWorth: netWorth - fireNetWorth,
-      hasExclusions: hasExclusions || hasExcludedDebt,
-      hasExcludedDebt,
+      hasExclusions: hasExclusions || externalDebts.length > 0,
     };
   }, [assets, liabilities, settings]);
 };
@@ -291,6 +298,7 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
           currentLockedNetWorth: totals.fireLockedAssetsTotal,
           monthlyLockedSavings: contributions.monthlyLockedContributions,
           liabilities: totals.fireDebts,
+          externalLiabilities: totals.externalDebts,
           retirementIncome: income.retirementIncomeAnnual,
         },
         settings,
@@ -615,6 +623,102 @@ export const usePlanBudget = (): PlanBudget => {
   }, [expenses, events, kids, settings]);
 };
 
+export interface DebtRepayment {
+  id: string;
+  name: string;
+  type: LiabilityType;
+  /** Repayment per year in display currency. */
+  annual: number;
+  /** Years until the balance clears, Infinity if the payment never does. */
+  yearsRemaining: number;
+  /** Calendar year the loan clears, null when it never does. */
+  payoffYear: number | null;
+  /** Your age when it clears, null when it never does. */
+  payoffAge: number | null;
+  /** True when the loan is still being repaid after you retire. */
+  outlastsRetirement: boolean;
+  /** True when the balance is netted off the FIRE pot as well as serviced. */
+  countsTowardFire: boolean;
+}
+
+export interface DebtSpending {
+  repayments: DebtRepayment[];
+  /** Total repayments per year, display currency. */
+  annualTotal: number;
+  /** The share still being paid after retirement. */
+  annualPastRetirement: number;
+  /** Latest year any loan is still running, null when all are clear. */
+  lastPayoffYear: number | null;
+  /** True when a repayment never clears its balance. */
+  hasUnpayableDebt: boolean;
+}
+
+/**
+ * Debt repayments as a spending line.
+ *
+ * Repayments are already modelled from each liability's balance and rate, so
+ * they're derived here rather than entered: a mortgage runs until it's paid
+ * off, not until retirement, and no expense entered by hand can express that.
+ * Surfacing them keeps the Spending page from looking like it ignores the
+ * largest outgoing most people have, without letting it double-count.
+ */
+export const useDebtSpending = (): DebtSpending => {
+  const liabilities = usePortfolio((s) => s.liabilities);
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(() => {
+    const display = settings.displayCurrency;
+    const rate = settings.usdToNzd;
+    const thisYear = new Date().getFullYear();
+    const yearsToRetirement = Math.max(
+      0,
+      settings.retirementAge - settings.currentAge,
+    );
+
+    const repayments: DebtRepayment[] = liabilities.map((l) => {
+      const annual =
+        toMonthly(convert(l.payment, l.currency, display, rate), l.frequency) *
+        12;
+      const yearsRemaining = yearsToPayoff(
+        convert(l.balance, l.currency, display, rate),
+        l.interestRate,
+        annual,
+      );
+      const clears = Number.isFinite(yearsRemaining);
+
+      return {
+        id: l.id,
+        name: l.name,
+        type: l.type,
+        annual,
+        yearsRemaining,
+        payoffYear: clears ? thisYear + Math.ceil(yearsRemaining) : null,
+        payoffAge: clears
+          ? settings.currentAge + Math.ceil(yearsRemaining)
+          : null,
+        outlastsRetirement: yearsRemaining > yearsToRetirement,
+        countsTowardFire: countsTowardFire(l),
+      };
+    });
+
+    const payoffYears = repayments
+      .map((r) => r.payoffYear)
+      .filter((y): y is number => y !== null);
+
+    return {
+      repayments,
+      annualTotal: repayments.reduce((sum, r) => sum + r.annual, 0),
+      annualPastRetirement: repayments
+        .filter((r) => r.outlastsRetirement)
+        .reduce((sum, r) => sum + r.annual, 0),
+      lastPayoffYear: payoffYears.length > 0 ? Math.max(...payoffYears) : null,
+      hasUnpayableDebt: repayments.some(
+        (r) => !Number.isFinite(r.yearsRemaining),
+      ),
+    };
+  }, [liabilities, settings]);
+};
+
 /**
  * Assumption warnings for the current plan. Empty when everything is
  * internally consistent.
@@ -626,6 +730,7 @@ export const useSanityWarnings = (): SanityWarning[] => {
   const budget = usePlanBudget();
   const savings = useSavingsSummary();
   const afterTax = useAfterTaxReturn();
+  const debt = useDebtSpending();
 
   return useMemo(
     () =>
@@ -639,9 +744,9 @@ export const useSanityWarnings = (): SanityWarning[] => {
         hasNegativeAmortisation: totals.debts.some(
           (d) => d.balance > 0 && d.annualPayment < d.balance * d.interestRate,
         ),
-        hasExcludedDebt: totals.hasExcludedDebt,
+        hasDebtPastRetirement: debt.annualPastRetirement > 0,
       }),
-    [settings, afterTax, budget, savings, allocation, totals],
+    [settings, afterTax, budget, savings, allocation, totals, debt],
   );
 };
 

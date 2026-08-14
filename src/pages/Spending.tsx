@@ -1,3 +1,4 @@
+import { DebtRepaymentsCard } from "@/components/spending/DebtRepaymentsCard";
 import { ExpensesCard } from "@/components/spending/ExpensesCard";
 import { KidsCard } from "@/components/spending/KidsCard";
 import { LifeEventsCard } from "@/components/spending/LifeEventsCard";
@@ -13,6 +14,7 @@ export default function Spending() {
         title="Spending"
       />
       <ExpensesCard />
+      <DebtRepaymentsCard />
       <div className="grid gap-6 lg:grid-cols-2">
         <KidsCard />
         <LifeEventsCard />

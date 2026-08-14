@@ -72,8 +72,10 @@ export function ExpensesCard() {
                   <th className="pb-3 text-left font-medium">Name</th>
                   <th className="pb-3 text-left font-medium">Category</th>
                   <th className="pb-3 text-left font-medium">Applies</th>
-                  <th className="pb-3 text-right font-medium">Per year</th>
-                  <th className="pb-3" />
+                  {/* Widths are pinned here and on the Debt repayments table
+                      so the money columns of the two cards line up. */}
+                  <th className="w-32 pb-3 text-right font-medium">Per year</th>
+                  <th className="w-9 pb-3" />
                 </tr>
               </thead>
               <tbody>

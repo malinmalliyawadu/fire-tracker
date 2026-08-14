@@ -22,8 +22,8 @@ export interface SanityInputs {
   topAssetShare: number;
   /** True when any liability's payment doesn't cover its interest. */
   hasNegativeAmortisation: boolean;
-  /** True when a debt has been taken out of the FIRE picture. */
-  hasExcludedDebt?: boolean;
+  /** True when a loan is still being repaid after retirement. */
+  hasDebtPastRetirement?: boolean;
 }
 
 /**
@@ -124,13 +124,13 @@ export const checkAssumptions = (input: SanityInputs): SanityWarning[] => {
     });
   }
 
-  if (input.hasExcludedDebt) {
+  if (input.hasDebtPastRetirement) {
     warnings.push({
-      id: "excluded-debt-unmodelled",
+      id: "debt-past-retirement",
       level: "note",
-      title: "An excluded debt isn't being serviced in the projection",
+      title: "A loan is still being repaid after you retire",
       detail:
-        "Debts left out of the FIRE picture don't amortise and their repayments never draw on the portfolio. That's right when the debt clears with the asset behind it — selling the house repays the mortgage — but if you'll still be paying it in retirement, record the repayment on the Spending page so the target covers it.",
+        "Its repayments are withdrawn from the portfolio on top of living expenses until the balance clears, which the projection accounts for. They aren't in the FIRE target though: that number assumes a withdrawal you can sustain forever, and a loan that ends isn't one. Expect the early retirement years to be tighter than the target implies.",
     });
   }
 

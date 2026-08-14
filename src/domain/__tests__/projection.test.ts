@@ -4,6 +4,7 @@ import {
   coastPoint,
   generateProjection,
   spendingMultiplier,
+  yearsToPayoff,
   yearsToTarget,
 } from "../projection";
 
@@ -197,6 +198,61 @@ describe("generateProjection", () => {
 
       expect(points[0].netWorth).toBe(base.currentNetWorth);
       expect(points[0].debt).toBe(mortgage.balance);
+    });
+
+    describe("external liabilities", () => {
+      const external = { ...base, externalLiabilities: [mortgage] };
+
+      it("leaves starting net worth alone — it was never netted off", () => {
+        const points = generateProjection(external);
+
+        expect(points[0].netWorth).toBe(base.currentNetWorth);
+      });
+
+      it("stays out of the reported debt line", () => {
+        const points = generateProjection(external);
+
+        expect(points.every((p) => p.debt === 0)).toBe(true);
+      });
+
+      it("costs the portfolio in retirement, unlike being left out", () => {
+        const retiring = { ...base, retirementAge: 30 };
+        const serviced = generateProjection({
+          ...retiring,
+          externalLiabilities: [mortgage],
+        });
+        const ignored = generateProjection(retiring);
+
+        expect(serviced[10].netWorth).toBeLessThan(ignored[10].netWorth);
+      });
+
+      it("frees its repayment into savings once it clears", () => {
+        // A loan small enough to clear quickly, then the payment is investable.
+        const small = {
+          balance: 10_000,
+          interestRate: 0.05,
+          annualPayment: 12_000,
+        };
+        const withLoan = generateProjection({
+          ...base,
+          externalLiabilities: [small],
+        });
+
+        expect(withLoan[40].netWorth).toBeGreaterThan(
+          generateProjection(base)[40].netWorth,
+        );
+      });
+
+      it("nets and reports only the netted debt when both kinds are present", () => {
+        const points = generateProjection({
+          ...base,
+          liabilities: [mortgage],
+          externalLiabilities: [mortgage],
+        });
+
+        expect(points[0].netWorth).toBe(base.currentNetWorth);
+        expect(points[0].debt).toBe(mortgage.balance);
+      });
     });
 
     it("no liabilities means no debt at any point", () => {
@@ -650,5 +706,64 @@ describe("barista income and partner Super", () => {
     // Identical before the partner qualifies, better afterwards.
     expect(at67.netWorth).toBe(at67Solo.netWorth);
     expect(at75.netWorth).toBeGreaterThan(at75Solo.netWorth);
+  });
+});
+
+describe("yearsToPayoff", () => {
+  it("a cleared balance is already paid off", () => {
+    expect(yearsToPayoff(0, 0.06, 12_000)).toBe(0);
+  });
+
+  it("never pays off without a payment", () => {
+    expect(yearsToPayoff(100_000, 0.06, 0)).toBe(Infinity);
+  });
+
+  it("never pays off when the payment can't cover the interest", () => {
+    // 5% on 100k is 5,000 a year; paying 3,000 lets the balance grow.
+    expect(yearsToPayoff(100_000, 0.05, 3_000)).toBe(Infinity);
+  });
+
+  it("an interest-free loan clears at balance / payment", () => {
+    expect(yearsToPayoff(10_000, 0, 5_000)).toBeCloseTo(2, 2);
+  });
+
+  it("interest pushes the payoff date out", () => {
+    const free = yearsToPayoff(300_000, 0, 30_000);
+    const charged = yearsToPayoff(300_000, 0.06, 30_000);
+
+    expect(charged).toBeGreaterThan(free);
+    expect(charged).toBeLessThan(20);
+  });
+
+  it("agrees with the balance the projection actually reports", () => {
+    const loan = {
+      balance: 300_000,
+      interestRate: 0.06,
+      annualPayment: 30_000,
+    };
+    const points = generateProjection({
+      currentNetWorth: 0,
+      monthlySavings: 0,
+      expectedReturn: 0.07,
+      inflationRate: 0,
+      currentAge: 30,
+      retirementAge: 65,
+      annualExpenses: 0,
+      years: 40,
+      liabilities: [loan],
+    });
+
+    const years = yearsToPayoff(
+      loan.balance,
+      loan.interestRate,
+      loan.annualPayment,
+    );
+    const clearedAt = points.findIndex((p) => p.debt === 0);
+
+    expect(clearedAt).toBe(Math.ceil(years));
+  });
+
+  it("gives up rather than looping forever on a barely-covering payment", () => {
+    expect(yearsToPayoff(1_000_000, 0.06, 60_100, 5)).toBe(Infinity);
   });
 });

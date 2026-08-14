@@ -100,11 +100,11 @@ describe("checkAssumptions", () => {
     expect(ids({ ...healthy, topAssetShare: 0.8 })).toContain("concentrated");
   });
 
-  it("notes that an excluded debt isn't serviced in the projection", () => {
-    expect(ids({ ...healthy, hasExcludedDebt: true })).toContain(
-      "excluded-debt-unmodelled",
+  it("notes a loan still being repaid after retirement", () => {
+    expect(ids({ ...healthy, hasDebtPastRetirement: true })).toContain(
+      "debt-past-retirement",
     );
-    expect(ids(healthy)).not.toContain("excluded-debt-unmodelled");
+    expect(ids(healthy)).not.toContain("debt-past-retirement");
   });
 
   it("flags a loan that never pays down", () => {

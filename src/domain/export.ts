@@ -22,7 +22,7 @@ import {
 import { buildProjection } from "./plan";
 import { computeFireTargets, countsTowardFire, fireTargetFor } from "./fire";
 import { convert, toMonthly } from "./currency";
-import { yearsToTarget } from "./projection";
+import { yearsToPayoff, yearsToTarget } from "./projection";
 import { formatMoney, formatPercent, formatYears } from "./format";
 
 export interface SnapshotInput {
@@ -54,6 +54,7 @@ interface Totals {
   fireLockedAssetsTotal: number;
   fireLockedMonthlyContributions: number;
   fireDebts: ProjectionLiability[];
+  externalDebts: ProjectionLiability[];
   excludedNetWorth: number;
   hasExclusions: boolean;
 }
@@ -116,6 +117,9 @@ const computeTotals = (
   const fireDebts: ProjectionLiability[] = liabilities
     .filter(countsTowardFire)
     .map(toDebt);
+  const externalDebts: ProjectionLiability[] = liabilities
+    .filter((l) => !countsTowardFire(l))
+    .map(toDebt);
 
   const sumBalance = (list: ProjectionLiability[]) =>
     list.reduce((sum, d) => sum + d.balance, 0);
@@ -143,8 +147,9 @@ const computeTotals = (
     fireLockedAssetsTotal,
     fireLockedMonthlyContributions,
     fireDebts,
+    externalDebts,
     excludedNetWorth: netWorth - fireNetWorth,
-    hasExclusions: hasExclusions || fireDebts.length < debts.length,
+    hasExclusions: hasExclusions || externalDebts.length > 0,
   };
 };
 
@@ -180,6 +185,7 @@ const projectionFor = (
       currentLockedNetWorth: totals.fireLockedAssetsTotal,
       monthlyLockedSavings: totals.fireLockedMonthlyContributions,
       liabilities: totals.fireDebts,
+      externalLiabilities: totals.externalDebts,
       ...overrides,
     },
     settings,
@@ -373,6 +379,58 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   }
   lines.push(``);
 
+  // Debt repayments as a spending line
+  if (liabilities.length > 0) {
+    const yearsToRetirement = Math.max(
+      0,
+      settings.retirementAge - settings.currentAge,
+    );
+
+    lines.push(`## Debt Repayments`);
+    lines.push(``);
+    lines.push(
+      `Derived from each liability's balance and rate, not entered as expenses. A loan runs until it's repaid rather than until retirement, so these stop at payoff.`,
+    );
+    lines.push(``);
+    lines.push(
+      `| Name | Per year (${display}) | Clears in | Past retirement |`,
+    );
+    lines.push(`| :--- | ---: | ---: | :---: |`);
+
+    let annualTotal = 0;
+    let pastRetirement = 0;
+
+    for (const l of liabilities) {
+      const annual =
+        toMonthly(
+          convert(l.payment, l.currency, display, settings.usdToNzd),
+          l.frequency,
+        ) * 12;
+      const years = yearsToPayoff(
+        convert(l.balance, l.currency, display, settings.usdToNzd),
+        l.interestRate,
+        annual,
+      );
+      const outlasts = years > yearsToRetirement;
+
+      annualTotal += annual;
+      if (outlasts) pastRetirement += annual;
+
+      lines.push(
+        `| ${l.name} | ${formatMoney(annual, display)} | ${Number.isFinite(years) ? formatYears(years) : "never"} | ${outlasts ? "yes" : "no"} |`,
+      );
+    }
+
+    lines.push(``);
+    lines.push(
+      `- Total repayments per year: **${formatMoney(annualTotal, display)}**`,
+    );
+    lines.push(
+      `- Still being repaid after retirement: **${formatMoney(pastRetirement, display)}** per year`,
+    );
+    lines.push(``);
+  }
+
   // Saved Scenarios
   lines.push(`## Saved Scenarios (${scenarios.length})`);
   lines.push(``);
@@ -462,11 +520,11 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   );
   lines.push(``);
   lines.push(
-    `Holdings and debts can be marked as not counting toward FIRE. Those still appear in net worth but are left out of the retirement pot entirely: their value isn't measured against the target, their contributions aren't projected, they don't weight the blended after-tax return, and an excluded debt is neither netted off nor amortised. This is what separates the home you live in — real wealth, but not something you can draw 4% a year from — from the assets that actually fund retirement. Progress percentages and every projection below are computed on the retirement pot alone.`,
+    `Holdings and debts can be marked as not counting toward FIRE. Those still appear in net worth but are left out of the retirement pot: an excluded holding's value isn't measured against the target, its contributions aren't projected, and it doesn't weight the blended after-tax return. This is what separates the home you live in — real wealth, but not something you can draw 4% a year from — from the assets that actually fund retirement. Progress percentages and every projection below are computed on the retirement pot alone. An excluded *debt* is a middle case: its balance is neither netted off the pot nor reported, but its repayment is still serviced, because a mortgage you don't count as part of the pot is still one you have to pay.`,
   );
   lines.push(``);
   lines.push(
-    `Liabilities amortise monthly at their own nominal interest rate: interest accrues on the outstanding balance, the scheduled repayment is applied, and the balance is converted back into today's dollars for reporting. Once a loan is repaid, its repayment is redirected into savings. Before retirement, repayments are assumed to be funded from income (which this model does not track), so servicing a loan does not draw down the portfolio — meaning net worth for someone carrying debt is not directly comparable to a debt-free run of the same inputs. After retirement there is no income, so remaining debt service is withdrawn from the portfolio on top of living expenses. A repayment smaller than the interest charge will let the balance grow, which the projection shows rather than hides. Annual expenses are treated as **excluding** loan repayments, since those are modelled separately from each liability's balance and rate.`,
+    `Liabilities amortise monthly at their own nominal interest rate: interest accrues on the outstanding balance, the scheduled repayment is applied, and the balance is converted back into today's dollars for reporting. Once a loan is repaid, its repayment is redirected into savings. Before retirement, repayments are assumed to be funded from income (which this model does not track), so servicing a loan does not draw down the portfolio — meaning net worth for someone carrying debt is not directly comparable to a debt-free run of the same inputs. After retirement there is no income, so remaining debt service is withdrawn from the portfolio on top of living expenses. A repayment smaller than the interest charge will let the balance grow, which the projection shows rather than hides. Annual expenses are treated as **excluding** loan repayments, since those are modelled separately from each liability's balance and rate. This is also why repayments never raise the FIRE target: the target is a withdrawal you can sustain indefinitely, and a loan that ends isn't one — so a retirement that starts before the last loan clears will be tighter in its early years than the target alone suggests.`,
   );
 
   return lines.join("\n");
