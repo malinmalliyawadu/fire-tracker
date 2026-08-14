@@ -1,6 +1,6 @@
 import type { Liability } from "@/types";
 
-import { CreditCard, Pencil } from "lucide-react";
+import { CreditCard, EyeOff, Pencil } from "lucide-react";
 import { Button } from "@heroui/button";
 import { useState } from "react";
 
@@ -8,6 +8,7 @@ import { LiabilityEditor } from "./LiabilityEditor";
 
 import { FREQUENCY_SHORT, LIABILITY_TYPE_LABEL } from "@/domain/labels";
 import { convert, toMonthly } from "@/domain/currency";
+import { countsTowardFire } from "@/domain/fire";
 import { formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import { usePortfolio } from "@/store/portfolio";
@@ -92,12 +93,23 @@ export function LiabilityTable() {
                   >
                     <td className="py-3.5 font-medium">{l.name}</td>
                     <td className="py-3.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-xs text-ink-300">
-                        {LIABILITY_TYPE_LABEL[l.type]}
-                        {l.currency === "USD" && (
-                          <span className="text-[10px] text-accent">USD</span>
+                      <div className="inline-flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-xs text-ink-300">
+                          {LIABILITY_TYPE_LABEL[l.type]}
+                          {l.currency === "USD" && (
+                            <span className="text-[10px] text-accent">USD</span>
+                          )}
+                        </span>
+                        {!countsTowardFire(l) && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-ink-400"
+                            title="Subtracted from net worth, but left out of the FIRE target and not serviced in the projection"
+                          >
+                            <EyeOff className="h-2.5 w-2.5" />
+                            Not FIRE
+                          </span>
                         )}
-                      </span>
+                      </div>
                     </td>
                     <td className="py-3.5 text-right font-mono tabular text-ink-300">
                       {formatPercent(l.interestRate, 2)}

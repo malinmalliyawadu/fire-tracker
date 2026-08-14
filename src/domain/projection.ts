@@ -95,7 +95,51 @@ export interface ProjectionInputs {
    * funded from the portfolio alongside living expenses.
    */
   liabilities?: ProjectionLiability[];
+  /**
+   * Debts serviced from the same cash flows as `liabilities`, but whose
+   * balances sit outside the tracked pot — the mortgage on a home excluded
+   * from the FIRE picture. `currentNetWorth` is *not* net of these, so they're
+   * neither added back nor reported in `debt`.
+   *
+   * The repayment is still a real cost: it's withdrawn alongside living
+   * expenses after retirement, and it still frees up cash once the loan
+   * clears. Leaving these out entirely would understate retirement spending
+   * for anyone carrying a mortgage they don't count as part of the pot.
+   */
+  externalLiabilities?: ProjectionLiability[];
 }
+
+/**
+ * Years until a loan is repaid, or Infinity when the payment never clears it.
+ *
+ * Walks the same monthly amortisation the projection uses rather than solving
+ * the closed form, so the payoff date shown next to a debt is the one the
+ * chart actually bends at. A payment that doesn't cover the interest never
+ * pays off, which is the honest answer rather than a negative number.
+ */
+export const yearsToPayoff = (
+  balance: number,
+  interestRate: number,
+  annualPayment: number,
+  maxYears = 100,
+): number => {
+  if (balance <= 0) return 0;
+  if (annualPayment <= 0) return Infinity;
+
+  const monthlyRate = interestRate / 12;
+  const monthlyPayment = annualPayment / 12;
+
+  let remaining = balance;
+
+  for (let month = 1; month <= maxYears * 12; month++) {
+    const owed = remaining * (1 + monthlyRate);
+
+    if (monthlyPayment >= owed) return month / 12;
+    remaining = owed - monthlyPayment;
+  }
+
+  return Infinity;
+};
 
 interface DebtYear {
   /** Balance carried into the next year, nominal. */
@@ -226,13 +270,20 @@ export const generateProjection = (
   const oneOffs = input.oneOffByYear ?? [];
   const retirementExpenses = input.retirementExpenses ?? input.annualExpenses;
 
-  const loans = (input.liabilities ?? []).map((l) => ({
+  const normalise = (l: ProjectionLiability) => ({
     balance: Math.max(0, l.balance),
     interestRate: l.interestRate,
     annualPayment: Math.max(0, l.annualPayment),
-  }));
+  });
+
+  // Netted debts are subtracted from currentNetWorth and reported in `debt`;
+  // external ones are only serviced. Both are amortised from the same list, so
+  // repayment cost and freed-up cash cover every loan the user carries.
+  const netted = (input.liabilities ?? []).map(normalise);
+  const external = (input.externalLiabilities ?? []).map(normalise);
+  const loans = [...netted, ...external];
   const scheduledPayments = loans.reduce((sum, l) => sum + l.annualPayment, 0);
-  const startingDebt = loans.reduce((sum, l) => sum + l.balance, 0);
+  const startingDebt = netted.reduce((sum, l) => sum + l.balance, 0);
 
   // currentNetWorth arrives net of debt; add it back for the gross asset pot
   // so the two can be tracked (and compounded) independently.
@@ -246,7 +297,9 @@ export const generateProjection = (
     const isUnlocked = age >= unlockAge;
     // Debt is nominal; everything else is in today's dollars.
     const deflator = Math.pow(1 + input.inflationRate, year);
-    const nominalDebt = loans.reduce((sum, l) => sum + l.balance, 0);
+    // Only netted debt is reported, so net worth stays consistent with the
+    // pot: an external balance was never added to `accessible` to begin with.
+    const nominalDebt = netted.reduce((sum, l) => sum + l.balance, 0);
     const realDebt = nominalDebt / deflator;
 
     // After unlock age, locked becomes accessible — report that way.

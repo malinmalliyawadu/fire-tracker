@@ -20,9 +20,9 @@ import {
   LIABILITY_TYPE_LABEL,
 } from "./labels";
 import { buildProjection } from "./plan";
-import { computeFireTargets, fireTargetFor } from "./fire";
+import { computeFireTargets, countsTowardFire, fireTargetFor } from "./fire";
 import { convert, toMonthly } from "./currency";
-import { yearsToTarget } from "./projection";
+import { yearsToPayoff, yearsToTarget } from "./projection";
 import { formatMoney, formatPercent, formatYears } from "./format";
 
 export interface SnapshotInput {
@@ -49,6 +49,14 @@ interface Totals {
   lockedAssetsTotal: number;
   lockedMonthlyContributions: number;
   debts: ProjectionLiability[];
+  fireNetWorth: number;
+  fireMonthlyContributions: number;
+  fireLockedAssetsTotal: number;
+  fireLockedMonthlyContributions: number;
+  fireDebts: ProjectionLiability[];
+  externalDebts: ProjectionLiability[];
+  excludedNetWorth: number;
+  hasExclusions: boolean;
 }
 
 const computeTotals = (
@@ -63,6 +71,11 @@ const computeTotals = (
   let lockedAssetsTotal = 0;
   let monthlyContributions = 0;
   let lockedMonthlyContributions = 0;
+  let fireAssetsTotal = 0;
+  let fireLockedAssetsTotal = 0;
+  let fireMonthlyContributions = 0;
+  let fireLockedMonthlyContributions = 0;
+  let hasExclusions = false;
 
   for (const a of assets) {
     const v = convert(a.value, a.currency, display, rate);
@@ -70,38 +83,73 @@ const computeTotals = (
       convert(a.contribution, a.currency, display, rate),
       a.frequency,
     );
+    const locked = a.type === "kiwisaver";
 
     assetsTotal += v;
     monthlyContributions += m;
-    if (a.type === "kiwisaver") {
+    if (locked) {
       lockedAssetsTotal += v;
       lockedMonthlyContributions += m;
     }
+
+    if (!countsTowardFire(a)) {
+      hasExclusions = true;
+      continue;
+    }
+
+    fireAssetsTotal += v;
+    fireMonthlyContributions += m;
+    if (locked) {
+      fireLockedAssetsTotal += v;
+      fireLockedMonthlyContributions += m;
+    }
   }
 
-  const debts: ProjectionLiability[] = liabilities.map((l) => ({
+  const toDebt = (l: Liability): ProjectionLiability => ({
     balance: convert(l.balance, l.currency, display, rate),
     interestRate: l.interestRate,
     annualPayment:
       toMonthly(convert(l.payment, l.currency, display, rate), l.frequency) *
       12,
-  }));
+  });
 
-  const liabilitiesTotal = debts.reduce((sum, d) => sum + d.balance, 0);
+  const debts: ProjectionLiability[] = liabilities.map(toDebt);
+  const fireDebts: ProjectionLiability[] = liabilities
+    .filter(countsTowardFire)
+    .map(toDebt);
+  const externalDebts: ProjectionLiability[] = liabilities
+    .filter((l) => !countsTowardFire(l))
+    .map(toDebt);
+
+  const sumBalance = (list: ProjectionLiability[]) =>
+    list.reduce((sum, d) => sum + d.balance, 0);
+
+  const liabilitiesTotal = sumBalance(debts);
   const monthlyDebtPayments = debts.reduce(
     (sum, d) => sum + d.annualPayment / 12,
     0,
   );
 
+  const netWorth = assetsTotal - liabilitiesTotal;
+  const fireNetWorth = fireAssetsTotal - sumBalance(fireDebts);
+
   return {
     assetsTotal,
     liabilitiesTotal,
-    netWorth: assetsTotal - liabilitiesTotal,
+    netWorth,
     monthlyContributions,
     monthlyDebtPayments,
     lockedAssetsTotal,
     lockedMonthlyContributions,
     debts,
+    fireNetWorth,
+    fireMonthlyContributions,
+    fireLockedAssetsTotal,
+    fireLockedMonthlyContributions,
+    fireDebts,
+    externalDebts,
+    excludedNetWorth: netWorth - fireNetWorth,
+    hasExclusions: hasExclusions || externalDebts.length > 0,
   };
 };
 
@@ -113,7 +161,8 @@ const targetRow = (
   projection: ProjectionPoint[],
 ): string => {
   const years = yearsToTarget(projection, target);
-  const pct = target > 0 ? Math.min(100, (totals.netWorth / target) * 100) : 0;
+  const pct =
+    target > 0 ? Math.min(100, (totals.fireNetWorth / target) * 100) : 0;
 
   return `| ${label} | ${formatMoney(target, settings.displayCurrency)} | ${pct.toFixed(1)}% | ${formatYears(years)} |`;
 };
@@ -129,13 +178,14 @@ const projectionFor = (
 ): ProjectionPoint[] =>
   buildProjection(
     {
-      currentNetWorth: totals.netWorth,
-      monthlySavings: totals.monthlyContributions,
+      currentNetWorth: totals.fireNetWorth,
+      monthlySavings: totals.fireMonthlyContributions,
       expectedReturn: settings.expectedReturn,
       retirementAge: settings.retirementAge,
-      currentLockedNetWorth: totals.lockedAssetsTotal,
-      monthlyLockedSavings: totals.lockedMonthlyContributions,
-      liabilities: totals.debts,
+      currentLockedNetWorth: totals.fireLockedAssetsTotal,
+      monthlyLockedSavings: totals.fireLockedMonthlyContributions,
+      liabilities: totals.fireDebts,
+      externalLiabilities: totals.externalDebts,
       ...overrides,
     },
     settings,
@@ -237,6 +287,14 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   lines.push(
     `- Total monthly outflow into wealth-building: ${formatMoney(totals.monthlyContributions + totals.monthlyDebtPayments, display)}`,
   );
+  if (totals.hasExclusions) {
+    lines.push(
+      `- **Of which funds retirement: ${formatMoney(totals.fireNetWorth, display)}** (${formatMoney(totals.excludedNetWorth, display)} held outside the FIRE picture)`,
+    );
+    lines.push(
+      `- Monthly contributions into the retirement pot: ${formatMoney(totals.fireMonthlyContributions, display)}`,
+    );
+  }
   lines.push(``);
 
   // FIRE Targets
@@ -266,10 +324,10 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
     lines.push(`_No assets recorded._`);
   } else {
     lines.push(
-      `| Name | Type | Value (orig) | Currency | Value (${display}) | Contribution | Frequency | Monthly equiv. (${display}) | Notes |`,
+      `| Name | Type | Value (orig) | Currency | Value (${display}) | Contribution | Frequency | Monthly equiv. (${display}) | Counts toward FIRE | Notes |`,
     );
     lines.push(
-      `| :--- | :--- | ---: | :---: | ---: | ---: | :---: | ---: | :--- |`,
+      `| :--- | :--- | ---: | :---: | ---: | ---: | :---: | ---: | :---: | :--- |`,
     );
     for (const a of assets) {
       const valueDisplay = convert(
@@ -284,7 +342,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
       );
 
       lines.push(
-        `| ${a.name} | ${ASSET_TYPE_LABEL[a.type]} | ${formatMoney(a.value, a.currency)} | ${a.currency} | ${formatMoney(valueDisplay, display)} | ${formatMoney(a.contribution, a.currency)} | ${FREQUENCY_LABEL[a.frequency]} | ${formatMoney(monthlyDisplay, display)} | ${a.notes ?? ""} |`,
+        `| ${a.name} | ${ASSET_TYPE_LABEL[a.type]} | ${formatMoney(a.value, a.currency)} | ${a.currency} | ${formatMoney(valueDisplay, display)} | ${formatMoney(a.contribution, a.currency)} | ${FREQUENCY_LABEL[a.frequency]} | ${formatMoney(monthlyDisplay, display)} | ${countsTowardFire(a) ? "yes" : "no"} | ${a.notes ?? ""} |`,
       );
     }
   }
@@ -297,10 +355,10 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
     lines.push(`_No liabilities recorded._`);
   } else {
     lines.push(
-      `| Name | Type | Balance (orig) | Currency | Balance (${display}) | Rate | Payment | Frequency | Monthly equiv. (${display}) |`,
+      `| Name | Type | Balance (orig) | Currency | Balance (${display}) | Rate | Payment | Frequency | Monthly equiv. (${display}) | Counts toward FIRE |`,
     );
     lines.push(
-      `| :--- | :--- | ---: | :---: | ---: | ---: | ---: | :---: | ---: |`,
+      `| :--- | :--- | ---: | :---: | ---: | ---: | ---: | :---: | ---: | :---: |`,
     );
     for (const l of liabilities) {
       const balanceDisplay = convert(
@@ -315,11 +373,63 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
       );
 
       lines.push(
-        `| ${l.name} | ${LIABILITY_TYPE_LABEL[l.type]} | ${formatMoney(l.balance, l.currency)} | ${l.currency} | ${formatMoney(balanceDisplay, display)} | ${formatPercent(l.interestRate, 2)} | ${formatMoney(l.payment, l.currency)} | ${FREQUENCY_LABEL[l.frequency]} | ${formatMoney(monthlyDisplay, display)} |`,
+        `| ${l.name} | ${LIABILITY_TYPE_LABEL[l.type]} | ${formatMoney(l.balance, l.currency)} | ${l.currency} | ${formatMoney(balanceDisplay, display)} | ${formatPercent(l.interestRate, 2)} | ${formatMoney(l.payment, l.currency)} | ${FREQUENCY_LABEL[l.frequency]} | ${formatMoney(monthlyDisplay, display)} | ${countsTowardFire(l) ? "yes" : "no"} |`,
       );
     }
   }
   lines.push(``);
+
+  // Debt repayments as a spending line
+  if (liabilities.length > 0) {
+    const yearsToRetirement = Math.max(
+      0,
+      settings.retirementAge - settings.currentAge,
+    );
+
+    lines.push(`## Debt Repayments`);
+    lines.push(``);
+    lines.push(
+      `Derived from each liability's balance and rate, not entered as expenses. A loan runs until it's repaid rather than until retirement, so these stop at payoff.`,
+    );
+    lines.push(``);
+    lines.push(
+      `| Name | Per year (${display}) | Clears in | Past retirement |`,
+    );
+    lines.push(`| :--- | ---: | ---: | :---: |`);
+
+    let annualTotal = 0;
+    let pastRetirement = 0;
+
+    for (const l of liabilities) {
+      const annual =
+        toMonthly(
+          convert(l.payment, l.currency, display, settings.usdToNzd),
+          l.frequency,
+        ) * 12;
+      const years = yearsToPayoff(
+        convert(l.balance, l.currency, display, settings.usdToNzd),
+        l.interestRate,
+        annual,
+      );
+      const outlasts = years > yearsToRetirement;
+
+      annualTotal += annual;
+      if (outlasts) pastRetirement += annual;
+
+      lines.push(
+        `| ${l.name} | ${formatMoney(annual, display)} | ${Number.isFinite(years) ? formatYears(years) : "never"} | ${outlasts ? "yes" : "no"} |`,
+      );
+    }
+
+    lines.push(``);
+    lines.push(
+      `- Total repayments per year: **${formatMoney(annualTotal, display)}**`,
+    );
+    lines.push(
+      `- Still being repaid after retirement: **${formatMoney(pastRetirement, display)}** per year`,
+    );
+    lines.push(``);
+  }
 
   // Saved Scenarios
   lines.push(`## Saved Scenarios (${scenarios.length})`);
@@ -410,7 +520,11 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   );
   lines.push(``);
   lines.push(
-    `Liabilities amortise monthly at their own nominal interest rate: interest accrues on the outstanding balance, the scheduled repayment is applied, and the balance is converted back into today's dollars for reporting. Once a loan is repaid, its repayment is redirected into savings. Before retirement, repayments are assumed to be funded from income (which this model does not track), so servicing a loan does not draw down the portfolio — meaning net worth for someone carrying debt is not directly comparable to a debt-free run of the same inputs. After retirement there is no income, so remaining debt service is withdrawn from the portfolio on top of living expenses. A repayment smaller than the interest charge will let the balance grow, which the projection shows rather than hides. Annual expenses are treated as **excluding** loan repayments, since those are modelled separately from each liability's balance and rate.`,
+    `Holdings and debts can be marked as not counting toward FIRE. Those still appear in net worth but are left out of the retirement pot: an excluded holding's value isn't measured against the target, its contributions aren't projected, and it doesn't weight the blended after-tax return. This is what separates the home you live in — real wealth, but not something you can draw 4% a year from — from the assets that actually fund retirement. Progress percentages and every projection below are computed on the retirement pot alone. An excluded *debt* is a middle case: its balance is neither netted off the pot nor reported, but its repayment is still serviced, because a mortgage you don't count as part of the pot is still one you have to pay.`,
+  );
+  lines.push(``);
+  lines.push(
+    `Liabilities amortise monthly at their own nominal interest rate: interest accrues on the outstanding balance, the scheduled repayment is applied, and the balance is converted back into today's dollars for reporting. Once a loan is repaid, its repayment is redirected into savings. Before retirement, repayments are assumed to be funded from income (which this model does not track), so servicing a loan does not draw down the portfolio — meaning net worth for someone carrying debt is not directly comparable to a debt-free run of the same inputs. After retirement there is no income, so remaining debt service is withdrawn from the portfolio on top of living expenses. A repayment smaller than the interest charge will let the balance grow, which the projection shows rather than hides. Annual expenses are treated as **excluding** loan repayments, since those are modelled separately from each liability's balance and rate. This is also why repayments never raise the FIRE target: the target is a withdrawal you can sustain indefinitely, and a loan that ends isn't one — so a retirement that starts before the last loan clears will be tighter in its early years than the target alone suggests.`,
   );
 
   return lines.join("\n");

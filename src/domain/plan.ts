@@ -27,6 +27,8 @@ export interface ProjectionInputBundle {
   numberOfKids?: number;
   /** Debts to amortise. currentNetWorth must already be net of these. */
   liabilities?: ProjectionLiability[];
+  /** Debts serviced but held outside the pot. Not netted off currentNetWorth. */
+  externalLiabilities?: ProjectionLiability[];
   /** Annual income that continues through retirement (display currency). */
   retirementIncome?: number;
   /** Part-time earnings during early retirement (display currency). */
@@ -98,6 +100,7 @@ export const buildProjection = (
     unlockAge: settings.kiwisaverUnlockAge ?? 65,
     kidsCostByYear,
     liabilities: bundle.liabilities,
+    externalLiabilities: bundle.externalLiabilities,
     retirementIncomeAnnual: bundle.retirementIncome ?? 0,
   });
 };

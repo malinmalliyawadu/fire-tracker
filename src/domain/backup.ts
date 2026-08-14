@@ -72,6 +72,25 @@ const collect = <T>(
   );
 };
 
+/**
+ * Drop a `countsTowardFire` that isn't a boolean rather than rejecting the row.
+ * Absent means "counts", so a malformed flag falls back to the safe default
+ * instead of costing the user the whole holding.
+ */
+const withCleanFireFlag = <T extends { countsTowardFire?: boolean }>(
+  items: T[],
+): T[] =>
+  items.map((item) => {
+    if (item.countsTowardFire === undefined) return item;
+    if (typeof item.countsTowardFire === "boolean") return item;
+
+    const cleaned = { ...item };
+
+    delete cleaned.countsTowardFire;
+
+    return cleaned;
+  });
+
 const validAsset = (a: Record<string, unknown>): boolean =>
   typeof a.name === "string" &&
   isFiniteNumber(a.value) &&
@@ -165,8 +184,10 @@ export const parseBackup = (raw: string): ImportResult => {
 
   const payload: BackupPayload = {
     settings: cleanSettings(parsed.settings),
-    assets: collect<Asset>(parsed.assets, validAsset),
-    liabilities: collect<Liability>(parsed.liabilities, validLiability),
+    assets: withCleanFireFlag(collect<Asset>(parsed.assets, validAsset)),
+    liabilities: withCleanFireFlag(
+      collect<Liability>(parsed.liabilities, validLiability),
+    ),
     income: collect<IncomeSource>(parsed.income, validIncome),
     expenses: collect<Expense>(parsed.expenses, validExpense),
     events: collect<LifeEvent>(parsed.events, validEvent),

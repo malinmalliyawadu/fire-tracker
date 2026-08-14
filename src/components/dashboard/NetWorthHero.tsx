@@ -1,4 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react";
+import clsx from "clsx";
 
 import { ProgressRing } from "./ProgressRing";
 
@@ -21,7 +22,7 @@ export function NetWorthHero() {
   const targets = useFireTargets();
   const currency = useSettings((s) => s.settings.displayCurrency);
 
-  const { netWorth, assetsTotal, liabilitiesTotal } = totals;
+  const { netWorth, assetsTotal, liabilitiesTotal, fireNetWorth } = totals;
   const monthlyContributions = contributions.monthlyContributions;
   const annualSavings = monthlyContributions * 12;
   const isPositive = netWorth >= 0;
@@ -55,7 +56,12 @@ export function NetWorthHero() {
             )}
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-6 border-t border-white/5 pt-6">
+          <div
+            className={clsx(
+              "mt-8 grid gap-6 border-t border-white/5 pt-6",
+              totals.hasExclusions ? "grid-cols-4" : "grid-cols-3",
+            )}
+          >
             <Stat
               label="Assets"
               tone="gain"
@@ -66,6 +72,13 @@ export function NetWorthHero() {
               tone={liabilitiesTotal > 0 ? "loss" : "default"}
               value={<Money amount={liabilitiesTotal} currency={currency} />}
             />
+            {totals.hasExclusions && (
+              <Stat
+                hint={`${formatMoney(totals.excludedNetWorth, currency)} held outside`}
+                label="FIRE assets"
+                value={<Money amount={fireNetWorth} currency={currency} />}
+              />
+            )}
             <Stat
               hint={`${formatMoney(annualSavings, currency)} per year`}
               label="Monthly Savings"
@@ -78,7 +91,7 @@ export function NetWorthHero() {
 
         <div className="flex justify-center md:justify-end">
           <ProgressRing
-            current={Math.max(0, netWorth)}
+            current={Math.max(0, fireNetWorth)}
             target={targets.traditional}
           />
         </div>

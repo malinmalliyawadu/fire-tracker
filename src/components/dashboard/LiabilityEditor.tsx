@@ -16,6 +16,7 @@ import {
   LIABILITY_TYPE_ICON,
   LIABILITY_TYPE_LABEL,
 } from "@/domain/labels";
+import { countsTowardFire } from "@/domain/fire";
 import { formatMoney } from "@/domain/format";
 import { toMonthly } from "@/domain/currency";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
@@ -24,6 +25,7 @@ import { usePortfolio } from "@/store/portfolio";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
+import { FireInclusionToggle } from "@/components/ui/FireInclusionToggle";
 import { FrequencyPills } from "@/components/ui/FrequencyPills";
 import { TypeGrid } from "@/components/ui/TypeGrid";
 
@@ -41,6 +43,7 @@ interface FormState {
   interestRate: number | null;
   payment: number | null;
   frequency: ContributionFrequency;
+  countsTowardFire: boolean;
 }
 
 const blank = (l?: Liability): FormState => ({
@@ -55,6 +58,7 @@ const blank = (l?: Liability): FormState => ({
       : 5,
   payment: l?.payment ?? 0,
   frequency: l?.frequency ?? "monthly",
+  countsTowardFire: countsTowardFire(l ?? {}),
 });
 
 export function LiabilityEditor({
@@ -90,6 +94,7 @@ export function LiabilityEditor({
       interestRate: (form.interestRate ?? 0) / 100,
       payment: form.payment ?? 0,
       frequency: form.frequency,
+      countsTowardFire: form.countsTowardFire,
     });
     onClose();
   };
@@ -224,6 +229,14 @@ export function LiabilityEditor({
           onChange={(v) => set("frequency", v)}
         />
       </FieldSection>
+
+      <FireInclusionToggle
+        excludedHint="Clears with the asset behind it"
+        includedHint="Netted off, and serviced in retirement"
+        tone="loss"
+        value={form.countsTowardFire}
+        onChange={(v) => set("countsTowardFire", v)}
+      />
     </DialogShell>
   );
 }

@@ -141,6 +141,140 @@ describe("buildSnapshotMarkdown", () => {
     expect(withMortgage).not.toBe(debtFree);
   });
 
+  describe("holdings excluded from FIRE", () => {
+    const home: Asset = {
+      id: "a3",
+      name: "Family home",
+      type: "property",
+      value: 900_000,
+      currency: "NZD",
+      contribution: 0,
+      frequency: "monthly",
+      countsTowardFire: false,
+      createdAt: stamp,
+      updatedAt: stamp,
+    };
+
+    const withHome = { ...base, assets: [...assets, home] };
+
+    it("keeps an excluded home in net worth", () => {
+      const md = buildSnapshotMarkdown(withHome);
+
+      // 305,000 + 900,000 assets − 520,000 mortgage
+      expect(md).toContain("Net worth: $685,000");
+    });
+
+    it("keeps an excluded home out of the retirement pot", () => {
+      const md = buildSnapshotMarkdown(withHome);
+
+      expect(md).toContain("Of which funds retirement: -$215,000");
+      expect(md).toContain("$900,000 held outside the FIRE picture");
+    });
+
+    it("says nothing about exclusions when there are none", () => {
+      const md = buildSnapshotMarkdown(base);
+
+      expect(md).not.toContain("Of which funds retirement");
+    });
+
+    it("flags each row's inclusion", () => {
+      const md = buildSnapshotMarkdown(withHome);
+      const rowFor = (name: string): string =>
+        md.split("\n").find((line) => line.startsWith(`| ${name} `))!;
+
+      // Asset rows end with notes, so the flag is the second-to-last column.
+      expect(rowFor("Family home").split("|").at(-3)!.trim()).toBe("no");
+      expect(rowFor("Global Shares").split("|").at(-3)!.trim()).toBe("yes");
+      // Liability rows end with the flag itself.
+      expect(rowFor("Mortgage").split("|").at(-2)!.trim()).toBe("yes");
+    });
+
+    it("progress is measured on the retirement pot, not net worth", () => {
+      const reachable = {
+        settings: { ...settings, retirementAge: 65, annualExpenses: 40_000 },
+        liabilities: [],
+        scenarios: [],
+      };
+      const progressIn = (md: string): string =>
+        md
+          .split("\n")
+          .find((line) => line.startsWith("| Traditional"))!
+          .split("|")
+          .at(-3)!
+          .trim();
+
+      const counted = progressIn(
+        buildSnapshotMarkdown({
+          ...reachable,
+          assets: [...assets, { ...home, countsTowardFire: true }],
+        }),
+      );
+      const excluded = progressIn(
+        buildSnapshotMarkdown({ ...reachable, assets: [...assets, home] }),
+      );
+
+      expect(counted).toBe("100.0%");
+      expect(excluded).toBe("30.5%");
+    });
+
+    it("an excluded debt is neither netted off nor amortised", () => {
+      const excludedMortgage: Liability = {
+        ...liabilities[0],
+        countsTowardFire: false,
+      };
+      const md = buildSnapshotMarkdown({
+        ...base,
+        liabilities: [excludedMortgage],
+      });
+
+      expect(md).toContain("Net worth: -$215,000");
+      expect(md).toContain("Of which funds retirement: $305,000");
+    });
+  });
+
+  describe("debt repayments as a spending line", () => {
+    it("lists each loan with its payoff horizon", () => {
+      const md = buildSnapshotMarkdown(base);
+
+      expect(md).toContain("## Debt Repayments");
+      // 750/wk on a 520k mortgage at 6.2%
+      expect(md).toContain("| Mortgage | $39,000 |");
+    });
+
+    it("separates what's still running after retirement", () => {
+      const early = {
+        ...base,
+        settings: { ...settings, currentAge: 38, retirementAge: 40 },
+      };
+      const late = {
+        ...base,
+        settings: { ...settings, currentAge: 38, retirementAge: 90 },
+      };
+
+      expect(buildSnapshotMarkdown(early)).toContain(
+        "Still being repaid after retirement: **$39,000**",
+      );
+      expect(buildSnapshotMarkdown(late)).toContain(
+        "Still being repaid after retirement: **$0**",
+      );
+    });
+
+    it("says a loan never clears when the payment can't cover interest", () => {
+      const md = buildSnapshotMarkdown({
+        ...base,
+        liabilities: [{ ...liabilities[0], payment: 50, frequency: "weekly" }],
+      });
+
+      expect(md).toContain("| never |");
+    });
+
+    it("skips the section entirely with no debts", () => {
+      const md = buildSnapshotMarkdown({ ...base, liabilities: [] });
+
+      expect(md).not.toContain("## Debt Repayments");
+    });
+  });
+
   it("handles an empty portfolio without throwing", () => {
     const md = buildSnapshotMarkdown({
       settings,

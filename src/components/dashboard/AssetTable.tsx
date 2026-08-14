@@ -1,6 +1,6 @@
 import type { Asset } from "@/types";
 
-import { Lock, Pencil, Wallet } from "lucide-react";
+import { EyeOff, Lock, Pencil, Wallet } from "lucide-react";
 import { Button } from "@heroui/button";
 import { useState } from "react";
 
@@ -8,6 +8,7 @@ import { AssetEditor } from "./AssetEditor";
 
 import { ASSET_TYPE_LABEL, FREQUENCY_SHORT } from "@/domain/labels";
 import { convert, toMonthly } from "@/domain/currency";
+import { countsTowardFire } from "@/domain/fire";
 import { useSettings } from "@/store/settings";
 import { usePortfolio } from "@/store/portfolio";
 import { usePlanContributions } from "@/store/derived";
@@ -114,6 +115,15 @@ export function AssetTable() {
                           >
                             <Lock className="h-2.5 w-2.5" />
                             {unlockAge}
+                          </span>
+                        )}
+                        {!countsTowardFire(asset) && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-ink-400"
+                            title="Counted in net worth, but not in the FIRE target"
+                          >
+                            <EyeOff className="h-2.5 w-2.5" />
+                            Not FIRE
                           </span>
                         )}
                       </div>

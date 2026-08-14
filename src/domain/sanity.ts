@@ -22,6 +22,8 @@ export interface SanityInputs {
   topAssetShare: number;
   /** True when any liability's payment doesn't cover its interest. */
   hasNegativeAmortisation: boolean;
+  /** True when a loan is still being repaid after retirement. */
+  hasDebtPastRetirement?: boolean;
 }
 
 /**
@@ -117,8 +119,18 @@ export const checkAssumptions = (input: SanityInputs): SanityWarning[] => {
     warnings.push({
       id: "concentrated",
       level: "note",
-      title: "Portfolio is highly concentrated",
-      detail: `${pct(input.topAssetShare)} sits in a single asset type. The projection applies one blended return to everything, so it can't show the swings a concentrated portfolio actually experiences.`,
+      title: "Retirement pot is highly concentrated",
+      detail: `${pct(input.topAssetShare)} of the assets funding retirement sit in a single asset type. The projection applies one blended return to everything, so it can't show the swings a concentrated portfolio actually experiences.`,
+    });
+  }
+
+  if (input.hasDebtPastRetirement) {
+    warnings.push({
+      id: "debt-past-retirement",
+      level: "note",
+      title: "A loan is still being repaid after you retire",
+      detail:
+        "Its repayments are withdrawn from the portfolio on top of living expenses until the balance clears, which the projection accounts for. They aren't in the FIRE target though: that number assumes a withdrawal you can sustain forever, and a loan that ends isn't one. Expect the early retirement years to be tighter than the target implies.",
     });
   }
 
