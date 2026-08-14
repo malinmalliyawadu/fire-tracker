@@ -3,6 +3,7 @@ import { Landmark } from "lucide-react";
 
 import { convert } from "@/domain/currency";
 import { formatMoney } from "@/domain/format";
+import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
 
 import { Card } from "@/components/ui/Card";
@@ -13,6 +14,17 @@ export function NzSuperCard() {
 
   const annual = settings.nzSuperAnnual ?? 28_000;
   const startAge = settings.nzSuperStartAge ?? 65;
+
+  const annualField = useNumericField({
+    value: annual,
+    onChange: (v) => update({ nzSuperAnnual: v ?? 0 }),
+  });
+  const startAgeField = useNumericField({
+    value: startAge,
+    onChange: (v) => update({ nzSuperStartAge: v ?? 65 }),
+    allowDecimal: false,
+    grouping: false,
+  });
 
   const inDisplay = convert(
     annual,
@@ -42,25 +54,17 @@ export function NzSuperCard() {
               ? `≈ ${formatMoney(inDisplay, "USD")} at current FX`
               : "Single, living alone is roughly NZ$28,000/yr (2024)"
           }
-          inputMode="decimal"
           label="Annual NZ Super"
           startContent={<span className="text-sm text-ink-400">NZ$</span>}
-          value={annual.toString()}
           variant="bordered"
-          onValueChange={(v) =>
-            update({ nzSuperAnnual: parseFloat(v) || 0 })
-          }
+          {...annualField}
         />
         <Input
           className="w-32"
           description="Eligibility age"
-          inputMode="numeric"
           label="From age"
-          value={startAge.toString()}
           variant="bordered"
-          onValueChange={(v) =>
-            update({ nzSuperStartAge: parseInt(v) || 65 })
-          }
+          {...startAgeField}
         />
       </div>
     </Card>
