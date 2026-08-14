@@ -230,9 +230,10 @@ export function LiabilityEditor({
         />
       </FieldSection>
 
+      {/* Both are serviced in retirement — only the balance differs. */}
       <FireInclusionToggle
-        excludedHint="Clears with the asset behind it"
-        includedHint="Netted off, and serviced in retirement"
+        excludedHint="Repaid by the asset behind it"
+        includedHint="Balance subtracted from the pot"
         tone="loss"
         value={form.countsTowardFire}
         onChange={(v) => set("countsTowardFire", v)}
