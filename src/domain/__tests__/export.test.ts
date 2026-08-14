@@ -17,6 +17,12 @@ const settings: Settings = {
   kiwisaverUnlockAge: 65,
   usdToNzd: 1.65,
   applyInvestmentTax: false,
+  nzSuperStatus: "singleLivingAlone",
+  household: {
+    hasPartner: false,
+    partnerAge: 38,
+    includePartnerNzSuper: true,
+  },
   spendingPhases: {
     enabled: false,
     goGoMultiplier: 1.1,

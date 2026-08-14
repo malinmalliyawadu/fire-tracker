@@ -1,9 +1,9 @@
 import { Input } from "@heroui/input";
 
-import { computeFireTargets } from "@/domain/fire";
 import { formatMoneyCompact, formatPercent } from "@/domain/format";
 import { useNumericField } from "@/hooks/useNumericField";
 import { useSettings } from "@/store/settings";
+import { useFireTargets, usePlanBudget } from "@/store/derived";
 import { Card } from "@/components/ui/Card";
 import { SliderField } from "@/components/simulate/SliderField";
 
@@ -16,14 +16,10 @@ export function GoalsCard() {
     onChange: (v) => update({ annualExpenses: v ?? 0 }),
   });
 
-  const targets = computeFireTargets({
-    annualExpenses: settings.annualExpenses,
-    withdrawalRate: settings.withdrawalRate,
-    expectedReturn: settings.expectedReturn,
-    inflationRate: settings.inflationRate,
-    currentAge: settings.currentAge,
-    retirementAge: settings.retirementAge,
-  });
+  // Read the live target rather than recomputing it, so this card can't drift
+  // from the rest of the app once expenses are itemised on the Spending page.
+  const targets = useFireTargets();
+  const budget = usePlanBudget();
 
   return (
     <Card
@@ -37,16 +33,38 @@ export function GoalsCard() {
       title="FIRE Goals"
     >
       <div className="space-y-5">
-        <Input
-          label="Annual expenses (today's dollars)"
-          startContent={
-            <span className="text-sm text-ink-400">
-              {settings.displayCurrency === "NZD" ? "NZ$" : "US$"}
-            </span>
-          }
-          variant="bordered"
-          {...expensesField}
-        />
+        <div>
+          <Input
+            isDisabled={budget.itemised}
+            label="Annual expenses (today's dollars)"
+            startContent={
+              <span className="text-sm text-ink-400">
+                {settings.displayCurrency === "NZD" ? "NZ$" : "US$"}
+              </span>
+            }
+            variant="bordered"
+            {...expensesField}
+          />
+          <p className="mt-1.5 text-[11px] leading-relaxed text-ink-500">
+            {budget.itemised ? (
+              <>
+                Superseded by your itemised expenses on the Spending page:{" "}
+                {formatMoneyCompact(
+                  budget.annualExpenses,
+                  settings.displayCurrency,
+                )}{" "}
+                today,{" "}
+                {formatMoneyCompact(
+                  budget.retirementExpenses,
+                  settings.displayCurrency,
+                )}{" "}
+                in retirement. The target is built from the retirement figure.
+              </>
+            ) : (
+              "Itemise this on the Spending page to model costs that stop or start at retirement."
+            )}
+          </p>
+        </div>
 
         <SliderField
           display={formatPercent(settings.withdrawalRate, 1)}

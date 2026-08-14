@@ -1,3 +1,5 @@
+import type { NzSuperStatus } from "@/domain/tax";
+
 export type Currency = "NZD" | "USD";
 
 export type ContributionFrequency =
@@ -153,11 +155,30 @@ export interface Settings {
   /** Annual spending once retired, when it differs from today's. */
   retirementExpenses?: number;
   spendingPhases: SpendingPhases;
+  /** Which NZ Super rate applies — living situation, not just status. */
+  nzSuperStatus: NzSuperStatus;
+  household: Household;
+}
+
+/**
+ * A partner sharing the plan. Their assets and income go in the same lists as
+ * yours; what's modelled separately is the timing their age changes — a second
+ * NZ Super entitlement that starts when *they* turn 65, not when you do.
+ */
+export interface Household {
+  hasPartner: boolean;
+  partnerAge: number;
+  /** Include the partner's NZ Super in retirement income. */
+  includePartnerNzSuper: boolean;
 }
 
 export type FireType = "traditional" | "lean" | "fat" | "coast";
 
 export interface SimulationInputs {
+  /** Part-time earnings during early retirement, display currency per year. */
+  baristaIncome: number;
+  /** Age the part-time work stops. */
+  baristaUntilAge: number;
   monthlySavings: number;
   expectedReturn: number;
   withdrawalRate: number;

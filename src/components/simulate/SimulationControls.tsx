@@ -1,7 +1,7 @@
 import type { FireType, SimulationInputs } from "@/types";
 
 import clsx from "clsx";
-import { Baby, Landmark, Minus, Plus } from "lucide-react";
+import { Baby, Coffee, Landmark, Minus, Plus } from "lucide-react";
 
 import { SliderField } from "./SliderField";
 
@@ -127,6 +127,41 @@ export function SimulationControls({
           onCountChange={(v) => set("numberOfKids", v)}
           onToggle={(v) => set("includeKids", v)}
         />
+
+        <div className="space-y-5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="flex items-center gap-2">
+            <Coffee className="h-3.5 w-3.5 text-ink-300" />
+            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-300">
+              Barista FIRE
+            </span>
+          </div>
+          <SliderField
+            display={
+              inputs.baristaIncome > 0
+                ? `${formatMoney(inputs.baristaIncome, display)}/yr`
+                : "Off"
+            }
+            hint="Part-time earnings that bridge early retirement"
+            label="Part-time income"
+            max={60_000}
+            min={0}
+            step={1_000}
+            value={inputs.baristaIncome}
+            onChange={(v) => set("baristaIncome", v)}
+          />
+          {inputs.baristaIncome > 0 && (
+            <SliderField
+              display={`${inputs.baristaUntilAge}`}
+              hint={`Working part-time until ${inputs.baristaUntilAge}`}
+              label="Until age"
+              max={75}
+              min={inputs.retirementAge}
+              step={1}
+              value={inputs.baristaUntilAge}
+              onChange={(v) => set("baristaUntilAge", v)}
+            />
+          )}
+        </div>
       </div>
     </Card>
   );

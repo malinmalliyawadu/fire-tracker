@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  coastPoint,
   generateProjection,
   spendingMultiplier,
   yearsToTarget,
@@ -525,5 +526,129 @@ describe("kid costs by year", () => {
     });
 
     expect(long.at(-1)!.netWorth).toBeLessThan(short.at(-1)!.netWorth);
+  });
+});
+
+describe("coastPoint", () => {
+  const base = {
+    currentNetWorth: 100_000,
+    monthlySavings: 2_000,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 30,
+    retirementAge: 65,
+    annualExpenses: 40_000,
+    years: 40,
+  };
+  const realReturn = base.expectedReturn - base.inflationRate;
+
+  it("returns null for a target that's never coastable", () => {
+    const points = generateProjection(base);
+
+    expect(coastPoint(points, 500_000_000, realReturn, 65)).toBeNull();
+  });
+
+  it("returns null for a non-positive target", () => {
+    expect(coastPoint(generateProjection(base), 0, realReturn, 65)).toBeNull();
+  });
+
+  it("says 'now' when today's net worth already coasts there", () => {
+    const points = generateProjection(base);
+    // 100k compounding for 35 years at 4.5% lands well above 300k.
+    const coast = coastPoint(points, 300_000, realReturn, 65);
+
+    expect(coast).not.toBeNull();
+    expect(coast!.year).toBe(0);
+  });
+
+  it("arrives before the target itself is reached", () => {
+    const points = generateProjection(base);
+    const target = 1_000_000;
+    const coast = coastPoint(points, target, realReturn, 65);
+    const reached = yearsToTarget(points, target);
+
+    expect(coast).not.toBeNull();
+    expect(coast!.year).toBeLessThan(reached);
+  });
+
+  it("a bigger target takes longer to coast to", () => {
+    const points = generateProjection(base);
+    const early = coastPoint(points, 800_000, realReturn, 65)!;
+    const later = coastPoint(points, 1_500_000, realReturn, 65)!;
+
+    expect(later.year).toBeGreaterThan(early.year);
+  });
+
+  it("retiring earlier leaves less time to coast, so it takes longer", () => {
+    const points = generateProjection(base);
+    const to65 = coastPoint(points, 1_000_000, realReturn, 65)!;
+    const to55 = coastPoint(points, 1_000_000, realReturn, 55)!;
+
+    expect(to55.year).toBeGreaterThan(to65.year);
+  });
+});
+
+describe("barista income and partner Super", () => {
+  const early = {
+    currentNetWorth: 900_000,
+    monthlySavings: 0,
+    expectedReturn: 0.07,
+    inflationRate: 0.025,
+    currentAge: 50,
+    retirementAge: 50,
+    annualExpenses: 55_000,
+    years: 45,
+  };
+
+  it("part-time income reduces early withdrawals", () => {
+    const without = generateProjection(early);
+    const withBarista = generateProjection({
+      ...early,
+      baristaIncomeAnnual: 25_000,
+      baristaUntilAge: 60,
+    });
+    const at55 = withBarista.find((p) => p.age === 55)!;
+    const at55Without = without.find((p) => p.age === 55)!;
+
+    expect(at55.withdrawn).toBeLessThan(at55Without.withdrawn);
+    expect(at55.netWorth).toBeGreaterThan(at55Without.netWorth);
+  });
+
+  it("part-time income stops at the given age", () => {
+    const points = generateProjection({
+      ...early,
+      baristaIncomeAnnual: 25_000,
+      baristaUntilAge: 60,
+    });
+    const at61 = points.find((p) => p.age === 61)!;
+    const at62 = points.find((p) => p.age === 62)!;
+
+    // Full expenses again once the part-time work ends.
+    expect(at62.withdrawn - at61.withdrawn).toBeCloseTo(55_000, 0);
+  });
+
+  it("a partner's Super starts on its own schedule", () => {
+    const solo = generateProjection({
+      ...early,
+      nzSuperAnnualInDisplay: 21_000,
+      nzSuperStartAge: 65,
+    });
+    const couple = generateProjection({
+      ...early,
+      nzSuperAnnualInDisplay: 21_000,
+      nzSuperStartAge: 65,
+      partnerNzSuperAnnual: 21_000,
+      // Partner is five years younger, so their Super lands when you're 70.
+      partnerNzSuperStartAge: 70,
+    });
+
+    const at67 = couple.find((p) => p.age === 67)!;
+    const at67Solo = solo.find((p) => p.age === 67)!;
+    const at75 = couple.find((p) => p.age === 75)!;
+    const at75Solo = solo.find((p) => p.age === 75)!;
+
+    // Identical before the partner qualifies, better afterwards.
+    expect(at67.netWorth).toBe(at67Solo.netWorth);
+    expect(at75.netWorth).toBeGreaterThan(at75Solo.netWorth);
   });
 });

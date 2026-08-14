@@ -3,7 +3,10 @@ import type { SimulationInputs } from "@/types";
 import { useEffect, useMemo, useState } from "react";
 
 import { fireTargetFor } from "@/domain/fire";
-import { yearsToTarget as yearsUntilTarget } from "@/domain/projection";
+import {
+  coastPoint,
+  yearsToTarget as yearsUntilTarget,
+} from "@/domain/projection";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
 import { buildProjection } from "@/domain/plan";
@@ -48,6 +51,8 @@ export default function Simulate() {
       includeNzSuper: false,
       includeKids: false,
       numberOfKids: 1,
+      baristaIncome: 0,
+      baristaUntilAge: settings.nzSuperStartAge ?? 65,
     }),
     [contributions.monthlyContributions, settings],
   );
@@ -96,6 +101,8 @@ export default function Simulate() {
         numberOfKids: inputs.numberOfKids,
         liabilities: totals.debts,
         retirementIncome: income.retirementIncomeAnnual,
+        baristaIncome: inputs.baristaIncome,
+        baristaUntilAge: inputs.baristaUntilAge,
       },
       settings,
       PROJECTION_YEARS,
@@ -113,6 +120,23 @@ export default function Simulate() {
   const yearsToTarget = useMemo(
     () => yearsUntilTarget(currentProjection, target),
     [currentProjection, target],
+  );
+
+  const coast = useMemo(
+    () =>
+      coastPoint(
+        currentProjection,
+        targets.traditional,
+        simulatedAfterTaxReturn - settings.inflationRate,
+        inputs.retirementAge,
+      ),
+    [
+      currentProjection,
+      targets.traditional,
+      simulatedAfterTaxReturn,
+      settings.inflationRate,
+      inputs.retirementAge,
+    ],
   );
 
   const comparedScenarios = useMemo(
@@ -155,6 +179,8 @@ export default function Simulate() {
               numberOfKids: scenario.inputs.numberOfKids,
               liabilities: totals.debts,
               retirementIncome: income.retirementIncomeAnnual,
+              baristaIncome: scenario.inputs.baristaIncome,
+              baristaUntilAge: scenario.inputs.baristaUntilAge,
             },
             settings,
             PROJECTION_YEARS,
@@ -173,6 +199,7 @@ export default function Simulate() {
       />
 
       <SimulationKPIs
+        coast={coast}
         projection={currentProjection}
         retirementAge={inputs.retirementAge}
         target={target}

@@ -26,6 +26,12 @@ const DEFAULT_SETTINGS: Settings = {
   kiwisaverUnlockAge: 65,
   usdToNzd: FALLBACK_USD_TO_NZD,
   applyInvestmentTax: true,
+  nzSuperStatus: "singleLivingAlone",
+  household: {
+    hasPartner: false,
+    partnerAge: 30,
+    includePartnerNzSuper: true,
+  },
   // Defaults follow the common go-go / slow-go / no-go pattern: spending runs
   // a little hot early in retirement, then eases off as people slow down.
   spendingPhases: {

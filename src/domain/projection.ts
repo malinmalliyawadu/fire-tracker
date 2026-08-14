@@ -39,6 +39,21 @@ export interface ProjectionInputs {
   /** Age at which NZ Super begins. Defaults to 65. */
   nzSuperStartAge?: number;
   /**
+   * A partner's NZ Super, in display currency. Kept separate because a
+   * younger partner becomes eligible years later, and that gap has to be
+   * funded from the portfolio.
+   */
+  partnerNzSuperAnnual?: number;
+  /** Age *of the primary person* when the partner's Super starts. */
+  partnerNzSuperStartAge?: number;
+  /**
+   * Part-time earnings during early retirement — Barista FIRE. Reduces what
+   * the portfolio has to cover until `baristaUntilAge`.
+   */
+  baristaIncomeAnnual?: number;
+  /** Age the part-time income stops. Defaults to the NZ Super age. */
+  baristaUntilAge?: number;
+  /**
    * Portion of currentNetWorth that's locked (e.g. KiwiSaver). Cannot be
    * withdrawn before unlockAge but still earns the same return.
    */
@@ -150,6 +165,47 @@ export const yearsToTarget = (
   return Infinity;
 };
 
+export interface CoastPoint {
+  /** Years from now that coasting becomes viable. */
+  year: number;
+  /** Age at that point. */
+  age: number;
+  /** Net worth at that point. */
+  netWorth: number;
+}
+
+/**
+ * The moment you could stop contributing entirely and still drift to `target`
+ * by `retirementAge` on compounding alone — the Coast FIRE date.
+ *
+ * The existing coast *target* answers "how much do I need today"; this answers
+ * "when do I get there", which is the more useful form: it's a date you can
+ * put in a calendar and a point at which work becomes optional rather than
+ * mandatory. Returns null if coasting never becomes viable in the horizon.
+ */
+export const coastPoint = (
+  points: ProjectionPoint[],
+  target: number,
+  realReturn: number,
+  retirementAge: number,
+): CoastPoint | null => {
+  if (target <= 0) return null;
+
+  for (const point of points) {
+    if (point.age > retirementAge) break;
+
+    const yearsRemaining = retirementAge - point.age;
+    const coasted =
+      point.netWorth * Math.pow(1 + realReturn, Math.max(0, yearsRemaining));
+
+    if (coasted >= target) {
+      return { year: point.year, age: point.age, netWorth: point.netWorth };
+    }
+  }
+
+  return null;
+};
+
 export const generateProjection = (
   input: ProjectionInputs,
 ): ProjectionPoint[] => {
@@ -161,6 +217,10 @@ export const generateProjection = (
   const nzSuper = input.nzSuperAnnualInDisplay ?? 0;
   const nzSuperStart = input.nzSuperStartAge ?? 65;
   const retirementIncome = input.retirementIncomeAnnual ?? 0;
+  const partnerNzSuper = input.partnerNzSuperAnnual ?? 0;
+  const partnerNzSuperStart = input.partnerNzSuperStartAge ?? 65;
+  const baristaIncome = input.baristaIncomeAnnual ?? 0;
+  const baristaUntilAge = input.baristaUntilAge ?? 65;
   const unlockAge = input.unlockAge ?? 65;
   const kidsCost = input.kidsCostByYear ?? [];
   const oneOffs = input.oneOffByYear ?? [];
@@ -232,7 +292,11 @@ export const generateProjection = (
     const freedReal = (scheduledPayments - paidNominal) / deflator;
 
     if (isRetired) {
-      const supplement = (age >= nzSuperStart ? nzSuper : 0) + retirementIncome;
+      const supplement =
+        (age >= nzSuperStart ? nzSuper : 0) +
+        (age >= partnerNzSuperStart ? partnerNzSuper : 0) +
+        (age < baristaUntilAge ? baristaIncome : 0) +
+        retirementIncome;
       const spending =
         retirementExpenses * spendingMultiplier(age, input.spendingPhases);
       const portfolioWithdrawal = Math.max(

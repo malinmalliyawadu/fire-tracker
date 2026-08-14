@@ -29,6 +29,10 @@ export interface ProjectionInputBundle {
   liabilities?: ProjectionLiability[];
   /** Annual income that continues through retirement (display currency). */
   retirementIncome?: number;
+  /** Part-time earnings during early retirement (display currency). */
+  baristaIncome?: number;
+  /** Age the part-time earnings stop. */
+  baristaUntilAge?: number;
 }
 
 /**
@@ -41,9 +45,19 @@ export const buildProjection = (
   years = 40,
 ): ProjectionPoint[] => {
   const annualNzd = settings.nzSuperAnnual ?? 28_000;
-  const nzSuperInDisplay = bundle.includeNzSuper
-    ? convert(annualNzd, "NZD", settings.displayCurrency, settings.usdToNzd)
-    : 0;
+  const toDisplay = (nzd: number) =>
+    convert(nzd, "NZD", settings.displayCurrency, settings.usdToNzd);
+  const nzSuperInDisplay = bundle.includeNzSuper ? toDisplay(annualNzd) : 0;
+
+  // A partner reaches 65 on their own schedule; express that in your age.
+  const household = settings.household;
+  const includePartnerSuper =
+    bundle.includeNzSuper &&
+    household?.hasPartner &&
+    household.includePartnerNzSuper;
+  const ageGap =
+    settings.currentAge - (household?.partnerAge ?? settings.currentAge);
+  const partnerNzSuperStartAge = (settings.nzSuperStartAge ?? 65) + ageGap;
 
   // Hypothetical kids from the simulator stack on top of any real ones.
   const hypothetical = bundle.includeKids
@@ -75,6 +89,10 @@ export const buildProjection = (
     years,
     nzSuperAnnualInDisplay: nzSuperInDisplay,
     nzSuperStartAge: settings.nzSuperStartAge ?? 65,
+    partnerNzSuperAnnual: includePartnerSuper ? toDisplay(annualNzd) : 0,
+    partnerNzSuperStartAge,
+    baristaIncomeAnnual: bundle.baristaIncome ?? 0,
+    baristaUntilAge: bundle.baristaUntilAge,
     currentLockedNetWorth: bundle.currentLockedNetWorth ?? 0,
     monthlyLockedSavings: bundle.monthlyLockedSavings ?? 0,
     unlockAge: settings.kiwisaverUnlockAge ?? 65,

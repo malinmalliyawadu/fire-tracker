@@ -215,3 +215,31 @@ export const blendedAfterTaxReturn = (
     0,
   );
 };
+
+export type NzSuperStatus =
+  | "singleLivingAlone"
+  | "singleSharing"
+  | "couplePerPerson";
+
+/**
+ * NZ Superannuation, annual and after tax at the M code, as at April 2025.
+ *
+ * Rates are adjusted every April, so treat these as a starting point the user
+ * can override rather than gospel. Which rate applies depends on living
+ * situation, not just relationship status - a single person living alone gets
+ * meaningfully more than one sharing a house.
+ */
+export const NZ_SUPER_ANNUAL: Record<NzSuperStatus, number> = {
+  singleLivingAlone: 27_122,
+  singleSharing: 25_043,
+  couplePerPerson: 20_863,
+};
+
+export const NZ_SUPER_STATUS_LABEL: Record<NzSuperStatus, string> = {
+  singleLivingAlone: "Single, living alone",
+  singleSharing: "Single, sharing",
+  couplePerPerson: "Couple (each)",
+};
+
+/** Standard NZ Super eligibility age. */
+export const NZ_SUPER_AGE = 65;
