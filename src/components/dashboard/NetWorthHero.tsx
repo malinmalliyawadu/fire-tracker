@@ -74,8 +74,8 @@ export function NetWorthHero() {
             />
             {totals.hasExclusions && (
               <Stat
-                hint={`${formatMoney(totals.excludedNetWorth, currency)} held outside`}
-                label="FIRE assets"
+                hint={`${formatMoney(totals.fireAssetsTotal, currency)} assets − ${formatMoney(totals.fireLiabilitiesTotal, currency)} debt`}
+                label="FIRE pot"
                 value={<Money amount={fireNetWorth} currency={currency} />}
               />
             )}

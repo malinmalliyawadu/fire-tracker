@@ -64,6 +64,11 @@ export interface PortfolioTotals {
   excludedNetWorth: number;
   /** True when any holding or debt has been taken out of the FIRE picture. */
   hasExclusions: boolean;
+  /**
+   * True when a property is excluded while a mortgage still counts — the loan
+   * drags the retirement pot down with no asset behind it.
+   */
+  hasUnpairedPropertyDebt: boolean;
 }
 
 export const usePortfolioTotals = (): PortfolioTotals => {
@@ -163,6 +168,9 @@ export const usePortfolioTotals = (): PortfolioTotals => {
       externalDebts,
       excludedNetWorth: netWorth - fireNetWorth,
       hasExclusions: hasExclusions || externalDebts.length > 0,
+      hasUnpairedPropertyDebt:
+        assets.some((a) => a.type === "property" && !countsTowardFire(a)) &&
+        liabilities.some((l) => l.type === "mortgage" && countsTowardFire(l)),
     };
   }, [assets, liabilities, settings]);
 };
@@ -745,6 +753,7 @@ export const useSanityWarnings = (): SanityWarning[] => {
           (d) => d.balance > 0 && d.annualPayment < d.balance * d.interestRate,
         ),
         hasDebtPastRetirement: debt.annualPastRetirement > 0,
+        hasUnpairedPropertyDebt: totals.hasUnpairedPropertyDebt,
       }),
     [settings, afterTax, budget, savings, allocation, totals, debt],
   );

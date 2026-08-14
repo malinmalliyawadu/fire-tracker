@@ -24,6 +24,8 @@ export interface SanityInputs {
   hasNegativeAmortisation: boolean;
   /** True when a loan is still being repaid after retirement. */
   hasDebtPastRetirement?: boolean;
+  /** True when a property is excluded from FIRE but a mortgage still counts. */
+  hasUnpairedPropertyDebt?: boolean;
 }
 
 /**
@@ -121,6 +123,16 @@ export const checkAssumptions = (input: SanityInputs): SanityWarning[] => {
       level: "note",
       title: "Retirement pot is highly concentrated",
       detail: `${pct(input.topAssetShare)} of the assets funding retirement sit in a single asset type. The projection applies one blended return to everything, so it can't show the swings a concentrated portfolio actually experiences.`,
+    });
+  }
+
+  if (input.hasUnpairedPropertyDebt) {
+    warnings.push({
+      id: "unpaired-property-debt",
+      level: "warning",
+      title: "A property is excluded from FIRE but its mortgage still counts",
+      detail:
+        "The loan is being subtracted from your retirement pot while the property behind it isn't in there, so the pot reads lower than it should — often low enough to hide assets you do have. If the mortgage would be repaid by selling that property, mark it as net worth only too, on the Dashboard. Leave it counted only if you'd still be servicing it from your investments.",
     });
   }
 
