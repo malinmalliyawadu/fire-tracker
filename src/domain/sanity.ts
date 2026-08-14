@@ -132,7 +132,7 @@ export const checkAssumptions = (input: SanityInputs): SanityWarning[] => {
       level: "warning",
       title: "A property is excluded from FIRE but its mortgage still counts",
       detail:
-        "The loan is being subtracted from your retirement pot while the property behind it isn't in there, so the pot reads lower than it should — often low enough to hide assets you do have. If the mortgage would be repaid by selling that property, mark it as net worth only too, on the Dashboard. Leave it counted only if you'd still be servicing it from your investments.",
+        "The loan's balance is being subtracted from your retirement pot while the property behind it isn't in there, so the pot reads lower than it should — often low enough to hide assets you do have. Marking the mortgage as net worth only doesn't stop it being modelled: the repayment is serviced from the portfolio in retirement either way, and still shows on the Spending page. What changes is whether the balance counts against the pot today — which it should only if you'd clear the loan out of your investments rather than by selling the property.",
     });
   }
 
