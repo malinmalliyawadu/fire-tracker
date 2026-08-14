@@ -2,23 +2,16 @@ import type { SimulationInputs } from "@/types";
 
 import { useEffect, useMemo, useState } from "react";
 
-import { convert } from "@/domain/currency";
 import { fireTargetFor } from "@/domain/fire";
-import {
-  generateProjection,
-  yearsToTarget as yearsUntilTarget,
-} from "@/domain/projection";
+import { yearsToTarget as yearsUntilTarget } from "@/domain/projection";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
-import {
-  buildProjection,
-  KID_ANNUAL_COST_NZD,
-  KID_DEPENDENT_YEARS,
-} from "@/domain/plan";
+import { buildProjection } from "@/domain/plan";
 import {
   useAfterTaxReturn,
   useFireTargets,
   useIncomeTotals,
+  usePlanBudget,
   usePlanContributions,
   usePortfolioTotals,
 } from "@/store/derived";
@@ -37,6 +30,7 @@ export default function Simulate() {
   const totals = usePortfolioTotals();
   const contributions = usePlanContributions();
   const income = useIncomeTotals();
+  const plan = usePlanBudget();
   const targets = useFireTargets();
   const scenarios = useScenarios((s) => s.scenarios);
   const comparedIds = useScenarios((s) => s.comparedIds);
@@ -91,6 +85,10 @@ export default function Simulate() {
         monthlySavings: inputs.monthlySavings,
         expectedReturn: simulatedAfterTaxReturn,
         retirementAge: inputs.retirementAge,
+        annualExpenses: plan.annualExpenses,
+        retirementExpenses: plan.retirementExpenses,
+        kidsCostByYear: plan.kidsCostByYear,
+        oneOffByYear: plan.oneOffByYear,
         includeNzSuper: inputs.includeNzSuper,
         currentLockedNetWorth: totals.lockedAssetsTotal,
         monthlyLockedSavings: lockedShare,
@@ -106,6 +104,7 @@ export default function Simulate() {
     totals,
     contributions,
     inputs,
+    plan,
     settings,
     simulatedAfterTaxReturn,
     income.retirementIncomeAnnual,
@@ -124,60 +123,45 @@ export default function Simulate() {
   const comparisons = useMemo(
     () =>
       comparedScenarios.map((scenario) => {
-        const annualNzd = settings.nzSuperAnnual ?? 28_000;
-        const nzSuperInDisplay = scenario.inputs.includeNzSuper
-          ? convert(
-              annualNzd,
-              "NZD",
-              settings.displayCurrency,
-              settings.usdToNzd,
-            )
-          : 0;
-        const baseTotal = Math.max(0, Math.round(totals.monthlyContributions));
+        const baseTotal = Math.max(
+          0,
+          Math.round(contributions.monthlyContributions),
+        );
         const lockedShare =
           baseTotal > 0
             ? Math.min(
                 scenario.inputs.monthlySavings,
-                (totals.lockedMonthlyContributions / baseTotal) *
+                (contributions.monthlyLockedContributions / baseTotal) *
                   scenario.inputs.monthlySavings,
-              )
-            : 0;
-        const kids = scenario.inputs.includeKids
-          ? Math.max(0, scenario.inputs.numberOfKids ?? 0)
-          : 0;
-        const kidsAnnualCost =
-          kids > 0
-            ? convert(
-                KID_ANNUAL_COST_NZD * kids,
-                "NZD",
-                settings.displayCurrency,
-                settings.usdToNzd,
               )
             : 0;
 
         return {
           scenario,
-          projection: generateProjection({
-            currentNetWorth: totals.netWorth,
-            monthlySavings: scenario.inputs.monthlySavings,
-            expectedReturn: scenario.inputs.expectedReturn,
-            inflationRate: settings.inflationRate,
-            currentAge: settings.currentAge,
-            retirementAge: scenario.inputs.retirementAge,
-            annualExpenses: settings.annualExpenses,
-            years: PROJECTION_YEARS,
-            nzSuperAnnualInDisplay: nzSuperInDisplay,
-            nzSuperStartAge: settings.nzSuperStartAge ?? 65,
-            currentLockedNetWorth: totals.lockedAssetsTotal,
-            monthlyLockedSavings: lockedShare,
-            unlockAge: settings.kiwisaverUnlockAge ?? 65,
-            kidsAnnualCost,
-            kidsYears: KID_DEPENDENT_YEARS,
-            liabilities: totals.debts,
-          }),
+          projection: buildProjection(
+            {
+              currentNetWorth: totals.netWorth,
+              monthlySavings: scenario.inputs.monthlySavings,
+              expectedReturn: scenario.inputs.expectedReturn,
+              retirementAge: scenario.inputs.retirementAge,
+              annualExpenses: plan.annualExpenses,
+              retirementExpenses: plan.retirementExpenses,
+              kidsCostByYear: plan.kidsCostByYear,
+              oneOffByYear: plan.oneOffByYear,
+              includeNzSuper: scenario.inputs.includeNzSuper,
+              currentLockedNetWorth: totals.lockedAssetsTotal,
+              monthlyLockedSavings: lockedShare,
+              includeKids: scenario.inputs.includeKids,
+              numberOfKids: scenario.inputs.numberOfKids,
+              liabilities: totals.debts,
+              retirementIncome: income.retirementIncomeAnnual,
+            },
+            settings,
+            PROJECTION_YEARS,
+          ),
         };
       }),
-    [comparedScenarios, totals, settings],
+    [comparedScenarios, totals, contributions, plan, income, settings],
   );
 
   return (

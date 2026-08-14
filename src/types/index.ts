@@ -50,6 +50,68 @@ export interface Liability {
   updatedAt: string;
 }
 
+export type ExpenseCategory =
+  | "housing"
+  | "food"
+  | "transport"
+  | "utilities"
+  | "health"
+  | "insurance"
+  | "discretionary"
+  | "other";
+
+export interface Expense {
+  id: string;
+  name: string;
+  category: ExpenseCategory;
+  amount: number;
+  currency: Currency;
+  frequency: ContributionFrequency;
+  /** Drops away once retired, e.g. commuting or work clothes. */
+  stopsAtRetirement?: boolean;
+  /** Only starts once retired, e.g. extra travel or health cover. */
+  startsAtRetirement?: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A dated one-off cost or windfall: a car, a deposit, an inheritance. */
+export interface LifeEvent {
+  id: string;
+  name: string;
+  /** Calendar year the event lands in. */
+  year: number;
+  /** Positive is a cost, negative is money arriving. */
+  amount: number;
+  currency: Currency;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Kid {
+  id: string;
+  name: string;
+  /** Year of birth. A future year models a kid you're planning for. */
+  birthYear: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Retirement spending rarely stays flat. Multipliers on retirement expenses
+ * for the active years, the slower years, and the late years.
+ */
+export interface SpendingPhases {
+  enabled: boolean;
+  goGoMultiplier: number;
+  slowGoFromAge: number;
+  slowGoMultiplier: number;
+  noGoFromAge: number;
+  noGoMultiplier: number;
+}
+
 export type IncomeType = "salary" | "self-employed" | "rental" | "other";
 
 export interface IncomeSource {
@@ -88,6 +150,9 @@ export interface Settings {
   applyInvestmentTax: boolean;
   /** Force a PIR instead of deriving one from income. */
   pirOverride?: number;
+  /** Annual spending once retired, when it differs from today's. */
+  retirementExpenses?: number;
+  spendingPhases: SpendingPhases;
 }
 
 export type FireType = "traditional" | "lean" | "fat" | "coast";

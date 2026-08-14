@@ -2,23 +2,22 @@ import type { ProjectionPoint, Settings } from "@/types";
 import type { ProjectionLiability } from "./projection";
 
 import { convert } from "./currency";
+import { hypotheticalKidsCostByYear } from "./kids";
 import { generateProjection } from "./projection";
-
-/**
- * Indicative annual cost per dependent child in NZD. Roughly tracks NZ
- * household estimates of ~$200–$300/wk per child once accounting for food,
- * activities, childcare, and education extras.
- */
-export const KID_ANNUAL_COST_NZD = 15_000;
-
-/** How long a kid is treated as a dependent in the simulation. */
-export const KID_DEPENDENT_YEARS = 18;
 
 export interface ProjectionInputBundle {
   currentNetWorth: number;
   monthlySavings: number;
   expectedReturn: number;
   retirementAge: number;
+  /** Annual expenses today, when itemised expenses should override settings. */
+  annualExpenses?: number;
+  /** Annual expenses once retired. */
+  retirementExpenses?: number;
+  /** Kid costs by year offset, in display currency. */
+  kidsCostByYear?: number[];
+  /** One-off costs (positive) and windfalls (negative) by year offset. */
+  oneOffByYear?: number[];
   includeNzSuper?: boolean;
   /** KiwiSaver portion of currentNetWorth (display currency). */
   currentLockedNetWorth?: number;
@@ -46,16 +45,17 @@ export const buildProjection = (
     ? convert(annualNzd, "NZD", settings.displayCurrency, settings.usdToNzd)
     : 0;
 
-  const kids = bundle.includeKids ? Math.max(0, bundle.numberOfKids ?? 0) : 0;
-  const kidsAnnualCost =
-    kids > 0
-      ? convert(
-          KID_ANNUAL_COST_NZD * kids,
-          "NZD",
-          settings.displayCurrency,
-          settings.usdToNzd,
-        )
-      : 0;
+  // Hypothetical kids from the simulator stack on top of any real ones.
+  const hypothetical = bundle.includeKids
+    ? hypotheticalKidsCostByYear(bundle.numberOfKids ?? 0, years).map((nzd) =>
+        convert(nzd, "NZD", settings.displayCurrency, settings.usdToNzd),
+      )
+    : [];
+  const recorded = bundle.kidsCostByYear ?? [];
+  const kidsCostByYear = Array.from(
+    { length: Math.max(hypothetical.length, recorded.length) },
+    (_, i) => (hypothetical[i] ?? 0) + (recorded[i] ?? 0),
+  );
 
   return generateProjection({
     currentNetWorth: bundle.currentNetWorth,
@@ -64,15 +64,21 @@ export const buildProjection = (
     inflationRate: settings.inflationRate,
     currentAge: settings.currentAge,
     retirementAge: bundle.retirementAge,
-    annualExpenses: settings.annualExpenses,
+    annualExpenses: bundle.annualExpenses ?? settings.annualExpenses,
+    retirementExpenses:
+      bundle.retirementExpenses ??
+      settings.retirementExpenses ??
+      bundle.annualExpenses ??
+      settings.annualExpenses,
+    spendingPhases: settings.spendingPhases,
+    oneOffByYear: bundle.oneOffByYear,
     years,
     nzSuperAnnualInDisplay: nzSuperInDisplay,
     nzSuperStartAge: settings.nzSuperStartAge ?? 65,
     currentLockedNetWorth: bundle.currentLockedNetWorth ?? 0,
     monthlyLockedSavings: bundle.monthlyLockedSavings ?? 0,
     unlockAge: settings.kiwisaverUnlockAge ?? 65,
-    kidsAnnualCost,
-    kidsYears: KID_DEPENDENT_YEARS,
+    kidsCostByYear,
     liabilities: bundle.liabilities,
     retirementIncomeAnnual: bundle.retirementIncome ?? 0,
   });

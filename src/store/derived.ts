@@ -3,12 +3,14 @@ import type { ProjectionLiability } from "@/domain/projection";
 
 import { useMemo } from "react";
 
+import { useExpenses } from "./expenses";
 import { useIncome } from "./income";
 import { usePortfolio } from "./portfolio";
 import { useSettings } from "./settings";
 
 import { convert, toMonthly } from "@/domain/currency";
 import { computeFireTargets } from "@/domain/fire";
+import { kidsCostByYear as kidsCostNzdByYear } from "@/domain/kids";
 import { buildProjection } from "@/domain/plan";
 import {
   accLevy,
@@ -149,18 +151,20 @@ export const useAllocation = (): AllocationSummary => {
 
 export const useFireTargets = (): FireTargets => {
   const settings = useSettings((s) => s.settings);
+  const budget = usePlanBudget();
 
   return useMemo(
     () =>
       computeFireTargets({
-        annualExpenses: settings.annualExpenses,
+        // The target funds retirement, so it's built from retirement spending.
+        annualExpenses: budget.retirementExpenses,
         withdrawalRate: settings.withdrawalRate,
         expectedReturn: settings.expectedReturn,
         inflationRate: settings.inflationRate,
         currentAge: settings.currentAge,
         retirementAge: settings.retirementAge,
       }),
-    [settings],
+    [settings, budget.retirementExpenses],
   );
 };
 
@@ -177,6 +181,7 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
   const contributions = usePlanContributions();
   const expectedReturn = useAfterTaxReturn();
   const income = useIncomeTotals();
+  const budget = usePlanBudget();
   const settings = useSettings((s) => s.settings);
 
   return useMemo(
@@ -187,6 +192,10 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
           monthlySavings: contributions.monthlyContributions,
           expectedReturn,
           retirementAge: settings.retirementAge,
+          annualExpenses: budget.annualExpenses,
+          retirementExpenses: budget.retirementExpenses,
+          kidsCostByYear: budget.kidsCostByYear,
+          oneOffByYear: budget.oneOffByYear,
           currentLockedNetWorth: totals.lockedAssetsTotal,
           monthlyLockedSavings: contributions.monthlyLockedContributions,
           liabilities: totals.debts,
@@ -195,7 +204,7 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
         settings,
         DASHBOARD_HORIZON_YEARS,
       ),
-    [totals, contributions, expectedReturn, income, settings],
+    [totals, contributions, expectedReturn, income, budget, settings],
   );
 };
 
@@ -405,4 +414,106 @@ export const usePlanContributions = (): PlanContributions => {
       kiwisaverFromSalary: true,
     };
   }, [totals, income]);
+};
+
+export interface PlanBudget {
+  /** Annual spending today, itemised if entered, else the settings figure. */
+  annualExpenses: number;
+  /** Annual spending once retired. */
+  retirementExpenses: number;
+  /** Kid costs by year offset, in display currency. */
+  kidsCostByYear: number[];
+  /** One-off costs (positive) and windfalls (negative) by year offset. */
+  oneOffByYear: number[];
+  /** True when expenses are itemised rather than taken from settings. */
+  itemised: boolean;
+  /** Expenses that only start at retirement, e.g. travel or health cover. */
+  retirementOnlyAnnual: number;
+  /** Expenses that stop at retirement, e.g. commuting. */
+  workOnlyAnnual: number;
+}
+
+/** How far ahead kid costs and one-off events are laid out. */
+const BUDGET_HORIZON_YEARS = 60;
+
+/**
+ * The spending side of the plan: itemised expenses, dependent kids, and dated
+ * one-off events, all normalised to display currency and year offsets.
+ *
+ * Itemised expenses take over from the single `annualExpenses` setting once
+ * any are entered, so the FIRE target follows what's actually been recorded.
+ */
+export const usePlanBudget = (): PlanBudget => {
+  const expenses = useExpenses((s) => s.expenses);
+  const events = useExpenses((s) => s.events);
+  const kids = useExpenses((s) => s.kids);
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(() => {
+    const display = settings.displayCurrency;
+    const rate = settings.usdToNzd;
+    const startYear = new Date().getFullYear();
+
+    let todayAnnual = 0;
+    let retirementAnnual = 0;
+    let retirementOnlyAnnual = 0;
+    let workOnlyAnnual = 0;
+
+    for (const expense of expenses) {
+      const annual =
+        toMonthly(
+          convert(expense.amount, expense.currency, display, rate),
+          expense.frequency,
+        ) * 12;
+
+      if (expense.startsAtRetirement) {
+        retirementAnnual += annual;
+        retirementOnlyAnnual += annual;
+        continue;
+      }
+
+      todayAnnual += annual;
+      if (expense.stopsAtRetirement) workOnlyAnnual += annual;
+      else retirementAnnual += annual;
+    }
+
+    const itemised = expenses.length > 0;
+    const annualExpenses = itemised ? todayAnnual : settings.annualExpenses;
+    const retirementExpenses = itemised
+      ? retirementAnnual
+      : (settings.retirementExpenses ?? settings.annualExpenses);
+
+    const kidsCostByYear = kidsCostNzdByYear({
+      kids,
+      startYear,
+      years: BUDGET_HORIZON_YEARS,
+    }).map((nzd) => convert(nzd, "NZD", display, rate));
+
+    const oneOffByYear = Array.from(
+      { length: BUDGET_HORIZON_YEARS + 1 },
+      () => 0,
+    );
+
+    for (const event of events) {
+      const offset = event.year - startYear;
+
+      if (offset < 0 || offset > BUDGET_HORIZON_YEARS) continue;
+      oneOffByYear[offset] += convert(
+        event.amount,
+        event.currency,
+        display,
+        rate,
+      );
+    }
+
+    return {
+      annualExpenses,
+      retirementExpenses,
+      kidsCostByYear,
+      oneOffByYear,
+      itemised,
+      retirementOnlyAnnual,
+      workOnlyAnnual,
+    };
+  }, [expenses, events, kids, settings]);
 };

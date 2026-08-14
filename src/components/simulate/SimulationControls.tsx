@@ -9,7 +9,7 @@ import { convert } from "@/domain/currency";
 import { FIRE_TYPES, FIRE_TYPE_META } from "@/domain/labels";
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
-import { KID_ANNUAL_COST_NZD, KID_DEPENDENT_YEARS } from "@/domain/plan";
+import { KID_INDEPENDENT_AGE, kidCostAtAge } from "@/domain/kids";
 import { Card } from "@/components/ui/Card";
 
 interface SimulationControlsProps {
@@ -208,8 +208,9 @@ function KidsToggle({
 }: KidsToggleProps) {
   const settings = useSettings((s) => s.settings);
   const safeCount = Math.min(MAX_KIDS, Math.max(1, numberOfKids || 1));
-  const totalAnnual = convert(
-    KID_ANNUAL_COST_NZD * safeCount,
+  // Costs vary by the child's age; show the first-year figure as the anchor.
+  const firstYearAnnual = convert(
+    kidCostAtAge(0) * safeCount,
     "NZD",
     settings.displayCurrency,
     settings.usdToNzd,
@@ -247,8 +248,8 @@ function KidsToggle({
           <div className="text-sm font-semibold text-white">Plan with kids</div>
           <div className="mt-0.5 text-[11px] text-ink-400">
             {enabled
-              ? `${formatMoney(totalAnnual, settings.displayCurrency)}/yr for ${KID_DEPENDENT_YEARS} years`
-              : `~${formatMoney(convert(KID_ANNUAL_COST_NZD, "NZD", settings.displayCurrency, settings.usdToNzd), settings.displayCurrency)}/yr per kid · ${KID_DEPENDENT_YEARS} yrs`}
+              ? `From ${formatMoney(firstYearAnnual, settings.displayCurrency)}/yr, easing off until age ${KID_INDEPENDENT_AGE}`
+              : `Cost varies by age — childcare, school, then study, to age ${KID_INDEPENDENT_AGE}`}
           </div>
         </div>
         <div

@@ -1,6 +1,7 @@
 import type {
   AssetType,
   ContributionFrequency,
+  ExpenseCategory,
   FireType,
   IncomeType,
   LiabilityType,
@@ -14,13 +15,18 @@ import {
   Car,
   CreditCard,
   GraduationCap,
+  HeartPulse,
   Home,
   Landmark,
   Laptop,
   Layers,
   LineChart,
   PiggyBank,
+  ShieldCheck,
+  Sparkles,
   User,
+  UtensilsCrossed,
+  Zap,
 } from "lucide-react";
 
 export const ASSET_TYPE_LABEL: Record<AssetType, string> = {
@@ -161,4 +167,48 @@ export const INCOME_TYPE_ICON: Record<IncomeType, LucideIcon> = {
   "self-employed": Laptop,
   rental: Home,
   other: Layers,
+};
+
+export const EXPENSE_CATEGORY_LABEL: Record<ExpenseCategory, string> = {
+  housing: "Housing",
+  food: "Food",
+  transport: "Transport",
+  utilities: "Utilities",
+  health: "Health",
+  insurance: "Insurance",
+  discretionary: "Discretionary",
+  other: "Other",
+};
+
+export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
+  "housing",
+  "food",
+  "transport",
+  "utilities",
+  "health",
+  "insurance",
+  "discretionary",
+  "other",
+];
+
+export const EXPENSE_CATEGORY_ICON: Record<ExpenseCategory, LucideIcon> = {
+  housing: Home,
+  food: UtensilsCrossed,
+  transport: Car,
+  utilities: Zap,
+  health: HeartPulse,
+  insurance: ShieldCheck,
+  discretionary: Sparkles,
+  other: Layers,
+};
+
+export const EXPENSE_CATEGORY_COLOR: Record<ExpenseCategory, string> = {
+  housing: "#7c83e7",
+  food: "#22c55e",
+  transport: "#06b6d4",
+  utilities: "#f59e0b",
+  health: "#ec4899",
+  insurance: "#a855f7",
+  discretionary: "#f43f5e",
+  other: "#94a3b8",
 };

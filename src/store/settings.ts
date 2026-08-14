@@ -26,6 +26,16 @@ const DEFAULT_SETTINGS: Settings = {
   kiwisaverUnlockAge: 65,
   usdToNzd: FALLBACK_USD_TO_NZD,
   applyInvestmentTax: true,
+  // Defaults follow the common go-go / slow-go / no-go pattern: spending runs
+  // a little hot early in retirement, then eases off as people slow down.
+  spendingPhases: {
+    enabled: false,
+    goGoMultiplier: 1.1,
+    slowGoFromAge: 75,
+    slowGoMultiplier: 0.9,
+    noGoFromAge: 85,
+    noGoMultiplier: 0.85,
+  },
 };
 
 export const useSettings = create<SettingsState>()(

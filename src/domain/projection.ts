@@ -1,4 +1,19 @@
-import type { ProjectionPoint } from "@/types";
+import type { ProjectionPoint, SpendingPhases } from "@/types";
+
+/**
+ * Multiplier applied to retirement spending at a given age. Spending tends to
+ * fall in real terms as retirees slow down, then fall again in the late years.
+ */
+export const spendingMultiplier = (
+  age: number,
+  phases?: SpendingPhases,
+): number => {
+  if (!phases?.enabled) return 1;
+  if (age >= phases.noGoFromAge) return phases.noGoMultiplier;
+  if (age >= phases.slowGoFromAge) return phases.slowGoMultiplier;
+
+  return phases.goGoMultiplier;
+};
 
 /** A debt that amortises over the life of the projection. */
 export interface ProjectionLiability {
@@ -38,10 +53,20 @@ export interface ProjectionInputs {
    * way NZ Super does, but without an age gate.
    */
   retirementIncomeAnnual?: number;
-  /** Total annual cost of dependent kids in display currency. 0 disables. */
-  kidsAnnualCost?: number;
-  /** Number of years from now that the kids cost applies. Defaults to 18. */
-  kidsYears?: number;
+  /**
+   * Annual cost of dependent kids in display currency, indexed by year offset.
+   * Shorter arrays are treated as zero beyond their end.
+   */
+  kidsCostByYear?: number[];
+  /** Annual spending once retired. Defaults to `annualExpenses`. */
+  retirementExpenses?: number;
+  /** Multiplies retirement spending as the retiree ages. */
+  spendingPhases?: SpendingPhases;
+  /**
+   * One-off cash flows in display currency, indexed by year offset. Positive
+   * is a cost, negative is money arriving.
+   */
+  oneOffByYear?: number[];
   /**
    * Debts to amortise. `currentNetWorth` is assumed to already have these
    * balances subtracted, so they're added back internally to recover the
@@ -137,8 +162,9 @@ export const generateProjection = (
   const nzSuperStart = input.nzSuperStartAge ?? 65;
   const retirementIncome = input.retirementIncomeAnnual ?? 0;
   const unlockAge = input.unlockAge ?? 65;
-  const kidsAnnualCost = input.kidsAnnualCost ?? 0;
-  const kidsYears = input.kidsYears ?? 18;
+  const kidsCost = input.kidsCostByYear ?? [];
+  const oneOffs = input.oneOffByYear ?? [];
+  const retirementExpenses = input.retirementExpenses ?? input.annualExpenses;
 
   const loans = (input.liabilities ?? []).map((l) => ({
     balance: Math.max(0, l.balance),
@@ -184,7 +210,8 @@ export const generateProjection = (
     if (year >= input.years) continue;
 
     const isRetired = age >= input.retirementAge;
-    const kidsCost = year < kidsYears ? kidsAnnualCost : 0;
+    const kidsThisYear = kidsCost[year] ?? 0;
+    const oneOffThisYear = oneOffs[year] ?? 0;
 
     // Service the debts for this year and see what falls away.
     let paidNominal = 0;
@@ -206,9 +233,11 @@ export const generateProjection = (
 
     if (isRetired) {
       const supplement = (age >= nzSuperStart ? nzSuper : 0) + retirementIncome;
+      const spending =
+        retirementExpenses * spendingMultiplier(age, input.spendingPhases);
       const portfolioWithdrawal = Math.max(
         0,
-        input.annualExpenses + kidsCost + debtServiceReal - supplement,
+        spending + kidsThisYear + oneOffThisYear + debtServiceReal - supplement,
       );
 
       if (isUnlocked) {
@@ -230,7 +259,11 @@ export const generateProjection = (
       // freed-up repayments reach the portfolio.
       contributed += annualSavings + freedReal;
       accessible =
-        (accessible + annualAccessibleSavings + freedReal - kidsCost) *
+        (accessible +
+          annualAccessibleSavings +
+          freedReal -
+          kidsThisYear -
+          oneOffThisYear) *
         (1 + realReturn);
       locked = (locked + annualLockedSavings) * (1 + realReturn);
     }
