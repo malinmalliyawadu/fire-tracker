@@ -17,6 +17,8 @@ import { useSettings } from "@/store/settings";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
+import { Field } from "@/components/ui/Field";
+import { OptionPills } from "@/components/ui/OptionPills";
 import { SliderField } from "@/components/simulate/SliderField";
 
 interface OnboardingDialogProps {
@@ -36,6 +38,11 @@ interface Draft {
 }
 
 const STEPS = ["You", "Income", "Spending", "What you have"] as const;
+
+const RATE_OPTIONS = KIWISAVER_EMPLOYEE_RATES.map((rate) => ({
+  value: rate,
+  label: formatPercent(rate, 0),
+}));
 
 export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
   const settings = useSettings((s) => s.settings);
@@ -126,23 +133,23 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
     <DialogShell
       footer={
         <>
-          <Button size="sm" variant="light" onPress={skip}>
-            Skip setup
-          </Button>
-          <div className="flex gap-2">
-            {step > 0 && (
-              <Button variant="light" onPress={() => setStep(step - 1)}>
-                Back
-              </Button>
-            )}
-            <Button
-              className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
-              onPress={() => (isLast ? finish() : setStep(step + 1))}
-            >
-              {isLast ? "Start tracking" : "Next"}
+          {step > 0 && (
+            <Button variant="light" onPress={() => setStep(step - 1)}>
+              Back
             </Button>
-          </div>
+          )}
+          <Button
+            className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
+            onPress={() => (isLast ? finish() : setStep(step + 1))}
+          >
+            {isLast ? "Start tracking" : "Next"}
+          </Button>
         </>
+      }
+      footerStart={
+        <Button size="sm" variant="light" onPress={skip}>
+          Skip setup
+        </Button>
       }
       icon={Flame}
       isOpen={isOpen}
@@ -152,7 +159,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
     >
       <div className="flex gap-1.5">
         {STEPS.map((label, index) => (
-          <div key={label} className="flex-1">
+          <div key={label} className="min-w-0 flex-1">
             <div
               className={clsx(
                 "h-1 rounded-full transition-colors",
@@ -161,7 +168,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
             />
             <div
               className={clsx(
-                "mt-1.5 text-[10px] uppercase tracking-[0.16em] transition-colors",
+                "mt-2 truncate text-[10px] font-medium uppercase tracking-[0.18em] transition-colors",
                 index === step ? "text-white" : "text-ink-500",
               )}
             >
@@ -173,15 +180,12 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
 
       {step === 0 && (
         <>
-          <div>
-            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-              Currency
-            </div>
+          <Field label="Currency">
             <CurrencyToggle
               value={draft.currency}
               onChange={(c) => set("currency", c)}
             />
-          </div>
+          </Field>
           <SliderField
             display={`${draft.currentAge}`}
             hint="Used to age every projection"
@@ -208,34 +212,20 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
       {step === 1 && (
         <>
           <AmountInput
+            focusOnMount
             currency={draft.currency}
             hint="Gross, before tax. Tax and KiwiSaver are worked out for you."
             label="Annual salary"
             value={draft.salary}
             onChange={(v) => set("salary", v)}
           />
-          <div>
-            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-              KiwiSaver contribution
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {KIWISAVER_EMPLOYEE_RATES.map((rate) => (
-                <button
-                  key={rate}
-                  className={clsx(
-                    "rounded-md border px-2.5 py-1 text-xs transition",
-                    draft.kiwisaverRate === rate
-                      ? "border-accent/40 bg-accent/10 text-white"
-                      : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:text-white",
-                  )}
-                  type="button"
-                  onClick={() => set("kiwisaverRate", rate)}
-                >
-                  {formatPercent(rate, 0)}
-                </button>
-              ))}
-            </div>
-          </div>
+          <Field label="KiwiSaver contribution">
+            <OptionPills
+              options={RATE_OPTIONS}
+              value={draft.kiwisaverRate}
+              onChange={(v) => set("kiwisaverRate", v)}
+            />
+          </Field>
           <p className="text-[11px] leading-relaxed text-ink-500">
             Leave the salary blank if you&apos;d rather add income later. Your
             savings rate needs it to mean anything.
@@ -246,6 +236,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
       {step === 2 && (
         <>
           <AmountInput
+            focusOnMount
             currency={draft.currency}
             hint={
               draft.annualExpenses
@@ -268,6 +259,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
       {step === 3 && (
         <>
           <AmountInput
+            focusOnMount
             currency={draft.currency}
             hint="Locked until 65, but it still compounds"
             label="KiwiSaver balance"

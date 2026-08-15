@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import clsx from "clsx";
+import { X } from "lucide-react";
 import {
   Modal,
   ModalBody,
@@ -18,6 +19,9 @@ interface DialogShellProps {
   subtitle?: string;
   tone?: "accent" | "loss";
   children: ReactNode;
+  /** Leading footer slot — a destructive action, or nothing. */
+  footerStart?: ReactNode;
+  /** Trailing footer slot — cancel and the primary action. */
   footer: ReactNode;
   size?: "md" | "lg" | "xl";
 }
@@ -41,6 +45,7 @@ export function DialogShell({
   subtitle,
   tone = "accent",
   children,
+  footerStart,
   footer,
   size = "lg",
 }: DialogShellProps) {
@@ -52,45 +57,60 @@ export function DialogShell({
         backdrop: "bg-ink-950/70",
         wrapper: "items-center",
         base: clsx(
-          "relative overflow-hidden border border-white/10 bg-ink-900/95",
+          "relative mx-4 my-4 overflow-hidden border border-white/10 bg-ink-900/95 sm:mx-6 sm:my-8",
+          // Whatever the content, the chrome stays on screen and the fields
+          // scroll between it.
+          "max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]",
           "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-48 before:opacity-100",
           TONE_GRADIENT[tone],
         ),
-        header: "p-0",
+        header: "shrink-0 border-b border-white/[0.06] p-0",
         body: "p-0",
-        footer: "p-0 border-t border-white/[0.06] bg-black/20",
+        footer: "shrink-0 border-t border-white/[0.06] bg-black/20 p-0",
       }}
       isOpen={isOpen}
+      scrollBehavior="inside"
       size={size}
       onClose={onClose}
     >
       <ModalContent>
         <ModalHeader>
-          <div className="relative flex w-full items-center gap-3 px-6 pb-4 pt-5">
+          <div className="relative flex w-full items-start gap-3 px-6 py-4">
             <div
               className={clsx(
-                "grid h-10 w-10 place-items-center rounded-xl",
+                "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
                 TONE_ICON[tone],
               )}
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
             </div>
-            <div className="flex-1">
-              <h2 className="text-base font-semibold tracking-tight">
+            <div className="min-w-0 flex-1 pt-0.5">
+              <h2 className="text-base font-semibold leading-tight tracking-tight">
                 {title}
               </h2>
               {subtitle && (
-                <p className="mt-0.5 text-[11px] text-ink-400">{subtitle}</p>
+                <p className="mt-1 text-[11px] leading-snug text-ink-300">
+                  {subtitle}
+                </p>
               )}
             </div>
+            <button
+              aria-label="Close"
+              className="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-white/[0.06] hover:text-white"
+              type="button"
+              onClick={onClose}
+            >
+              <X className="h-4 w-4" strokeWidth={2} />
+            </button>
           </div>
         </ModalHeader>
         <ModalBody>
-          <div className="space-y-5 px-6 pb-6 pt-2">{children}</div>
+          <div className="space-y-5 px-6 py-5">{children}</div>
         </ModalBody>
         <ModalFooter>
-          <div className="flex w-full items-center justify-between gap-2 px-6 py-4">
-            {footer}
+          <div className="flex w-full items-center justify-between gap-3 px-6 py-4">
+            {footerStart ?? <span />}
+            <div className="flex items-center gap-2">{footer}</div>
           </div>
         </ModalFooter>
       </ModalContent>

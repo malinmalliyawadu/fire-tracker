@@ -36,7 +36,9 @@ export function TypeGrid<T extends string>({
       : "border-loss/40 bg-loss/[0.10] text-white";
   const activeIcon = tone === "accent" ? "text-accent" : "text-loss";
   const activeGlow =
-    tone === "accent" ? "shadow-[0_0_24px_-8px_rgba(124,131,231,0.6)]" : "";
+    tone === "accent"
+      ? "shadow-[0_0_24px_-8px_rgba(124,131,231,0.6)]"
+      : "shadow-[0_0_24px_-8px_rgba(239,68,68,0.6)]";
 
   return (
     <div className={clsx("grid gap-2", COL_CLASS[cols])}>

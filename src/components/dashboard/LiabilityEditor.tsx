@@ -6,7 +6,6 @@ import type {
 } from "@/types";
 
 import { Button } from "@heroui/button";
-import { Input } from "@heroui/input";
 import { CreditCard, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -20,13 +19,15 @@ import { countsTowardFire } from "@/domain/fire";
 import { formatMoney } from "@/domain/format";
 import { toMonthly } from "@/domain/currency";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
-import { useNumericField } from "@/hooks/useNumericField";
 import { usePortfolio } from "@/store/portfolio";
-import { AmountInput } from "@/components/ui/AmountInput";
+import { AmountInput, currencySymbol } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
+import { Field } from "@/components/ui/Field";
 import { FireInclusionToggle } from "@/components/ui/FireInclusionToggle";
 import { FrequencyPills } from "@/components/ui/FrequencyPills";
+import { NumericCard } from "@/components/ui/NumericCard";
+import { TextField } from "@/components/ui/TextField";
 import { TypeGrid } from "@/components/ui/TypeGrid";
 
 interface LiabilityEditorProps {
@@ -69,7 +70,7 @@ export function LiabilityEditor({
   const upsertLiability = usePortfolio((s) => s.upsertLiability);
   const removeLiability = usePortfolio((s) => s.removeLiability);
   const [form, setForm] = useState<FormState>(blank(liability));
-  const nameRef = useAutoFocus<HTMLInputElement>();
+  const nameRef = useAutoFocus<HTMLInputElement>(isOpen);
 
   useEffect(() => {
     if (isOpen) setForm(blank(liability));
@@ -77,11 +78,6 @@ export function LiabilityEditor({
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
-
-  const paymentField = useNumericField({
-    value: form.payment,
-    onChange: (v) => set("payment", v),
-  });
 
   const handleSave = () => {
     if (!form.name.trim()) return;
@@ -110,32 +106,30 @@ export function LiabilityEditor({
     <DialogShell
       footer={
         <>
-          {liability ? (
-            <Button
-              className="bg-loss/10 text-loss"
-              size="sm"
-              startContent={<Trash2 className="h-3.5 w-3.5" />}
-              variant="flat"
-              onPress={handleDelete}
-            >
-              Delete
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button variant="light" onPress={onClose}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
-              isDisabled={!form.name.trim()}
-              onPress={handleSave}
-            >
-              {liability ? "Save changes" : "Add liability"}
-            </Button>
-          </div>
+          <Button variant="light" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
+            isDisabled={!form.name.trim()}
+            onPress={handleSave}
+          >
+            {liability ? "Save changes" : "Add liability"}
+          </Button>
         </>
+      }
+      footerStart={
+        liability && (
+          <Button
+            className="bg-loss/10 text-loss"
+            size="sm"
+            startContent={<Trash2 className="h-3.5 w-3.5" />}
+            variant="flat"
+            onPress={handleDelete}
+          >
+            Delete
+          </Button>
+        )
       }
       icon={CreditCard}
       isOpen={isOpen}
@@ -148,22 +142,17 @@ export function LiabilityEditor({
       tone="loss"
       onClose={onClose}
     >
-      <Input
-        ref={nameRef}
-        isRequired
-        classNames={{
-          inputWrapper:
-            "border border-white/[0.08] bg-white/[0.02] data-[hover=true]:border-white/15 group-data-[focus=true]:border-loss/40 group-data-[focus=true]:bg-loss/[0.04]",
-        }}
+      <TextField
+        required
+        inputRef={nameRef}
         label="Name"
-        labelPlacement="outside"
         placeholder="e.g. ANZ Mortgage"
+        tone="loss"
         value={form.name}
-        variant="bordered"
-        onValueChange={(v) => set("name", v)}
+        onChange={(v) => set("name", v)}
       />
 
-      <FieldSection label="Type">
+      <Field label="Type">
         <TypeGrid<LiabilityType>
           cols={3}
           options={LIABILITY_TYPES.map((t) => ({
@@ -175,7 +164,7 @@ export function LiabilityEditor({
           value={form.type}
           onChange={(v) => set("type", v)}
         />
-      </FieldSection>
+      </Field>
 
       <AmountInput
         action={
@@ -191,44 +180,38 @@ export function LiabilityEditor({
         onChange={(v) => set("balance", v)}
       />
 
-      <div className="grid grid-cols-2 gap-3">
-        <RatePill
-          label="Interest rate"
-          unit="%"
-          value={form.interestRate}
-          onChange={(v) => set("interestRate", v)}
-        />
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-              Payment
-            </span>
-            <span className="font-mono tabular text-[11px] text-ink-400">
-              {monthlyPayment > 0
+      <div className="space-y-2">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <NumericCard
+            grouping={false}
+            label="Interest rate"
+            placeholder="5"
+            size="md"
+            tone="loss"
+            unit="%"
+            value={form.interestRate}
+            onChange={(v) => set("interestRate", v)}
+          />
+          <NumericCard
+            label="Payment"
+            meta={
+              monthlyPayment > 0
                 ? `≈ ${formatMoney(monthlyPayment, form.currency)}/mo`
-                : ""}
-            </span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-mono text-sm font-medium text-ink-400">
-              {form.currency === "NZD" ? "NZ$" : "US$"}
-            </span>
-            <input
-              className="min-w-0 flex-1 bg-transparent font-mono tabular text-xl font-semibold tracking-tight outline-none placeholder:text-ink-600"
-              placeholder="0"
-              type="text"
-              {...paymentField}
-            />
-          </div>
+                : FREQUENCY_LABEL[form.frequency]
+            }
+            prefix={currencySymbol(form.currency)}
+            size="md"
+            tone="loss"
+            value={form.payment}
+            onChange={(v) => set("payment", v)}
+          />
         </div>
-      </div>
-
-      <FieldSection label={`Frequency · ${FREQUENCY_LABEL[form.frequency]}`}>
         <FrequencyPills
+          tone="loss"
           value={form.frequency}
           onChange={(v) => set("frequency", v)}
         />
-      </FieldSection>
+      </div>
 
       {/* Both are serviced in retirement — only the balance differs. */}
       <FireInclusionToggle
@@ -239,52 +222,5 @@ export function LiabilityEditor({
         onChange={(v) => set("countsTowardFire", v)}
       />
     </DialogShell>
-  );
-}
-
-interface RatePillProps {
-  label: string;
-  value: number | null;
-  unit: string;
-  onChange: (value: number | null) => void;
-}
-
-function RatePill({ label, value, unit, onChange }: RatePillProps) {
-  const field = useNumericField({ value, onChange, grouping: false });
-
-  return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-      <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1">
-        <input
-          className="min-w-0 flex-1 bg-transparent font-mono tabular text-xl font-semibold tracking-tight outline-none placeholder:text-ink-600"
-          placeholder="5"
-          type="text"
-          {...field}
-        />
-        <span className="font-mono text-sm font-medium text-ink-400">
-          {unit}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function FieldSection({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-        {label}
-      </div>
-      {children}
-    </div>
   );
 }
