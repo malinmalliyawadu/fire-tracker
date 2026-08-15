@@ -30,6 +30,7 @@ import { AmountInput } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
 import { FrequencyPills } from "@/components/ui/FrequencyPills";
+import { ToggleRow } from "@/components/ui/ToggleRow";
 import { TypeGrid } from "@/components/ui/TypeGrid";
 
 interface IncomeEditorProps {
@@ -275,42 +276,12 @@ export function IncomeEditor({ isOpen, onClose, source }: IncomeEditorProps) {
         </div>
       )}
 
-      <button
-        aria-pressed={form.continuesInRetirement}
-        className={clsx(
-          "flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition",
-          form.continuesInRetirement
-            ? "border-accent/40 bg-accent/10"
-            : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
-        )}
-        type="button"
-        onClick={() =>
-          set("continuesInRetirement", !form.continuesInRetirement)
-        }
-      >
-        <div className="flex-1">
-          <div className="text-sm font-semibold text-white">
-            Continues in retirement
-          </div>
-          <div className="mt-0.5 text-[11px] text-ink-400">
-            Rental or royalties that keep paying — reduces what the portfolio
-            has to cover
-          </div>
-        </div>
-        <div
-          className={clsx(
-            "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-            form.continuesInRetirement ? "bg-accent" : "bg-white/15",
-          )}
-        >
-          <div
-            className={clsx(
-              "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
-              form.continuesInRetirement ? "left-[18px]" : "left-0.5",
-            )}
-          />
-        </div>
-      </button>
+      <ToggleRow
+        hint="Rental or royalties that keep paying — reduces what the portfolio has to cover"
+        label="Continues in retirement"
+        value={form.continuesInRetirement}
+        onChange={(v) => set("continuesInRetirement", v)}
+      />
 
       <Input
         classNames={{

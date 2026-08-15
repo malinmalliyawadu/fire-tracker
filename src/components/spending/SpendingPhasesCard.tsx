@@ -1,10 +1,10 @@
-import clsx from "clsx";
 import { TrendingDown } from "lucide-react";
 
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import { usePlanBudget } from "@/store/derived";
 import { Card } from "@/components/ui/Card";
+import { ToggleRow } from "@/components/ui/ToggleRow";
 import { SliderField } from "@/components/simulate/SliderField";
 
 export function SpendingPhasesCard() {
@@ -24,51 +24,17 @@ export function SpendingPhasesCard() {
   return (
     <Card eyebrow="Retirement" title="Spending phases">
       <div className="space-y-5">
-        <button
-          aria-pressed={phases.enabled}
-          className={clsx(
-            "flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition",
+        <ToggleRow
+          hint={
             phases.enabled
-              ? "border-accent/40 bg-accent/10"
-              : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
-          )}
-          type="button"
-          onClick={() => setPhase("enabled", !phases.enabled)}
-        >
-          <div
-            className={clsx(
-              "grid h-9 w-9 place-items-center rounded-lg transition-colors",
-              phases.enabled
-                ? "bg-accent text-white"
-                : "bg-white/[0.05] text-ink-300",
-            )}
-          >
-            <TrendingDown className="h-4 w-4" strokeWidth={2} />
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-semibold text-white">
-              Vary spending with age
-            </div>
-            <div className="mt-0.5 text-[11px] text-ink-400">
-              {phases.enabled
-                ? "Spending eases off as you slow down"
-                : "Spending stays flat for the whole retirement"}
-            </div>
-          </div>
-          <div
-            className={clsx(
-              "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-              phases.enabled ? "bg-accent" : "bg-white/15",
-            )}
-          >
-            <div
-              className={clsx(
-                "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
-                phases.enabled ? "left-[18px]" : "left-0.5",
-              )}
-            />
-          </div>
-        </button>
+              ? "Spending eases off as you slow down"
+              : "Spending stays flat for the whole retirement"
+          }
+          icon={TrendingDown}
+          label="Vary spending with age"
+          value={phases.enabled}
+          onChange={(v) => setPhase("enabled", v)}
+        />
 
         {phases.enabled && (
           <div className="space-y-5">

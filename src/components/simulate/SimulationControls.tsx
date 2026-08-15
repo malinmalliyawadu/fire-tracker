@@ -11,6 +11,7 @@ import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import { KID_INDEPENDENT_AGE, kidCostAtAge } from "@/domain/kids";
 import { Card } from "@/components/ui/Card";
+import { ToggleRow } from "@/components/ui/ToggleRow";
 
 interface SimulationControlsProps {
   inputs: SimulationInputs;
@@ -184,45 +185,13 @@ function NzSuperToggle({ enabled, onToggle }: NzSuperToggleProps) {
   );
 
   return (
-    <button
-      aria-pressed={enabled}
-      className={clsx(
-        "flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition",
-        enabled
-          ? "border-accent/40 bg-accent/10"
-          : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
-      )}
-      onClick={() => onToggle(!enabled)}
-    >
-      <div
-        className={clsx(
-          "grid h-9 w-9 place-items-center rounded-lg transition-colors",
-          enabled ? "bg-accent text-white" : "bg-white/[0.05] text-ink-300",
-        )}
-      >
-        <Landmark className="h-4 w-4" strokeWidth={2} />
-      </div>
-      <div className="flex-1">
-        <div className="text-sm font-semibold text-white">Include NZ Super</div>
-        <div className="mt-0.5 text-[11px] text-ink-400">
-          {formatMoney(annualInDisplay, settings.displayCurrency)}/yr from age{" "}
-          {startAge}
-        </div>
-      </div>
-      <div
-        className={clsx(
-          "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-          enabled ? "bg-accent" : "bg-white/15",
-        )}
-      >
-        <div
-          className={clsx(
-            "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
-            enabled ? "left-[18px]" : "left-0.5",
-          )}
-        />
-      </div>
-    </button>
+    <ToggleRow
+      hint={`${formatMoney(annualInDisplay, settings.displayCurrency)}/yr from age ${startAge}`}
+      icon={Landmark}
+      label="Include NZ Super"
+      value={enabled}
+      onChange={onToggle}
+    />
   );
 }
 
@@ -266,41 +235,18 @@ function KidsToggle({
           : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
       )}
     >
-      <button
-        aria-pressed={enabled}
-        className="flex w-full items-center gap-3 px-3 py-3 text-left"
-        onClick={() => onToggle(!enabled)}
-      >
-        <div
-          className={clsx(
-            "grid h-9 w-9 place-items-center rounded-lg transition-colors",
-            enabled ? "bg-accent text-white" : "bg-white/[0.05] text-ink-300",
-          )}
-        >
-          <Baby className="h-4 w-4" strokeWidth={2} />
-        </div>
-        <div className="flex-1">
-          <div className="text-sm font-semibold text-white">Plan with kids</div>
-          <div className="mt-0.5 text-[11px] text-ink-400">
-            {enabled
-              ? `From ${formatMoney(firstYearAnnual, settings.displayCurrency)}/yr, easing off until age ${KID_INDEPENDENT_AGE}`
-              : `Cost varies by age — childcare, school, then study, to age ${KID_INDEPENDENT_AGE}`}
-          </div>
-        </div>
-        <div
-          className={clsx(
-            "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-            enabled ? "bg-accent" : "bg-white/15",
-          )}
-        >
-          <div
-            className={clsx(
-              "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
-              enabled ? "left-[18px]" : "left-0.5",
-            )}
-          />
-        </div>
-      </button>
+      <ToggleRow
+        bare
+        hint={
+          enabled
+            ? `From ${formatMoney(firstYearAnnual, settings.displayCurrency)}/yr, easing off until age ${KID_INDEPENDENT_AGE}`
+            : `Cost varies by age — childcare, school, then study, to age ${KID_INDEPENDENT_AGE}`
+        }
+        icon={Baby}
+        label="Plan with kids"
+        value={enabled}
+        onChange={onToggle}
+      />
 
       {enabled && (
         <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-3 py-2.5">

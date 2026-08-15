@@ -6,6 +6,7 @@ import { PIR_TOP_RATE, PIR_BANDS, TAX_YEAR } from "@/domain/tax";
 import { useSettings } from "@/store/settings";
 import { useAfterTaxReturn, useIncomeTotals } from "@/store/derived";
 import { Card } from "@/components/ui/Card";
+import { ToggleRow } from "@/components/ui/ToggleRow";
 
 const PIR_OPTIONS = [...PIR_BANDS.map((b) => b.rate), PIR_TOP_RATE];
 
@@ -22,53 +23,17 @@ export function TaxCard() {
   return (
     <Card eyebrow={`NZ rules · ${TAX_YEAR}`} title="Investment tax">
       <div className="space-y-5">
-        <button
-          aria-pressed={settings.applyInvestmentTax}
-          className={clsx(
-            "flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition",
+        <ToggleRow
+          hint={
             settings.applyInvestmentTax
-              ? "border-accent/40 bg-accent/10"
-              : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
-          )}
-          type="button"
-          onClick={() =>
-            update({ applyInvestmentTax: !settings.applyInvestmentTax })
+              ? `Returns reduced by ${formatPercent(drag, 2)} a year`
+              : "Projections use pre-tax returns"
           }
-        >
-          <div
-            className={clsx(
-              "grid h-9 w-9 place-items-center rounded-lg transition-colors",
-              settings.applyInvestmentTax
-                ? "bg-accent text-white"
-                : "bg-white/[0.05] text-ink-300",
-            )}
-          >
-            <Receipt className="h-4 w-4" strokeWidth={2} />
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-semibold text-white">
-              Apply investment tax
-            </div>
-            <div className="mt-0.5 text-[11px] text-ink-400">
-              {settings.applyInvestmentTax
-                ? `Returns reduced by ${formatPercent(drag, 2)} a year`
-                : "Projections use pre-tax returns"}
-            </div>
-          </div>
-          <div
-            className={clsx(
-              "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-              settings.applyInvestmentTax ? "bg-accent" : "bg-white/15",
-            )}
-          >
-            <div
-              className={clsx(
-                "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
-                settings.applyInvestmentTax ? "left-[18px]" : "left-0.5",
-              )}
-            />
-          </div>
-        </button>
+          icon={Receipt}
+          label="Apply investment tax"
+          value={settings.applyInvestmentTax}
+          onChange={(v) => update({ applyInvestmentTax: v })}
+        />
 
         {settings.applyInvestmentTax && (
           <>
