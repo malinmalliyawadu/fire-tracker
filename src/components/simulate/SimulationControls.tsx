@@ -229,7 +229,7 @@ function KidsToggle({
   return (
     <div
       className={clsx(
-        "rounded-lg border transition",
+        "rounded-xl border transition",
         enabled
           ? "border-accent/40 bg-accent/10"
           : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",

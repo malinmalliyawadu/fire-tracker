@@ -6,10 +6,8 @@ import type {
 } from "@/types";
 
 import { Button } from "@heroui/button";
-import { Input } from "@heroui/input";
-import { Briefcase, Trash2 } from "lucide-react";
+import { Briefcase, Repeat, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import clsx from "clsx";
 
 import {
   FREQUENCY_LABEL,
@@ -29,7 +27,10 @@ import { useIncome } from "@/store/income";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
+import { Field, FieldLabel } from "@/components/ui/Field";
 import { FrequencyPills } from "@/components/ui/FrequencyPills";
+import { OptionPills } from "@/components/ui/OptionPills";
+import { TextField } from "@/components/ui/TextField";
 import { ToggleRow } from "@/components/ui/ToggleRow";
 import { TypeGrid } from "@/components/ui/TypeGrid";
 
@@ -64,11 +65,19 @@ const blank = (source?: IncomeSource): FormState => ({
   notes: source?.notes ?? "",
 });
 
+const RATE_OPTIONS: ReadonlyArray<{ value: number | null; label: string }> = [
+  ...KIWISAVER_EMPLOYEE_RATES.map((rate) => ({
+    value: rate as number | null,
+    label: formatPercent(rate, 0),
+  })),
+  { value: null, label: "Not enrolled" },
+];
+
 export function IncomeEditor({ isOpen, onClose, source }: IncomeEditorProps) {
   const upsert = useIncome((s) => s.upsert);
   const remove = useIncome((s) => s.remove);
   const [form, setForm] = useState<FormState>(blank(source));
-  const nameRef = useAutoFocus<HTMLInputElement>();
+  const nameRef = useAutoFocus<HTMLInputElement>(isOpen);
 
   useEffect(() => {
     if (isOpen) setForm(blank(source));
@@ -117,62 +126,51 @@ export function IncomeEditor({ isOpen, onClose, source }: IncomeEditorProps) {
     <DialogShell
       footer={
         <>
-          {source ? (
-            <Button
-              className="bg-loss/10 text-loss"
-              size="sm"
-              startContent={<Trash2 className="h-3.5 w-3.5" />}
-              variant="flat"
-              onPress={handleDelete}
-            >
-              Delete
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button variant="light" onPress={onClose}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
-              isDisabled={!form.name.trim()}
-              onPress={handleSave}
-            >
-              {source ? "Save changes" : "Add income"}
-            </Button>
-          </div>
+          <Button variant="light" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
+            isDisabled={!form.name.trim()}
+            onPress={handleSave}
+          >
+            {source ? "Save changes" : "Add income"}
+          </Button>
         </>
+      }
+      footerStart={
+        source && (
+          <Button
+            className="bg-loss/10 text-loss"
+            size="sm"
+            startContent={<Trash2 className="h-3.5 w-3.5" />}
+            variant="flat"
+            onPress={handleDelete}
+          >
+            Delete
+          </Button>
+        )
       }
       icon={Briefcase}
       isOpen={isOpen}
       subtitle={
         source
           ? "Update this income source"
-          : "Enter gross pay — tax is calculated for you"
+          : "Enter gross pay - tax is calculated for you"
       }
       title={source ? "Edit income" : "Add income"}
       onClose={onClose}
     >
-      <Input
-        ref={nameRef}
-        isRequired
-        classNames={{
-          inputWrapper:
-            "border border-white/[0.08] bg-white/[0.02] data-[hover=true]:border-white/15 group-data-[focus=true]:border-accent/40 group-data-[focus=true]:bg-accent/[0.04]",
-        }}
+      <TextField
+        required
+        inputRef={nameRef}
         label="Name"
-        labelPlacement="outside"
         placeholder="e.g. Day job"
         value={form.name}
-        variant="bordered"
-        onValueChange={(v) => set("name", v)}
+        onChange={(v) => set("name", v)}
       />
 
-      <div>
-        <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-          Type
-        </div>
+      <Field label="Type">
         <TypeGrid<IncomeType>
           cols={4}
           options={INCOME_TYPES.map((t) => ({
@@ -183,30 +181,27 @@ export function IncomeEditor({ isOpen, onClose, source }: IncomeEditorProps) {
           value={form.type}
           onChange={(v) => set("type", v)}
         />
-      </div>
+      </Field>
 
-      <AmountInput
-        action={
-          <CurrencyToggle
-            value={form.currency}
-            onChange={(c) => set("currency", c)}
-          />
-        }
-        currency={form.currency}
-        hint={
-          annual > 0
-            ? `${formatMoney(annual, form.currency)} per year, before tax`
-            : "Gross, before tax"
-        }
-        label="Gross amount"
-        value={form.amount}
-        onChange={(v) => set("amount", v)}
-      />
-
-      <div>
-        <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-          Paid {FREQUENCY_LABEL[form.frequency].toLowerCase()}
-        </div>
+      <div className="space-y-2">
+        <AmountInput
+          action={
+            <CurrencyToggle
+              value={form.currency}
+              onChange={(c) => set("currency", c)}
+            />
+          }
+          currency={form.currency}
+          hint={
+            annual > 0
+              ? `${formatMoney(annual, form.currency)} per year, before tax`
+              : "Gross, before tax"
+          }
+          label="Gross amount"
+          trailing={FREQUENCY_LABEL[form.frequency]}
+          value={form.amount}
+          onChange={(v) => set("amount", v)}
+        />
         <FrequencyPills
           value={form.frequency}
           onChange={(v) => set("frequency", v)}
@@ -214,60 +209,32 @@ export function IncomeEditor({ isOpen, onClose, source }: IncomeEditorProps) {
       </div>
 
       {isSalary && (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-          <div className="mb-3 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-            KiwiSaver
-          </div>
-          <div className="mb-1.5 text-[11px] text-ink-400">
-            Your contribution rate
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {KIWISAVER_EMPLOYEE_RATES.map((rate) => (
-              <button
-                key={rate}
-                className={clsx(
-                  "rounded-md border px-2.5 py-1 text-xs transition",
-                  form.kiwisaverRate === rate
-                    ? "border-accent/40 bg-accent/10 text-white"
-                    : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:text-white",
-                )}
-                type="button"
-                onClick={() => set("kiwisaverRate", rate)}
-              >
-                {formatPercent(rate, 0)}
-              </button>
-            ))}
-            <button
-              className={clsx(
-                "rounded-md border px-2.5 py-1 text-xs transition",
-                form.kiwisaverRate === null
-                  ? "border-accent/40 bg-accent/10 text-white"
-                  : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:text-white",
-              )}
-              type="button"
-              onClick={() => set("kiwisaverRate", null)}
-            >
-              Not enrolled
-            </button>
-          </div>
+        <div className="space-y-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+          <Field label="KiwiSaver" meta="Your contribution">
+            <OptionPills
+              options={RATE_OPTIONS}
+              value={form.kiwisaverRate}
+              onChange={(v) => set("kiwisaverRate", v)}
+            />
+          </Field>
 
           {form.kiwisaverRate !== null && (
-            <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3">
-              <span className="text-[11px] text-ink-400">
-                Employer contribution
-              </span>
+            <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
+              <FieldLabel>Employer contribution</FieldLabel>
               <div className="flex items-baseline gap-1">
                 <input
-                  className="w-14 bg-transparent text-right font-mono tabular text-sm font-semibold outline-none"
+                  aria-label="Employer contribution rate"
+                  className="w-10 bg-transparent text-right font-mono tabular text-sm font-semibold outline-none focus-visible:outline-none"
                   placeholder="3"
                   type="text"
                   {...employerField}
                 />
-                <span className="text-xs text-ink-400">%</span>
+                <span className="font-mono text-sm text-ink-400">%</span>
               </div>
             </div>
           )}
-          <p className="mt-3 text-[11px] leading-relaxed text-ink-500">
+
+          <p className="text-[11px] leading-relaxed text-ink-500">
             Contributions are worked out from this salary, so you don&apos;t
             need to enter them on the KiwiSaver asset. Employer contributions
             are reduced by ESCT, and the government contribution is added where
@@ -277,23 +244,18 @@ export function IncomeEditor({ isOpen, onClose, source }: IncomeEditorProps) {
       )}
 
       <ToggleRow
-        hint="Rental or royalties that keep paying — reduces what the portfolio has to cover"
+        hint="Rental or royalties that keep paying, reducing what the portfolio has to cover"
+        icon={Repeat}
         label="Continues in retirement"
         value={form.continuesInRetirement}
         onChange={(v) => set("continuesInRetirement", v)}
       />
 
-      <Input
-        classNames={{
-          inputWrapper:
-            "border border-white/[0.08] bg-white/[0.02] data-[hover=true]:border-white/15 group-data-[focus=true]:border-accent/40 group-data-[focus=true]:bg-accent/[0.04]",
-        }}
+      <TextField
         label="Notes"
-        labelPlacement="outside"
         placeholder="Optional"
         value={form.notes}
-        variant="bordered"
-        onValueChange={(v) => set("notes", v)}
+        onChange={(v) => set("notes", v)}
       />
     </DialogShell>
   );

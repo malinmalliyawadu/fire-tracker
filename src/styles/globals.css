@@ -112,9 +112,10 @@ body {
   }
 }
 
-/* Focus rings */
+/* Focus rings.
+   The radius is inherited rather than forced, so a pill keeps its pill shape
+   and a bare input inside a framed field doesn't sprout a stray rectangle. */
 :where(button, a, [role="button"], input, select, textarea):focus-visible {
   outline: 2px solid #7c83e7;
   outline-offset: 2px;
-  border-radius: 6px;
 }

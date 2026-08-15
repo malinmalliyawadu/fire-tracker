@@ -1,5 +1,7 @@
 import clsx from "clsx";
 
+import { FIELD_LABEL_CLASS } from "@/components/ui/Field";
+
 interface SliderFieldProps {
   label: string;
   value: number;
@@ -28,9 +30,7 @@ export function SliderField({
   return (
     <div className={clsx("space-y-2", className)}>
       <div className="flex items-baseline justify-between">
-        <label className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-300">
-          {label}
-        </label>
+        <label className={FIELD_LABEL_CLASS}>{label}</label>
         <span className="font-mono tabular text-sm font-semibold tracking-tight">
           {display ?? value}
         </span>

@@ -1,4 +1,5 @@
-import clsx from "clsx";
+import { ChoiceCards } from "@/components/ui/ChoiceCards";
+import { Field } from "@/components/ui/Field";
 
 interface FireInclusionToggleProps {
   value: boolean;
@@ -23,37 +24,21 @@ export function FireInclusionToggle({
   excludedHint,
   tone = "accent",
 }: FireInclusionToggleProps) {
-  const options = [
-    { selected: true, label: "Counts toward FIRE", hint: includedHint },
-    { selected: false, label: "Net worth only", hint: excludedHint },
-  ];
-
   return (
-    <div>
-      <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-        FIRE target
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {options.map((option) => (
-          <button
-            key={String(option.selected)}
-            aria-pressed={value === option.selected}
-            className={clsx(
-              "rounded-lg border px-3 py-2 text-left text-xs transition",
-              value === option.selected
-                ? tone === "loss"
-                  ? "border-loss/40 bg-loss/10 text-white"
-                  : "border-accent/40 bg-accent/10 text-white"
-                : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:text-white",
-            )}
-            type="button"
-            onClick={() => onChange(option.selected)}
-          >
-            <div className="font-semibold">{option.label}</div>
-            <div className="mt-0.5 text-[10px] text-ink-400">{option.hint}</div>
-          </button>
-        ))}
-      </div>
-    </div>
+    <Field label="FIRE target">
+      <ChoiceCards
+        options={[
+          {
+            value: "included",
+            label: "Counts toward FIRE",
+            hint: includedHint,
+          },
+          { value: "excluded", label: "Net worth only", hint: excludedHint },
+        ]}
+        tone={tone}
+        value={value ? "included" : "excluded"}
+        onChange={(next) => onChange(next === "included")}
+      />
+    </Field>
   );
 }
