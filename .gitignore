@@ -58,3 +58,5 @@ volunteer-portal/
 pnpm-lock.yaml
 yarn.lock
 bun.lockb
+# Machine-local Claude Code settings
+.claude/settings.local.json

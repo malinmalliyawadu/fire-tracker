@@ -5,6 +5,7 @@ import type {
   LiabilityType,
   ProjectionPoint,
 } from "@/types";
+import type { ProjectionInputBundle } from "@/domain/plan";
 import type { ProjectionLiability } from "@/domain/projection";
 import type { SanityWarning } from "@/domain/sanity";
 
@@ -23,7 +24,7 @@ import {
   unpairedPropertyMortgages,
 } from "@/domain/fire";
 import { kidsCostByYear as kidsCostNzdByYear } from "@/domain/kids";
-import { buildProjection } from "@/domain/plan";
+import { buildAccumulationProjection, buildProjection } from "@/domain/plan";
 import { checkAssumptions } from "@/domain/sanity";
 import { yearsToPayoff } from "@/domain/projection";
 import { attributeGrowth, comparePlan } from "@/domain/tracking";
@@ -282,11 +283,10 @@ export const useFireTargets = (): FireTargets => {
 const DASHBOARD_HORIZON_YEARS = 60;
 
 /**
- * The projection implied by the portfolio and settings as they stand, with no
- * simulation overrides. Time-to-target figures on the dashboard are read off
- * this so they agree with the Simulate chart.
+ * The plan as it stands today, with no simulation overrides — the inputs both
+ * dashboard projections are built from.
  */
-export const useCurrentProjection = (): ProjectionPoint[] => {
+const useCurrentPlanBundle = (): ProjectionInputBundle => {
   const totals = usePortfolioTotals();
   const contributions = usePlanContributions();
   const expectedReturn = useAfterTaxReturn();
@@ -295,27 +295,53 @@ export const useCurrentProjection = (): ProjectionPoint[] => {
   const settings = useSettings((s) => s.settings);
 
   return useMemo(
-    () =>
-      buildProjection(
-        {
-          currentNetWorth: totals.fireNetWorth,
-          monthlySavings: contributions.monthlyContributions,
-          expectedReturn,
-          retirementAge: settings.retirementAge,
-          annualExpenses: budget.annualExpenses,
-          retirementExpenses: budget.retirementExpenses,
-          kidsCostByYear: budget.kidsCostByYear,
-          oneOffByYear: budget.oneOffByYear,
-          currentLockedNetWorth: totals.fireLockedAssetsTotal,
-          monthlyLockedSavings: contributions.monthlyLockedContributions,
-          liabilities: totals.fireDebts,
-          externalLiabilities: totals.externalDebts,
-          retirementIncome: income.retirementIncomeAnnual,
-        },
-        settings,
-        DASHBOARD_HORIZON_YEARS,
-      ),
+    () => ({
+      currentNetWorth: totals.fireNetWorth,
+      monthlySavings: contributions.monthlyContributions,
+      expectedReturn,
+      retirementAge: settings.retirementAge,
+      annualExpenses: budget.annualExpenses,
+      retirementExpenses: budget.retirementExpenses,
+      kidsCostByYear: budget.kidsCostByYear,
+      oneOffByYear: budget.oneOffByYear,
+      currentLockedNetWorth: totals.fireLockedAssetsTotal,
+      monthlyLockedSavings: contributions.monthlyLockedContributions,
+      liabilities: totals.fireDebts,
+      externalLiabilities: totals.externalDebts,
+      retirementIncome: income.retirementIncomeAnnual,
+    }),
     [totals, contributions, expectedReturn, income, budget, settings],
+  );
+};
+
+/**
+ * The projection implied by the portfolio and settings as they stand: work
+ * until the chosen retirement age, then draw down. This is what the chart
+ * plots and what "will it last" is judged against.
+ */
+export const useCurrentProjection = (): ProjectionPoint[] => {
+  const bundle = useCurrentPlanBundle();
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(
+    () => buildProjection(bundle, settings, DASHBOARD_HORIZON_YEARS),
+    [bundle, settings],
+  );
+};
+
+/**
+ * The same plan with contributions running to the horizon. Time-to-target is
+ * read off this: reaching a number is about accumulating, and the retirement
+ * projection stops contributing on a fixed date whether or not you got there.
+ */
+export const useAccumulationProjection = (): ProjectionPoint[] => {
+  const bundle = useCurrentPlanBundle();
+  const settings = useSettings((s) => s.settings);
+
+  return useMemo(
+    () =>
+      buildAccumulationProjection(bundle, settings, DASHBOARD_HORIZON_YEARS),
+    [bundle, settings],
   );
 };
 

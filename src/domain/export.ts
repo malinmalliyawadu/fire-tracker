@@ -19,7 +19,7 @@ import {
   FREQUENCY_LABEL,
   LIABILITY_TYPE_LABEL,
 } from "./labels";
-import { buildProjection } from "./plan";
+import { buildAccumulationProjection } from "./plan";
 import { computeFireTargets, countsTowardFire, fireTargetFor } from "./fire";
 import { convert, toMonthly } from "./currency";
 import { yearsToPayoff, yearsToTarget } from "./projection";
@@ -167,27 +167,36 @@ const targetRow = (
   return `| ${label} | ${formatMoney(target, settings.displayCurrency)} | ${pct.toFixed(1)}% | ${formatYears(years)} |`;
 };
 
+const bundleFor = (
+  totals: Totals,
+  settings: Settings,
+  overrides: Partial<ProjectionInputBundle> = {},
+): ProjectionInputBundle => ({
+  currentNetWorth: totals.fireNetWorth,
+  monthlySavings: totals.fireMonthlyContributions,
+  expectedReturn: settings.expectedReturn,
+  retirementAge: settings.retirementAge,
+  currentLockedNetWorth: totals.fireLockedAssetsTotal,
+  monthlyLockedSavings: totals.fireLockedMonthlyContributions,
+  liabilities: totals.fireDebts,
+  externalLiabilities: totals.externalDebts,
+  ...overrides,
+});
+
 /**
- * Projection for a set of scenario inputs against the current portfolio.
- * Passing no overrides yields the "as things stand today" projection.
+ * Projection for a set of scenario inputs against the current portfolio, with
+ * contributions running to the horizon. Time-to-target columns are read off
+ * this so the snapshot matches the app, and so a target reached just after the
+ * retirement age doesn't report as never reached. Passing no overrides yields
+ * the "as things stand today" projection.
  */
-const projectionFor = (
+const accumulationFor = (
   totals: Totals,
   settings: Settings,
   overrides: Partial<ProjectionInputBundle> = {},
 ): ProjectionPoint[] =>
-  buildProjection(
-    {
-      currentNetWorth: totals.fireNetWorth,
-      monthlySavings: totals.fireMonthlyContributions,
-      expectedReturn: settings.expectedReturn,
-      retirementAge: settings.retirementAge,
-      currentLockedNetWorth: totals.fireLockedAssetsTotal,
-      monthlyLockedSavings: totals.fireLockedMonthlyContributions,
-      liabilities: totals.fireDebts,
-      externalLiabilities: totals.externalDebts,
-      ...overrides,
-    },
+  buildAccumulationProjection(
+    bundleFor(totals, settings, overrides),
     settings,
     HORIZON_YEARS,
   );
@@ -196,7 +205,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
   const { settings, assets, liabilities, scenarios, history = [] } = input;
   const display = settings.displayCurrency;
   const totals = computeTotals(assets, liabilities, settings);
-  const baseProjection = projectionFor(totals, settings);
+  const accumulationProjection = accumulationFor(totals, settings);
   const targets = computeFireTargets({
     annualExpenses: settings.annualExpenses,
     withdrawalRate: settings.withdrawalRate,
@@ -311,7 +320,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
         target,
         settings,
         totals,
-        baseProjection,
+        accumulationProjection,
       ),
     );
   });
@@ -440,7 +449,7 @@ export const buildSnapshotMarkdown = (input: SnapshotInput): string => {
     for (const s of scenarios) {
       const scenarioTarget = fireTargetFor(s.inputs.fireType, targets);
       const scenarioYears = yearsToTarget(
-        projectionFor(totals, settings, {
+        accumulationFor(totals, settings, {
           monthlySavings: s.inputs.monthlySavings,
           expectedReturn: s.inputs.expectedReturn,
           retirementAge: s.inputs.retirementAge,

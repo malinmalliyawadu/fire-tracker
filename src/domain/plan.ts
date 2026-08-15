@@ -104,3 +104,32 @@ export const buildProjection = (
     retirementIncomeAnnual: bundle.retirementIncome ?? 0,
   });
 };
+
+/**
+ * The same plan with retirement pushed past the horizon — the path if the
+ * contributions never stopped.
+ *
+ * "How long until I reach $X" is a question about accumulation, and it has to
+ * be read off a projection that keeps accumulating. Read off the retirement
+ * projection it answered a different question: that one stops contributions
+ * and starts drawing down on your chosen retirement date whether or not the
+ * pot is there yet, so any target you'd cross *after* that date came back as
+ * never reached. A Traditional number you'd hit two years late reported as ∞
+ * rather than as two more years of work, which reads as hopeless when it's
+ * merely late.
+ *
+ * The chart still shows the retirement path, since that's the question it's
+ * asking. ∞ from this projection means genuinely out of reach inside the
+ * horizon.
+ */
+export const buildAccumulationProjection = (
+  bundle: ProjectionInputBundle,
+  settings: Settings,
+  years = 40,
+): ProjectionPoint[] =>
+  buildProjection(
+    // One year past the last point, so the retired branch is never taken.
+    { ...bundle, retirementAge: settings.currentAge + years + 1 },
+    settings,
+    years,
+  );

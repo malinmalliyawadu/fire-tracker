@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { progressPercent } from "@/domain/fire";
 import { yearsToTarget } from "@/domain/projection";
 import { formatPercent, formatYears } from "@/domain/format";
-import { useCurrentProjection } from "@/store/derived";
+import { useAccumulationProjection } from "@/store/derived";
 
 interface ProgressRingProps {
   current: number;
@@ -16,7 +16,7 @@ const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function ProgressRing({ current, target }: ProgressRingProps) {
-  const projection = useCurrentProjection();
+  const projection = useAccumulationProjection();
 
   const pct = progressPercent(current, target);
   const offset = CIRCUMFERENCE * (1 - pct / 100);

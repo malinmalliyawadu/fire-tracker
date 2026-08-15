@@ -8,7 +8,7 @@ import { yearsToTarget } from "@/domain/projection";
 import { formatMoneyCompact, formatYears } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import {
-  useCurrentProjection,
+  useAccumulationProjection,
   useFireTargets,
   usePortfolioTotals,
 } from "@/store/derived";
@@ -30,7 +30,7 @@ const STROKE_FOR: Record<FireType, string> = {
 export function FireTypeCards() {
   const targets = useFireTargets();
   const totals = usePortfolioTotals();
-  const projection = useCurrentProjection();
+  const projection = useAccumulationProjection();
   const settings = useSettings((s) => s.settings);
 
   return (

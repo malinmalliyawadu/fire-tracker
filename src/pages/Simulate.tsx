@@ -9,7 +9,7 @@ import {
 } from "@/domain/projection";
 import { useScenarios } from "@/store/scenarios";
 import { useSettings } from "@/store/settings";
-import { buildProjection } from "@/domain/plan";
+import { buildAccumulationProjection, buildProjection } from "@/domain/plan";
 import {
   useAfterTaxReturn,
   useFireTargets,
@@ -69,7 +69,7 @@ export default function Simulate() {
   // The slider is a pre-tax return; investment tax is applied on top of it.
   const simulatedAfterTaxReturn = useAfterTaxReturn(inputs.expectedReturn);
 
-  const currentProjection = useMemo(() => {
+  const bundle = useMemo(() => {
     // Slider can move savings up/down; keep KiwiSaver share proportional.
     const baseTotal = Math.max(
       0,
@@ -84,43 +84,49 @@ export default function Simulate() {
           )
         : 0;
 
-    return buildProjection(
-      {
-        currentNetWorth: totals.fireNetWorth,
-        monthlySavings: inputs.monthlySavings,
-        expectedReturn: simulatedAfterTaxReturn,
-        retirementAge: inputs.retirementAge,
-        annualExpenses: plan.annualExpenses,
-        retirementExpenses: plan.retirementExpenses,
-        kidsCostByYear: plan.kidsCostByYear,
-        oneOffByYear: plan.oneOffByYear,
-        includeNzSuper: inputs.includeNzSuper,
-        currentLockedNetWorth: totals.fireLockedAssetsTotal,
-        monthlyLockedSavings: lockedShare,
-        includeKids: inputs.includeKids,
-        numberOfKids: inputs.numberOfKids,
-        liabilities: totals.fireDebts,
-        externalLiabilities: totals.externalDebts,
-        retirementIncome: income.retirementIncomeAnnual,
-        baristaIncome: inputs.baristaIncome,
-        baristaUntilAge: inputs.baristaUntilAge,
-      },
-      settings,
-      PROJECTION_YEARS,
-    );
+    return {
+      currentNetWorth: totals.fireNetWorth,
+      monthlySavings: inputs.monthlySavings,
+      expectedReturn: simulatedAfterTaxReturn,
+      retirementAge: inputs.retirementAge,
+      annualExpenses: plan.annualExpenses,
+      retirementExpenses: plan.retirementExpenses,
+      kidsCostByYear: plan.kidsCostByYear,
+      oneOffByYear: plan.oneOffByYear,
+      includeNzSuper: inputs.includeNzSuper,
+      currentLockedNetWorth: totals.fireLockedAssetsTotal,
+      monthlyLockedSavings: lockedShare,
+      includeKids: inputs.includeKids,
+      numberOfKids: inputs.numberOfKids,
+      liabilities: totals.fireDebts,
+      externalLiabilities: totals.externalDebts,
+      retirementIncome: income.retirementIncomeAnnual,
+      baristaIncome: inputs.baristaIncome,
+      baristaUntilAge: inputs.baristaUntilAge,
+    };
   }, [
     totals,
     contributions,
     inputs,
     plan,
-    settings,
     simulatedAfterTaxReturn,
     income.retirementIncomeAnnual,
   ]);
 
+  const currentProjection = useMemo(
+    () => buildProjection(bundle, settings, PROJECTION_YEARS),
+    [bundle, settings],
+  );
+
+  // Time to target is an accumulation question, so it can't be read off a
+  // path that stops contributing at the retirement age being simulated.
   const yearsToTarget = useMemo(
-    () => yearsUntilTarget(currentProjection, target),
-    [currentProjection, target],
+    () =>
+      yearsUntilTarget(
+        buildAccumulationProjection(bundle, settings, PROJECTION_YEARS),
+        target,
+      ),
+    [bundle, settings, target],
   );
 
   const coast = useMemo(
