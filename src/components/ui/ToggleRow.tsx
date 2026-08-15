@@ -10,6 +10,12 @@ interface ToggleRowProps {
   value: boolean;
   onChange: (value: boolean) => void;
   icon?: LucideIcon;
+  /**
+   * Drop the row's own frame, for rows that sit inside a container already
+   * carrying one (e.g. a toggle with an expandable row beneath it, where the
+   * border has to wrap both).
+   */
+  bare?: boolean;
 }
 
 /** A full-width switch with a label and a caption explaining its effect. */
@@ -19,15 +25,19 @@ export function ToggleRow({
   value,
   onChange,
   icon: Icon,
+  bare = false,
 }: ToggleRowProps) {
   return (
     <button
       aria-pressed={value}
       className={clsx(
-        "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
-        value
-          ? "border-accent/40 bg-accent/10"
-          : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
+        "flex w-full items-center gap-3 px-3 py-3 text-left transition",
+        !bare && [
+          "rounded-xl border",
+          value
+            ? "border-accent/40 bg-accent/10"
+            : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
+        ],
       )}
       type="button"
       onClick={() => onChange(!value)}

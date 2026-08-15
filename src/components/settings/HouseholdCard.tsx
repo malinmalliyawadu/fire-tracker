@@ -12,6 +12,7 @@ import {
 } from "@/domain/tax";
 import { useSettings } from "@/store/settings";
 import { Card } from "@/components/ui/Card";
+import { ToggleRow } from "@/components/ui/ToggleRow";
 
 const STATUSES = Object.keys(NZ_SUPER_ANNUAL) as NzSuperStatus[];
 
@@ -36,51 +37,17 @@ export function HouseholdCard() {
   return (
     <Card eyebrow="Who's in the plan" title="Household">
       <div className="space-y-5">
-        <button
-          aria-pressed={household.hasPartner}
-          className={clsx(
-            "flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition",
+        <ToggleRow
+          hint={
             household.hasPartner
-              ? "border-accent/40 bg-accent/10"
-              : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
-          )}
-          type="button"
-          onClick={() => setHousehold("hasPartner", !household.hasPartner)}
-        >
-          <div
-            className={clsx(
-              "grid h-9 w-9 place-items-center rounded-lg transition-colors",
-              household.hasPartner
-                ? "bg-accent text-white"
-                : "bg-white/[0.05] text-ink-300",
-            )}
-          >
-            <Users className="h-4 w-4" strokeWidth={2} />
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-semibold text-white">
-              Planning with a partner
-            </div>
-            <div className="mt-0.5 text-[11px] text-ink-400">
-              {household.hasPartner
-                ? "A second NZ Super entitlement, timed to their age"
-                : "Just you"}
-            </div>
-          </div>
-          <div
-            className={clsx(
-              "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-              household.hasPartner ? "bg-accent" : "bg-white/15",
-            )}
-          >
-            <div
-              className={clsx(
-                "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
-                household.hasPartner ? "left-[18px]" : "left-0.5",
-              )}
-            />
-          </div>
-        </button>
+              ? "A second NZ Super entitlement, timed to their age"
+              : "Just you"
+          }
+          icon={Users}
+          label="Planning with a partner"
+          value={household.hasPartner}
+          onChange={(v) => setHousehold("hasPartner", v)}
+        />
 
         {household.hasPartner && (
           <>
