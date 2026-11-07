@@ -6,6 +6,7 @@ import { buildSnapshotMarkdown } from "../export";
 
 const settings: Settings = {
   displayCurrency: "NZD",
+  birthDate: "1988-01-01",
   currentAge: 38,
   retirementAge: 55,
   annualExpenses: 65_000,
@@ -20,6 +21,7 @@ const settings: Settings = {
   nzSuperStatus: "singleLivingAlone",
   household: {
     hasPartner: false,
+    partnerBirthDate: "1988-01-01",
     partnerAge: 38,
     includePartnerNzSuper: true,
   },

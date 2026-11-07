@@ -3,6 +3,7 @@ import type { NzSuperStatus } from "@/domain/tax";
 import clsx from "clsx";
 import { Users } from "lucide-react";
 
+import { todayIso } from "@/domain/age";
 import { convert } from "@/domain/currency";
 import { formatMoney } from "@/domain/format";
 import {
@@ -11,9 +12,9 @@ import {
   NZ_SUPER_STATUS_LABEL,
 } from "@/domain/tax";
 import { useSettings } from "@/store/settings";
+import { DateCard } from "@/components/ui/DateCard";
 import { Field } from "@/components/ui/Field";
 import { Section } from "@/components/ui/Section";
-import { Stepper } from "@/components/ui/Stepper";
 import { ToggleRow } from "@/components/ui/ToggleRow";
 
 const STATUSES = Object.keys(NZ_SUPER_ANNUAL) as NzSuperStatus[];
@@ -64,23 +65,15 @@ export function Household() {
 
         {household.hasPartner && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-line px-3.5 py-3">
-              <div className="min-w-0">
-                <div className="text-[14px] font-medium text-ink">
-                  Partner&apos;s age
-                </div>
-                <div className="mt-0.5 text-[12.5px] leading-snug text-ink-3">
-                  {gapCaption}
-                </div>
-              </div>
-              <Stepper
-                label="partner's age"
-                max={90}
-                min={18}
-                value={household.partnerAge}
-                onChange={(v) => setHousehold("partnerAge", v)}
-              />
-            </div>
+            <DateCard
+              hint={gapCaption}
+              label="Partner's date of birth"
+              max={todayIso()}
+              meta={`Age ${household.partnerAge}`}
+              size="sm"
+              value={household.partnerBirthDate}
+              onChange={(v) => setHousehold("partnerBirthDate", v)}
+            />
             <p className="max-w-[64ch] text-[13px] leading-relaxed text-ink-3">
               Enter both people&apos;s assets and income in the usual lists;
               they are pooled. Only the partner&apos;s age is modelled

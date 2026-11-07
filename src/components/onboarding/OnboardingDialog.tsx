@@ -4,6 +4,7 @@ import { Flame } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
 
+import { ageOn, todayIso } from "@/domain/age";
 import { formatMoney, formatPercent } from "@/domain/format";
 import {
   DEFAULT_EMPLOYER_KIWISAVER_RATE,
@@ -15,6 +16,7 @@ import { usePortfolio } from "@/store/portfolio";
 import { useSettings } from "@/store/settings";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
+import { DateCard } from "@/components/ui/DateCard";
 import { DialogShell } from "@/components/ui/DialogShell";
 import { Field } from "@/components/ui/Field";
 import { OptionPills } from "@/components/ui/OptionPills";
@@ -28,7 +30,8 @@ interface OnboardingDialogProps {
 
 interface Draft {
   currency: Currency;
-  currentAge: number;
+  /** YYYY-MM-DD. */
+  birthDate: string;
   retirementAge: number;
   salary: number | null;
   kiwisaverRate: number;
@@ -54,7 +57,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>({
     currency: settings.displayCurrency,
-    currentAge: settings.currentAge,
+    birthDate: settings.birthDate,
     retirementAge: settings.retirementAge,
     salary: null,
     kiwisaverRate: 0.03,
@@ -69,7 +72,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
   const finish = () => {
     updateSettings({
       displayCurrency: draft.currency,
-      currentAge: draft.currentAge,
+      birthDate: draft.birthDate,
       retirementAge: draft.retirementAge,
       annualExpenses: draft.annualExpenses ?? settings.annualExpenses,
       onboarded: true,
@@ -128,6 +131,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
   };
 
   const isLast = step === STEPS.length - 1;
+  const age = ageOn(draft.birthDate);
 
   return (
     <DialogShell
@@ -186,22 +190,20 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
               onChange={(c) => set("currency", c)}
             />
           </Field>
-          <SliderField
-            display={`${draft.currentAge}`}
-            hint="Used to age every projection"
-            label="Your age"
-            max={80}
-            min={16}
-            step={1}
-            value={draft.currentAge}
-            onChange={(v) => set("currentAge", v)}
+          <DateCard
+            hint="Every age in the plan is counted from it, so it never needs updating"
+            label="Date of birth"
+            max={todayIso()}
+            meta={`Age ${age}`}
+            value={draft.birthDate}
+            onChange={(v) => set("birthDate", v)}
           />
           <SliderField
             display={`${draft.retirementAge}`}
-            hint={`${Math.max(0, draft.retirementAge - draft.currentAge)} years away`}
+            hint={`${Math.max(0, draft.retirementAge - age)} years away`}
             label="Target retirement age"
             max={80}
-            min={Math.max(draft.currentAge + 1, 25)}
+            min={Math.max(age + 1, 25)}
             step={1}
             value={draft.retirementAge}
             onChange={(v) => set("retirementAge", v)}

@@ -5,7 +5,7 @@ import { useId } from "react";
 
 import { useAutoFocus } from "@/hooks/useAutoFocus";
 import { useNumericField } from "@/hooks/useNumericField";
-import { FieldLabel } from "@/components/ui/Field";
+import { CARD_FRAME, FieldLabel } from "@/components/ui/Field";
 
 type CardSize = "sm" | "md" | "lg";
 
@@ -89,12 +89,7 @@ export function NumericCard({
   );
 
   return (
-    <div
-      className={clsx(
-        "rounded-xl border border-line bg-surface px-4 py-3.5 transition-[border-color,box-shadow] duration-[var(--dur-hover)]",
-        "hover:border-ink-3 focus-within:border-ink focus-within:shadow-[0_0_0_3px_var(--wash-strong)] focus-within:hover:border-ink",
-      )}
-    >
+    <div className={CARD_FRAME}>
       <div className="mb-1.5 flex min-h-[22px] items-center justify-between gap-3">
         <FieldLabel htmlFor={id}>{label}</FieldLabel>
         {action ??

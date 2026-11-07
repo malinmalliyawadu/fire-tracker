@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { useAutoSnapshot } from "@/hooks/useAutoSnapshot";
+import { useKeepAgesCurrent } from "@/hooks/useKeepAgesCurrent";
 import CashFlow from "@/pages/CashFlow";
 import Overview from "@/pages/Overview";
 import Portfolio from "@/pages/Portfolio";
@@ -9,6 +10,7 @@ import Settings from "@/pages/Settings";
 import Simulate from "@/pages/Simulate";
 
 export default function App() {
+  useKeepAgesCurrent();
   useAutoSnapshot();
 
   return (
