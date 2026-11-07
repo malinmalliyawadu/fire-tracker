@@ -1,4 +1,5 @@
 import type { KeyboardEvent, PointerEvent } from "react";
+import type { NetWorthSnapshot } from "@/store/history";
 
 import clsx from "clsx";
 import { format, parseISO } from "date-fns";
@@ -15,11 +16,15 @@ import {
 import { convert } from "@/domain/currency";
 import { coastPoint } from "@/domain/projection";
 import { formatMoney, formatMoneyCompact } from "@/domain/format";
-import { yearsBetween } from "@/domain/tracking";
+import { projectedAt, readPot, yearsBetween } from "@/domain/tracking";
 import { useFireSummary } from "@/hooks/useFireSummary";
 import { useHistory } from "@/store/history";
 import { useSettings } from "@/store/settings";
-import { useAfterTaxReturn, useCurrentProjection } from "@/store/derived";
+import {
+  useAfterTaxReturn,
+  useCurrentProjection,
+  usePlanTracking,
+} from "@/store/derived";
 
 interface Mark {
   age: number;
@@ -37,6 +42,8 @@ interface Point {
   when: string;
   netWorth: number;
   debt: number;
+  /** Where the plan, run from the first snapshot, said the pot would be. */
+  plan: number | null;
 }
 
 interface AxisLabel {
@@ -56,21 +63,43 @@ const CARD_GAP = 14;
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
+/** A short sample of one of the band's lines, for the legend. */
+function Swatch({ kind }: { kind: "recorded" | "projected" | "plan" }) {
+  return (
+    <svg aria-hidden className="h-[6px] w-5 shrink-0" viewBox="0 0 20 6">
+      <line
+        stroke="currentColor"
+        strokeDasharray={kind === "plan" ? "3 3" : undefined}
+        strokeLinecap="round"
+        strokeOpacity={kind === "plan" ? 0.6 : 1}
+        strokeWidth={kind === "recorded" ? 2.75 : kind === "plan" ? 1.25 : 1.75}
+        x1="1"
+        x2="19"
+        y1="3"
+        y2="3"
+      />
+    </svg>
+  );
+}
+
 const toPath = (coords: [number, number][]): string =>
   coords
     .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`)
     .join(" ");
 
 /**
- * The journey: net worth across the rest of a life, with the moments that
+ * The journey: the FIRE pot across the rest of a life, with the moments that
  * matter marked on it. What has been recorded is drawn as the record, and the
- * projection takes over from today. The one horizontal line is the target; the
- * part of the path that clears it is lit. Point, drag, or arrow along it to
- * read any year.
+ * projection takes over from today. Once there is a record, the plan as it
+ * would have run from the first snapshot is drawn dashed behind both, so the
+ * gap between it and the path is how far ahead or behind you are. The one
+ * horizontal line is the target; the part of the path that clears it is lit.
+ * Point, drag, or arrow along it to read any year.
  */
 export function JourneyBand() {
   const projection = useCurrentProjection();
   const snapshots = useHistory((s) => s.snapshots);
+  const { plan, excluded } = usePlanTracking();
   const summary = useFireSummary();
   const settings = useSettings((s) => s.settings);
   const afterTax = useAfterTaxReturn();
@@ -101,29 +130,56 @@ export function JourneyBand() {
     const today = nowIso.slice(0, 10);
     const thisYear = now.getFullYear();
 
-    // The record: every snapshot before today, placed by how long ago it was.
+    // The plan's value at an age, for any point on or after its start.
+    const planAt = (age: number): number | null =>
+      plan && age >= plan.ageAtStart - 1 / 365
+        ? projectedAt(plan.points, Math.max(0, age - plan.ageAtStart))
+        : null;
+
+    // A snapshot's money in today's display currency.
+    const inDisplay = (s: NetWorthSnapshot): NetWorthSnapshot => {
+      const to = (amount: number) =>
+        convert(amount, s.currency, currency, settings.usdToNzd);
+      const maybe = (amount: number | undefined) =>
+        amount === undefined ? undefined : to(amount);
+
+      return {
+        ...s,
+        currency,
+        netWorth: to(s.netWorth),
+        assetsTotal: to(s.assetsTotal),
+        liabilitiesTotal: to(s.liabilitiesTotal),
+        fireNetWorth: maybe(s.fireNetWorth),
+        fireAssetsTotal: maybe(s.fireAssetsTotal),
+      };
+    };
+
+    // The record: every snapshot before today, placed by how long ago it was
+    // and read on the pot's basis so it joins the projection without a step.
     // Today's own reading is the live figure the projection starts from.
     const recorded: Point[] = [...snapshots]
       .filter((s) => s.date.slice(0, 10) < today)
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map((s) => ({
-        kind: "recorded",
-        age: settings.currentAge - yearsBetween(s.date, nowIso),
-        when: format(parseISO(s.date), "d MMM yyyy"),
-        netWorth: convert(s.netWorth, s.currency, currency, settings.usdToNzd),
-        debt: convert(
-          s.liabilitiesTotal,
-          s.currency,
-          currency,
-          settings.usdToNzd,
-        ),
-      }));
+      .map((s) => {
+        const pot = readPot(inDisplay(s), excluded);
+        const age = settings.currentAge - yearsBetween(s.date, nowIso);
+
+        return {
+          kind: "recorded",
+          age,
+          when: format(parseISO(s.date), "d MMM yyyy"),
+          netWorth: pot.netWorth,
+          debt: pot.debt,
+          plan: planAt(age),
+        };
+      });
     const projected: Point[] = projection.map((p) => ({
       kind: "projected",
       age: p.age,
       when: String(thisYear + p.year),
       netWorth: p.netWorth,
       debt: p.debt,
+      plan: planAt(p.age),
     }));
     const points = [...recorded, ...projected];
     const todayIndex = recorded.length;
@@ -132,8 +188,24 @@ export function JourneyBand() {
     const maxAge = points[points.length - 1].age;
     const span = Math.max(1, maxAge - minAge);
 
+    // The plan only earns a line once there is a record to hold it against;
+    // before that it is the projection.
+    const planned: [number, number][] =
+      plan && recorded.length > 0
+        ? plan.points
+            .map((p): [number, number] => [
+              plan.ageAtStart + p.year,
+              p.netWorth,
+            ])
+            .filter(([age]) => age <= maxAge)
+        : [];
+
     const values = points.map((p) => p.netWorth);
-    const maxValue = Math.max(summary.target, ...values);
+    const maxValue = Math.max(
+      summary.target,
+      ...values,
+      ...planned.map(([, v]) => v),
+    );
     const minValue = Math.min(0, ...values);
     const top = maxValue * 1.08 || 1;
     const range = top - minValue || 1;
@@ -150,6 +222,10 @@ export function JourneyBand() {
 
     const line = toPath(coords(points));
     const area = line + close(points);
+    const planLine =
+      planned.length > 1
+        ? toPath(planned.map(([age, v]) => [x(age), y(v)]))
+        : null;
     // The record runs up to today's live figure.
     const recordedPoints = recorded.length ? [...recorded, projected[0]] : null;
     const recordedLine = recordedPoints ? toPath(coords(recordedPoints)) : null;
@@ -229,6 +305,8 @@ export function JourneyBand() {
       area,
       recordedLine,
       recordedArea,
+      planLine,
+      planSince: plan ? format(parseISO(plan.since), "d MMM yyyy") : null,
       targetY,
       baselineY,
       x,
@@ -243,7 +321,16 @@ export function JourneyBand() {
       recordedSince: recorded[0]?.when ?? null,
       peak: Math.max(...values),
     };
-  }, [projection, snapshots, summary, settings, afterTax, currency]);
+  }, [
+    projection,
+    snapshots,
+    plan,
+    excluded,
+    summary,
+    settings,
+    afterTax,
+    currency,
+  ]);
 
   const points = model?.points ?? [];
   const last = points.length - 1;
@@ -493,6 +580,10 @@ export function JourneyBand() {
   const lit =
     reading !== null && hasTarget && reading.netWorth >= summary.target;
   const gap = reading === null ? 0 : reading.netWorth - summary.target;
+  const planGap =
+    reading?.plan != null && model.planLine
+      ? reading.netWorth - reading.plan
+      : null;
 
   const valueText =
     reading === null
@@ -563,6 +654,19 @@ export function JourneyBand() {
           ))}
 
           <path d={model.area} fill="var(--ink)" opacity={0.06} />
+          {/* The plan from the first snapshot, behind the path it is held against. */}
+          {model.planLine && (
+            <path
+              d={model.planLine}
+              fill="none"
+              stroke="var(--ink)"
+              strokeDasharray="4 5"
+              strokeLinejoin="round"
+              strokeOpacity={0.5}
+              strokeWidth={1.25}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
           {/* The record sits heavier on the page than what is projected. */}
           {model.recordedArea && (
             <path d={model.recordedArea} fill="var(--ink)" opacity={0.1} />
@@ -709,12 +813,33 @@ export function JourneyBand() {
                   : `${formatMoneyCompact(-gap, currency)} short of the target`}
               </div>
             )}
-            {reading.debt > 0 && (
-              <div className="num mt-1.5 flex items-baseline justify-between gap-5 border-t border-line-soft pt-1.5 text-[12.5px]">
-                <span className="text-ink-3">Debt owing</span>
-                <span className="text-ink-2">
-                  {formatMoney(reading.debt, currency)}
-                </span>
+            {(planGap !== null || reading.debt > 0) && (
+              <div className="num mt-1.5 space-y-0.5 border-t border-line-soft pt-1.5 text-[12.5px]">
+                {planGap !== null && reading.plan != null && (
+                  <div className="flex items-baseline justify-between gap-5">
+                    <span className="text-ink-3">
+                      Plan said {formatMoneyCompact(reading.plan, currency)}
+                    </span>
+                    <span
+                      className={clsx(
+                        "font-medium",
+                        planGap >= 0 ? "text-gain" : "text-loss",
+                      )}
+                    >
+                      {planGap >= 0 ? "+" : "−"}
+                      {formatMoneyCompact(Math.abs(planGap), currency)}{" "}
+                      {planGap >= 0 ? "ahead" : "behind"}
+                    </span>
+                  </div>
+                )}
+                {reading.debt > 0 && (
+                  <div className="flex items-baseline justify-between gap-5">
+                    <span className="text-ink-3">Debt owing</span>
+                    <span className="text-ink-2">
+                      {formatMoney(reading.debt, currency)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -722,7 +847,7 @@ export function JourneyBand() {
 
         {/* The hit area: pointer, touch and keyboard all read through it. */}
         <div
-          aria-label="Net worth by age, recorded and projected"
+          aria-label="FIRE pot by age, recorded and projected"
           aria-orientation="horizontal"
           aria-valuemax={model.maxAge}
           aria-valuemin={Math.round(model.minAge)}
@@ -759,10 +884,30 @@ export function JourneyBand() {
         ))}
       </div>
 
+      {/* What the three lines are, once there are three. */}
+      {model.planLine && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-ink-3">
+          <span className="inline-flex items-center gap-2">
+            <Swatch kind="recorded" />
+            Recorded
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Swatch kind="projected" />
+            Projected from today
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Swatch kind="plan" />
+            The plan from {model.planSince}
+          </span>
+        </div>
+      )}
+
       <figcaption className="sr-only">
         {model.recordedSince
-          ? `Net worth recorded since ${model.recordedSince}, then projected to age ${model.maxAge}, peaking at ${formatMoneyCompact(model.peak, currency)}.`
-          : `Projected net worth from age ${settings.currentAge} to ${model.maxAge}, peaking at ${formatMoneyCompact(model.peak, currency)}.`}{" "}
+          ? `FIRE pot recorded since ${model.recordedSince}, then projected to age ${model.maxAge}, peaking at ${formatMoneyCompact(model.peak, currency)}.`
+          : `Projected FIRE pot from age ${settings.currentAge} to ${model.maxAge}, peaking at ${formatMoneyCompact(model.peak, currency)}.`}{" "}
+        {model.planLine &&
+          `The plan as run from ${model.planSince} is drawn for comparison. `}
         Use the arrow keys on the chart to read any point.
       </figcaption>
     </figure>

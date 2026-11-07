@@ -6,7 +6,11 @@ import {
   formatPercent,
 } from "@/domain/format";
 import { yearsBetween } from "@/domain/tracking";
-import { describeYears, useFireSummary } from "@/hooks/useFireSummary";
+import {
+  describeSpan,
+  describeYears,
+  useFireSummary,
+} from "@/hooks/useFireSummary";
 import { useHistory } from "@/store/history";
 import { useSettings } from "@/store/settings";
 import { usePlanContributions, usePortfolioTotals } from "@/store/derived";
@@ -19,21 +23,6 @@ const WINDOW_DAYS = 30;
 
 const signed = (amount: number, currency: "NZD" | "USD") =>
   `${amount >= 0 ? "+" : "−"}${formatMoneyCompact(Math.abs(amount), currency)}`;
-
-/** "3 weeks", "2 months", "1 year" for a span given in years. */
-const describeSpan = (years: number): string => {
-  const days = Math.abs(years) * 365.25;
-
-  if (days < 7)
-    return `${Math.max(1, Math.round(days))} day${Math.round(days) === 1 ? "" : "s"}`;
-  if (days < 45) {
-    const weeks = Math.round(days / 7);
-
-    return `${weeks} week${weeks === 1 ? "" : "s"}`;
-  }
-
-  return describeYears(Math.abs(years));
-};
 
 /**
  * The numbers that move between visits, each against where it stood a month

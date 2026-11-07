@@ -2,7 +2,11 @@ import clsx from "clsx";
 
 import { formatMoneyCompact, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
-import { useFireTargets, usePlanBudget } from "@/store/derived";
+import {
+  useFireTargets,
+  usePlanBudget,
+  usePlanTracking,
+} from "@/store/derived";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { Section } from "@/components/ui/Section";
 import { SliderField } from "@/components/ui/SliderField";
@@ -15,7 +19,15 @@ export function Goals() {
   // drift from the rest of the app once expenses are itemised on Cash flow.
   const targets = useFireTargets();
   const budget = usePlanBudget();
+  const { returns } = usePlanTracking();
   const currency = settings.displayCurrency;
+
+  // Observed returns are after tax, so say which figure they are read against.
+  const earnedHint = returns
+    ? settings.applyInvestmentTax
+      ? ` So far your pot has earned ${formatPercent(returns.estimate.annualised, 1)} a year after tax, against the ${formatPercent(returns.expectedAfterTax, 1)} this comes to after tax.`
+      : ` So far your pot has earned ${formatPercent(returns.estimate.annualised, 1)} a year.`
+    : "";
 
   return (
     <Section
@@ -71,7 +83,7 @@ export function Goals() {
 
         <SliderField
           display={formatPercent(settings.expectedReturn, 1)}
-          hint="Long-run nominal return on investments, before tax"
+          hint={`Long-run nominal return on investments, before tax.${earnedHint}`}
           label="Expected return"
           max={0.15}
           min={0}
