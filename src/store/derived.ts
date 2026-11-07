@@ -8,6 +8,7 @@ import type {
 import type { ProjectionInputBundle } from "@/domain/plan";
 import type { ProjectionLiability } from "@/domain/projection";
 import type { SanityWarning } from "@/domain/sanity";
+import type { AssetWeight, InvestmentTaxRates } from "@/domain/tax";
 
 import { useMemo } from "react";
 
@@ -34,6 +35,7 @@ import {
   DEFAULT_EMPLOYER_KIWISAVER_RATE,
   esctRate,
   governmentContribution,
+  investmentTaxBreakdown,
   marginalRate,
   payeTax,
   prescribedInvestorRate,
@@ -490,28 +492,52 @@ export const useSavingsSummary = (): SavingsSummary => {
  */
 export const useAfterTaxReturn = (nominalReturn?: number): number => {
   const settings = useSettings((s) => s.settings);
-  const assets = usePortfolio((s) => s.assets);
-  const income = useIncomeTotals();
+  const tax = useInvestmentTax();
 
   return useMemo(() => {
     const nominal = nominalReturn ?? settings.expectedReturn;
 
-    if (!settings.applyInvestmentTax) return nominal;
+    if (!tax) return nominal;
+
+    return blendedAfterTaxReturn(tax.weights, nominal, tax.rates);
+  }, [tax, settings.expectedReturn, nominalReturn]);
+};
+
+interface InvestmentTax {
+  /** The retirement pot by asset type, in display currency. */
+  weights: AssetWeight[];
+  rates: InvestmentTaxRates;
+}
+
+/**
+ * What investment tax is applied to and at what rates, or null when tax
+ * modelling is switched off.
+ *
+ * Only the retirement pot is weighted: it is the only part projected, and an
+ * excluded home shouldn't lift the return on the assets being drawn on.
+ */
+const useInvestmentTax = (): InvestmentTax | null => {
+  const settings = useSettings((s) => s.settings);
+  const assets = usePortfolio((s) => s.assets);
+  const income = useIncomeTotals();
+
+  return useMemo(() => {
+    if (!settings.applyInvestmentTax) return null;
 
     const display = settings.displayCurrency;
     const rate = settings.usdToNzd;
-    // Only the retirement pot is projected, so only it should set the blend —
-    // an excluded home shouldn't lift the return on the assets being drawn on.
-    const weights = assets.filter(countsTowardFire).map((a) => ({
-      type: a.type,
-      value: convert(a.value, a.currency, display, rate),
-    }));
 
-    return blendedAfterTaxReturn(weights, nominal, {
-      marginal: income.marginalRate,
-      pir: settings.pirOverride ?? income.pir,
-    });
-  }, [assets, settings, income, nominalReturn]);
+    return {
+      weights: assets.filter(countsTowardFire).map((a) => ({
+        type: a.type,
+        value: convert(a.value, a.currency, display, rate),
+      })),
+      rates: {
+        marginal: income.marginalRate,
+        pir: settings.pirOverride ?? income.pir,
+      },
+    };
+  }, [assets, settings, income]);
 };
 
 export interface PlanContributions {
@@ -767,6 +793,7 @@ export const useSanityWarnings = (): SanityWarning[] => {
   const budget = usePlanBudget();
   const savings = useSavingsSummary();
   const afterTax = useAfterTaxReturn();
+  const tax = useInvestmentTax();
   const debt = useDebtSpending();
 
   return useMemo(
@@ -774,6 +801,16 @@ export const useSanityWarnings = (): SanityWarning[] => {
       checkAssumptions({
         settings,
         afterTaxReturn: afterTax,
+        investmentTax: tax
+          ? {
+              rates: tax.rates,
+              slices: investmentTaxBreakdown(
+                tax.weights,
+                settings.expectedReturn,
+                tax.rates,
+              ),
+            }
+          : undefined,
         realReturn: afterTax - settings.inflationRate,
         retirementExpenses: budget.retirementExpenses,
         savingsRate: savings.savingsRate,
@@ -785,7 +822,7 @@ export const useSanityWarnings = (): SanityWarning[] => {
         hasDebtPastRetirement: debt.annualPastRetirement > 0,
         hasUnpairedPropertyDebt: totals.unpairedMortgages.length > 0,
       }),
-    [settings, afterTax, budget, savings, allocation, totals, debt],
+    [settings, afterTax, tax, budget, savings, allocation, totals, debt],
   );
 };
 

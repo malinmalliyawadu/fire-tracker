@@ -153,38 +153,49 @@ export interface InvestmentTaxRates {
 }
 
 /**
- * Annual return after investment tax, for one asset class.
+ * How an asset class is taxed. New Zealand has no general capital gains tax,
+ * so what gets taxed depends heavily on *what* you hold:
  *
- * New Zealand has no general capital gains tax, so what gets taxed depends
- * heavily on *what* you hold:
- *
- * - **Savings** — interest is income, taxed in full at your marginal rate.
- * - **KiwiSaver and shares** — assumed to be held through PIE funds, where
- *   Fair Dividend Rate deems 5% of value to be income each year and taxes it
- *   at your PIR. Note this is a flat drag: it applies whether the fund went up
- *   or down, so a bad year is taxed just the same.
- * - **Property** — capital growth is untaxed outside the bright-line period.
- *   Rental income is modelled separately as an income source.
- * - **Crypto** — IRD treats disposal gains as income for most holders, so the
- *   whole return is taxed at the marginal rate.
- * - **Other** — left untaxed; too unspecified to guess.
+ * - **income** — Savings interest is income, taxed in full at your marginal
+ *   rate. Crypto disposal gains are treated the same way for most holders.
+ * - **pie** — KiwiSaver and shares are assumed to be held through PIE funds,
+ *   where Fair Dividend Rate deems 5% of value to be income each year and
+ *   taxes it at your PIR. This is a flat drag: it applies whether the fund
+ *   went up or down, so a bad year is taxed just the same.
+ * - **untaxed** — Property growth is untaxed outside the bright-line period
+ *   (rental income is modelled separately as an income source), and "other"
+ *   is too unspecified to guess at.
  */
+export type TaxRule = "income" | "pie" | "untaxed";
+
+export const taxRuleFor = (assetType: AssetType): TaxRule => {
+  switch (assetType) {
+    case "savings":
+    case "crypto":
+      return "income";
+    case "kiwisaver":
+    case "shares":
+      return "pie";
+    case "property":
+    case "other":
+    default:
+      return "untaxed";
+  }
+};
+
+/** Annual return after investment tax, for one asset class. */
 export const afterTaxReturn = (
   assetType: AssetType,
   nominalReturn: number,
   rates: InvestmentTaxRates,
 ): number => {
-  switch (assetType) {
-    case "savings":
-    case "crypto":
+  switch (taxRuleFor(assetType)) {
+    case "income":
       return nominalReturn * (1 - rates.marginal);
-    case "kiwisaver":
-    case "shares":
+    case "pie":
       // FDR taxes 5% of value, not the actual return.
       return nominalReturn - rates.pir * FAIR_DIVIDEND_RATE;
-    case "property":
-    case "other":
-    default:
+    case "untaxed":
       return nominalReturn;
   }
 };
@@ -214,6 +225,63 @@ export const blendedAfterTaxReturn = (
         afterTaxReturn(w.type, nominalReturn, rates),
     0,
   );
+};
+
+export interface TaxDragSlice {
+  rule: TaxRule;
+  /** Asset types the rule applies to in this portfolio, largest first. */
+  types: AssetType[];
+  /** Share of the portfolio under this rule, 0 to 1. */
+  share: number;
+  /** What the slice takes off the blended return, as a fraction. */
+  drag: number;
+}
+
+const TAX_RULE_ORDER: TaxRule[] = ["pie", "income", "untaxed"];
+
+/**
+ * Where the blended tax drag comes from: one slice per tax rule, in a fixed
+ * order, covering only the rules this portfolio actually touches. The drags
+ * sum to the gap between the nominal and blended after-tax return.
+ */
+export const investmentTaxBreakdown = (
+  weights: AssetWeight[],
+  nominalReturn: number,
+  rates: InvestmentTaxRates,
+): TaxDragSlice[] => {
+  const total = weights.reduce((sum, w) => sum + Math.max(0, w.value), 0);
+
+  if (total <= 0) return [];
+
+  const valueByType = new Map<AssetType, number>();
+
+  for (const w of weights) {
+    if (w.value <= 0) continue;
+    valueByType.set(w.type, (valueByType.get(w.type) ?? 0) + w.value);
+  }
+
+  return TAX_RULE_ORDER.map((rule) => {
+    const types = [...valueByType.entries()]
+      .filter(([type]) => taxRuleFor(type) === rule)
+      .sort(([, a], [, b]) => b - a);
+
+    return types.reduce<TaxDragSlice>(
+      (slice, [type, value]) => {
+        const share = value / total;
+
+        return {
+          ...slice,
+          types: [...slice.types, type],
+          share: slice.share + share,
+          drag:
+            slice.drag +
+            share *
+              (nominalReturn - afterTaxReturn(type, nominalReturn, rates)),
+        };
+      },
+      { rule, types: [], share: 0, drag: 0 },
+    );
+  }).filter((slice) => slice.types.length > 0);
 };
 
 export type NzSuperStatus =

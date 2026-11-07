@@ -1,6 +1,9 @@
 import type { Settings } from "@/types";
+import type { InvestmentTaxRates, TaxDragSlice } from "./tax";
 
 import { formatMoneyCompact } from "./format";
+import { ASSET_TYPE_LABEL } from "./labels";
+import { FAIR_DIVIDEND_RATE } from "./tax";
 
 export type WarningLevel = "warning" | "note";
 
@@ -26,10 +29,19 @@ export interface SanityWarning {
   calculation?: CalculationLine[];
 }
 
+/** The investment tax being applied, when it is switched on. */
+export interface InvestmentTaxInputs {
+  rates: InvestmentTaxRates;
+  /** Where the drag on the return comes from, by tax rule. */
+  slices: TaxDragSlice[];
+}
+
 export interface SanityInputs {
   settings: Settings;
   /** Nominal return after investment tax; the expected return when tax is off. */
   afterTaxReturn: number;
+  /** Absent when investment tax is switched off. */
+  investmentTax?: InvestmentTaxInputs;
   /** Real (inflation-adjusted) return actually used by the projection. */
   realReturn: number;
   /** Spending the FIRE target is built from. */
@@ -202,11 +214,14 @@ const withdrawalCalculation = (
       {
         label: "Investment tax",
         value: minus(settings.expectedReturn - input.afterTaxReturn),
-        note: "Blended across the assets funding retirement",
+        note: input.investmentTax
+          ? taxNote(input.investmentTax)
+          : "Blended across the assets funding retirement.",
       },
       {
         label: "Return after tax",
         value: pct(input.afterTaxReturn),
+        note: "Expected return less investment tax.",
         emphasis: "total",
       },
     );
@@ -214,7 +229,12 @@ const withdrawalCalculation = (
 
   lines.push(
     { label: "Inflation", value: minus(settings.inflationRate) },
-    { label: "Real return", value: pct(input.realReturn), emphasis: "total" },
+    {
+      label: "Real return",
+      value: pct(input.realReturn),
+      note: `${taxed ? "Return after tax" : "Expected return"} less inflation: the growth left once prices have risen. The projection works in today's dollars, so this is the rate the pot actually compounds at.`,
+      emphasis: "total",
+    },
     { label: "Withdrawal rate", value: pct(settings.withdrawalRate) },
     {
       label: "Drawn from capital",
@@ -225,6 +245,35 @@ const withdrawalCalculation = (
   );
 
   return lines;
+};
+
+/**
+ * Where the tax comes from, one sentence per rule: which holdings, how much
+ * of the pot they are, what is taxed at what rate, and what it costs. Each
+ * slice's drag is its share of the pot times the tax on that asset class, so
+ * the sentences add up to the figure on the line.
+ */
+const taxNote = ({ rates, slices }: InvestmentTaxInputs): string => {
+  const sentences = slices.map((slice) => {
+    const who = `${listNames(slice.types.map((t) => ASSET_TYPE_LABEL[t]))}, ${wholePct(slice.share)} of the pot`;
+
+    switch (slice.rule) {
+      case "pie":
+        return `${who}: ${rate(FAIR_DIVIDEND_RATE)} of value is deemed income each year and taxed at your ${rate(rates.pir)} PIR, costing ${pct(slice.drag)}.`;
+      case "income":
+        return `${who}: the whole return is taxed as income at your ${rate(rates.marginal)} marginal rate, costing ${pct(slice.drag)}.`;
+      case "untaxed":
+        return `${who}: growth is untaxed.`;
+    }
+  });
+
+  return `${sentences.join(" ")} Set under Investment tax in Settings.`;
+};
+
+const listNames = (names: string[]): string => {
+  if (names.length <= 1) return names.join("");
+
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 };
 
 /**
@@ -245,5 +294,11 @@ const capitalDrawNote = (input: SanityInputs, gap: number): string => {
 };
 
 const pct = (value: number): string => `${(value * 100).toFixed(1)}%`;
+
+const wholePct = (value: number): string => `${Math.round(value * 100)}%`;
+
+/** A tax rate: whole where it is whole (28%), one decimal where it isn't (17.5%). */
+const rate = (value: number): string =>
+  `${(value * 100).toFixed(1).replace(/\.0$/, "")}%`;
 
 const minus = (value: number): string => `−${pct(value)}`;
