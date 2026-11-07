@@ -1,28 +1,34 @@
 import type { FireType, SimulationInputs } from "@/types";
 
 import clsx from "clsx";
-import { Baby, Coffee, Landmark, Minus, Plus } from "lucide-react";
-
-import { SliderField } from "./SliderField";
+import { Baby, Coffee, Landmark } from "lucide-react";
 
 import { convert } from "@/domain/currency";
 import { FIRE_TYPES, FIRE_TYPE_META } from "@/domain/labels";
 import { formatMoney, formatPercent } from "@/domain/format";
 import { useSettings } from "@/store/settings";
 import { KID_INDEPENDENT_AGE, kidCostAtAge } from "@/domain/kids";
-import { Card } from "@/components/ui/Card";
+import { ChoiceCards } from "@/components/ui/ChoiceCards";
+import { Field } from "@/components/ui/Field";
+import { SliderField } from "@/components/ui/SliderField";
+import { Stepper } from "@/components/ui/Stepper";
 import { ToggleRow } from "@/components/ui/ToggleRow";
 
 interface SimulationControlsProps {
   inputs: SimulationInputs;
   onChange: (inputs: SimulationInputs) => void;
-  onReset: () => void;
 }
 
+const FIRE_OPTIONS = FIRE_TYPES.map((type) => ({
+  value: type,
+  label: FIRE_TYPE_META[type].label,
+  hint: FIRE_TYPE_META[type].description,
+}));
+
+/** The levers. Grouped by what they are about, separated by hairlines. */
 export function SimulationControls({
   inputs,
   onChange,
-  onReset,
 }: SimulationControlsProps) {
   const settings = useSettings((s) => s.settings);
   const display = settings.displayCurrency;
@@ -33,138 +39,105 @@ export function SimulationControls({
   ) => onChange({ ...inputs, [key]: value });
 
   return (
-    <Card
-      action={
-        <button
-          className="text-[11px] uppercase tracking-[0.18em] text-ink-400 transition hover:text-white"
-          onClick={onReset}
-        >
-          Reset
-        </button>
-      }
-      eyebrow="Inputs"
-      title="Simulation"
-    >
-      <div className="space-y-6">
-        <div>
-          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-300">
-            FIRE type
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {FIRE_TYPES.map((type) => (
-              <button
-                key={type}
-                className={clsx(
-                  "rounded-lg border px-3 py-2 text-left text-xs transition",
-                  inputs.fireType === type
-                    ? "border-accent/40 bg-accent/10 text-white"
-                    : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:text-white",
-                )}
-                onClick={() => set("fireType", type as FireType)}
-              >
-                <div className="font-semibold">
-                  {FIRE_TYPE_META[type].label}
-                </div>
-                <div className="mt-0.5 text-[10px] text-ink-400">
-                  {FIRE_TYPE_META[type].description}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="space-y-5">
+      <Field label="Retirement">
+        <ChoiceCards<FireType>
+          cols={2}
+          options={FIRE_OPTIONS}
+          value={inputs.fireType}
+          onChange={(v) => set("fireType", v)}
+        />
+      </Field>
 
+      <div className="space-y-5 border-t border-line-soft pt-5">
         <SliderField
-          display={`${formatMoney(inputs.monthlySavings, display)}/mo`}
-          hint={`Annual: ${formatMoney(inputs.monthlySavings * 12, display)}`}
-          label="Monthly Savings"
+          display={`${formatMoney(inputs.monthlySavings, display)} a month`}
+          hint={`${formatMoney(inputs.monthlySavings * 12, display)} a year`}
+          label="Monthly savings"
           max={20_000}
           min={0}
           step={50}
           value={inputs.monthlySavings}
           onChange={(v) => set("monthlySavings", v)}
         />
-
         <SliderField
           display={formatPercent(inputs.expectedReturn, 1)}
-          hint="Nominal annual return on investments"
-          label="Expected Return"
+          hint="Nominal annual return, before investment tax"
+          label="Expected return"
           max={0.15}
           min={0}
           step={0.001}
           value={inputs.expectedReturn}
           onChange={(v) => set("expectedReturn", v)}
         />
-
         <SliderField
           display={formatPercent(inputs.withdrawalRate, 1)}
-          hint="Safe withdrawal rate at retirement"
-          label="Withdrawal Rate"
+          hint="Share of the pot drawn each year in retirement"
+          label="Withdrawal rate"
           max={0.06}
           min={0.025}
           step={0.001}
           value={inputs.withdrawalRate}
           onChange={(v) => set("withdrawalRate", v)}
         />
-
         <SliderField
           display={`${inputs.retirementAge}`}
-          hint={`Retirement at age ${inputs.retirementAge}`}
-          label="Retirement Age"
+          hint={`Stop work at ${inputs.retirementAge}`}
+          label="Retirement age"
           max={75}
           min={Math.max(settings.currentAge + 1, 30)}
           step={1}
           value={inputs.retirementAge}
           onChange={(v) => set("retirementAge", v)}
         />
+      </div>
 
+      <div className="space-y-3 border-t border-line-soft pt-5">
         <NzSuperToggle
           enabled={inputs.includeNzSuper}
           onToggle={(v) => set("includeNzSuper", v)}
         />
-
         <KidsToggle
           enabled={inputs.includeKids}
           numberOfKids={inputs.numberOfKids}
           onCountChange={(v) => set("numberOfKids", v)}
           onToggle={(v) => set("includeKids", v)}
         />
-
-        <div className="space-y-5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-          <div className="flex items-center gap-2">
-            <Coffee className="h-3.5 w-3.5 text-ink-300" />
-            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-300">
-              Barista FIRE
-            </span>
-          </div>
-          <SliderField
-            display={
-              inputs.baristaIncome > 0
-                ? `${formatMoney(inputs.baristaIncome, display)}/yr`
-                : "Off"
-            }
-            hint="Part-time earnings that bridge early retirement"
-            label="Part-time income"
-            max={60_000}
-            min={0}
-            step={1_000}
-            value={inputs.baristaIncome}
-            onChange={(v) => set("baristaIncome", v)}
-          />
-          {inputs.baristaIncome > 0 && (
-            <SliderField
-              display={`${inputs.baristaUntilAge}`}
-              hint={`Working part-time until ${inputs.baristaUntilAge}`}
-              label="Until age"
-              max={75}
-              min={inputs.retirementAge}
-              step={1}
-              value={inputs.baristaUntilAge}
-              onChange={(v) => set("baristaUntilAge", v)}
-            />
-          )}
-        </div>
       </div>
-    </Card>
+
+      <div className="space-y-5 border-t border-line-soft pt-5">
+        <div className="flex items-center gap-2 text-[13px] font-medium text-ink-2">
+          <Coffee className="h-3.5 w-3.5" strokeWidth={2} />
+          Barista FIRE
+        </div>
+        <SliderField
+          display={
+            inputs.baristaIncome > 0
+              ? `${formatMoney(inputs.baristaIncome, display)} a year`
+              : "Off"
+          }
+          hint="Part-time earnings that bridge early retirement"
+          label="Part-time income"
+          max={60_000}
+          min={0}
+          step={1_000}
+          value={inputs.baristaIncome}
+          onChange={(v) => set("baristaIncome", v)}
+        />
+        {inputs.baristaIncome > 0 && (
+          <SliderField
+            display={`${inputs.baristaUntilAge}`}
+            hint={`Working part-time until ${inputs.baristaUntilAge}`}
+            label="Until age"
+            max={75}
+            min={inputs.retirementAge}
+            step={1}
+            value={inputs.baristaUntilAge}
+            onChange={(v) => set("baristaUntilAge", v)}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -186,7 +159,7 @@ function NzSuperToggle({ enabled, onToggle }: NzSuperToggleProps) {
 
   return (
     <ToggleRow
-      hint={`${formatMoney(annualInDisplay, settings.displayCurrency)}/yr from age ${startAge}`}
+      hint={`${formatMoney(annualInDisplay, settings.displayCurrency)} a year from age ${startAge}`}
       icon={Landmark}
       label="Include NZ Super"
       value={enabled}
@@ -220,60 +193,37 @@ function KidsToggle({
     settings.usdToNzd,
   );
 
-  const adjust = (delta: number) => {
-    const next = Math.min(MAX_KIDS, Math.max(1, safeCount + delta));
-
-    onCountChange(next);
-  };
-
   return (
     <div
       className={clsx(
-        "rounded-xl border transition",
-        enabled
-          ? "border-accent/40 bg-accent/10"
-          : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
+        "rounded-lg border transition-colors duration-[var(--dur-hover)]",
+        enabled ? "border-ink" : "border-line hover:border-ink-3",
       )}
     >
       <ToggleRow
         bare
         hint={
           enabled
-            ? `From ${formatMoney(firstYearAnnual, settings.displayCurrency)}/yr, easing off until age ${KID_INDEPENDENT_AGE}`
-            : `Cost varies by age — childcare, school, then study, to age ${KID_INDEPENDENT_AGE}`
+            ? `From ${formatMoney(firstYearAnnual, settings.displayCurrency)} a year, easing off until age ${KID_INDEPENDENT_AGE}`
+            : `Cost varies by age: childcare, school, then study, to age ${KID_INDEPENDENT_AGE}`
         }
         icon={Baby}
         label="Plan with kids"
         value={enabled}
         onChange={onToggle}
       />
-
       {enabled && (
-        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-3 py-2.5">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-ink-300">
+        <div className="flex items-center justify-between gap-3 border-t border-line-soft px-3.5 py-2.5">
+          <span className="text-[13px] font-medium text-ink-2">
             Number of kids
           </span>
-          <div className="flex items-center gap-2">
-            <button
-              aria-label="Decrease number of kids"
-              className="grid h-7 w-7 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-ink-300 transition hover:border-white/10 hover:text-white disabled:opacity-40 disabled:hover:border-white/[0.06] disabled:hover:text-ink-300"
-              disabled={safeCount <= 1}
-              onClick={() => adjust(-1)}
-            >
-              <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
-            </button>
-            <span className="font-mono tabular w-6 text-center text-sm font-semibold text-white">
-              {safeCount}
-            </span>
-            <button
-              aria-label="Increase number of kids"
-              className="grid h-7 w-7 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-ink-300 transition hover:border-white/10 hover:text-white disabled:opacity-40 disabled:hover:border-white/[0.06] disabled:hover:text-ink-300"
-              disabled={safeCount >= MAX_KIDS}
-              onClick={() => adjust(1)}
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-            </button>
-          </div>
+          <Stepper
+            label="number of kids"
+            max={MAX_KIDS}
+            min={1}
+            value={safeCount}
+            onChange={onCountChange}
+          />
         </div>
       )}
     </div>

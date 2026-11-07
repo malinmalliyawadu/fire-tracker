@@ -1,11 +1,11 @@
 import type { Scenario } from "@/types";
 
 import { Plus, X } from "lucide-react";
-import { Button } from "@heroui/button";
 import clsx from "clsx";
 
 import { useScenarios } from "@/store/scenarios";
-import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Section } from "@/components/ui/Section";
 
 interface ScenarioBarProps {
   onSaveCurrent: () => void;
@@ -18,24 +18,18 @@ export function ScenarioBar({ onSaveCurrent }: ScenarioBarProps) {
   const remove = useScenarios((s) => s.remove);
 
   return (
-    <Card
-      action={
-        <Button
-          className="bg-accent text-white"
-          size="sm"
-          startContent={<Plus className="h-3.5 w-3.5" />}
-          onPress={onSaveCurrent}
-        >
+    <Section
+      aside={
+        <Button icon={Plus} size="sm" variant="primary" onClick={onSaveCurrent}>
           Save current
         </Button>
       }
-      eyebrow="Compare up to 3"
+      lede="Compare up to three on the chart."
       title="Saved scenarios"
     >
       {scenarios.length === 0 ? (
-        <p className="py-3 text-sm text-ink-400">
-          Tweak the controls then save your first scenario to compare it on the
-          chart.
+        <p className="text-[14px] text-ink-3">
+          Move the controls, then save the result to lay it over the chart.
         </p>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -50,7 +44,7 @@ export function ScenarioBar({ onSaveCurrent }: ScenarioBarProps) {
           ))}
         </div>
       )}
-    </Card>
+    </Section>
   );
 }
 
@@ -70,34 +64,35 @@ function ScenarioChip({
   return (
     <div
       className={clsx(
-        "group flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-1.5 text-sm transition-colors",
+        "group flex items-center gap-1 rounded-full border py-1 pl-3 pr-1 text-[13.5px] transition-colors duration-[var(--dur-hover)]",
         compared
-          ? "border-white/15 bg-white/[0.07]"
-          : "border-white/[0.06] bg-white/[0.02] hover:border-white/10",
+          ? "border-ink bg-wash text-ink"
+          : "border-line text-ink-2 hover:border-ink-3 hover:text-ink",
       )}
     >
       <button
-        className="flex items-center gap-2"
+        aria-pressed={compared}
+        className="press flex items-center gap-2 rounded-full"
         title={compared ? "Hide on chart" : "Show on chart"}
+        type="button"
         onClick={onToggle}
       >
         <span
           className={clsx(
-            "h-2.5 w-2.5 rounded-full transition-all",
-            compared ? "ring-2 ring-white/30" : "opacity-70",
+            "h-2.5 w-2.5 rounded-full transition-opacity duration-[var(--dur-hover)]",
+            compared ? "opacity-100" : "opacity-60",
           )}
           style={{ backgroundColor: scenario.color }}
         />
-        <span className={compared ? "text-white" : "text-ink-300"}>
-          {scenario.name}
-        </span>
+        <span className="font-medium">{scenario.name}</span>
       </button>
       <button
         aria-label={`Delete ${scenario.name}`}
-        className="grid h-5 w-5 place-items-center rounded-full text-ink-500 opacity-0 transition group-hover:opacity-100 hover:bg-white/5 hover:text-white"
+        className="press grid h-6 w-6 place-items-center rounded-full text-ink-3 opacity-0 transition-[opacity,background-color,color] duration-[var(--dur-hover)] hover:bg-wash-strong hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
+        type="button"
         onClick={onRemove}
       >
-        <X className="h-3 w-3" />
+        <X className="h-3 w-3" strokeWidth={2.25} />
       </button>
     </div>
   );

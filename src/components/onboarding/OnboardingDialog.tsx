@@ -1,6 +1,5 @@
 import type { Currency } from "@/types";
 
-import { Button } from "@heroui/button";
 import { Flame } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
@@ -19,7 +18,8 @@ import { CurrencyToggle } from "@/components/ui/CurrencyToggle";
 import { DialogShell } from "@/components/ui/DialogShell";
 import { Field } from "@/components/ui/Field";
 import { OptionPills } from "@/components/ui/OptionPills";
-import { SliderField } from "@/components/simulate/SliderField";
+import { SliderField } from "@/components/ui/SliderField";
+import { Button } from "@/components/ui/Button";
 
 interface OnboardingDialogProps {
   isOpen: boolean;
@@ -134,26 +134,26 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
       footer={
         <>
           {step > 0 && (
-            <Button variant="light" onPress={() => setStep(step - 1)}>
+            <Button variant="ghost" onClick={() => setStep(step - 1)}>
               Back
             </Button>
           )}
           <Button
-            className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
-            onPress={() => (isLast ? finish() : setStep(step + 1))}
+            variant="primary"
+            onClick={() => (isLast ? finish() : setStep(step + 1))}
           >
             {isLast ? "Start tracking" : "Next"}
           </Button>
         </>
       }
       footerStart={
-        <Button size="sm" variant="light" onPress={skip}>
+        <Button size="sm" variant="ghost" onClick={skip}>
           Skip setup
         </Button>
       }
       icon={Flame}
       isOpen={isOpen}
-      subtitle="Four quick questions. Everything is editable later, and nothing leaves your browser."
+      subtitle="Four quick questions. Everything can be changed later, and nothing leaves your browser."
       title="Set up your plan"
       onClose={skip}
     >
@@ -162,14 +162,14 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
           <div key={label} className="min-w-0 flex-1">
             <div
               className={clsx(
-                "h-1 rounded-full transition-colors",
-                index <= step ? "bg-accent" : "bg-white/[0.08]",
+                "h-[3px] rounded-full transition-colors duration-[var(--dur-hover)]",
+                index <= step ? "bg-ink" : "bg-wash-strong",
               )}
             />
             <div
               className={clsx(
-                "mt-2 truncate text-[10px] font-medium uppercase tracking-[0.18em] transition-colors",
-                index === step ? "text-white" : "text-ink-500",
+                "mt-2 truncate text-[12px] font-medium transition-colors duration-[var(--dur-hover)]",
+                index === step ? "text-ink" : "text-ink-3",
               )}
             >
               {label}
@@ -226,7 +226,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
               onChange={(v) => set("kiwisaverRate", v)}
             />
           </Field>
-          <p className="text-[11px] leading-relaxed text-ink-500">
+          <p className="text-[13px] leading-relaxed text-ink-3">
             Leave the salary blank if you&apos;d rather add income later. Your
             savings rate needs it to mean anything.
           </p>
@@ -244,11 +244,10 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
                 : "Everything you spend in a year, excluding loan repayments"
             }
             label="Annual spending"
-            tone="loss"
             value={draft.annualExpenses}
             onChange={(v) => set("annualExpenses", v)}
           />
-          <p className="text-[11px] leading-relaxed text-ink-500">
+          <p className="text-[13px] leading-relaxed text-ink-3">
             This sets your FIRE number — the 4% rule makes it 25× this figure.
             You can break it into categories on the Spending page afterwards,
             and mark which costs stop or start when you retire.
@@ -273,7 +272,7 @@ export function OnboardingDialog({ isOpen, onClose }: OnboardingDialogProps) {
             value={draft.investments}
             onChange={(v) => set("investments", v)}
           />
-          <p className="text-[11px] leading-relaxed text-ink-500">
+          <p className="text-[13px] leading-relaxed text-ink-3">
             Add property, crypto, and any loans from the Dashboard once
             you&apos;re in. Loans matter — they amortise properly here.
           </p>

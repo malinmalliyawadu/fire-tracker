@@ -8,34 +8,35 @@ interface FireInclusionToggleProps {
   includedHint: string;
   /** What excluding it means here, e.g. "Net worth only". */
   excludedHint: string;
-  tone?: "accent" | "loss";
 }
 
 /**
  * Whether a holding or debt belongs to the pot that funds retirement.
  *
  * Presented as a pair of labelled choices rather than a switch because the
- * excluded case needs its own explanation — "off" alone reads as a mistake.
+ * excluded case needs its own explanation: "off" alone reads as a mistake.
  */
 export function FireInclusionToggle({
   value,
   onChange,
   includedHint,
   excludedHint,
-  tone = "accent",
 }: FireInclusionToggleProps) {
   return (
-    <Field label="FIRE target">
+    <Field label="Counts toward FIRE?">
       <ChoiceCards
         options={[
           {
             value: "included",
-            label: "Counts toward FIRE",
+            label: "Yes, part of the pot",
             hint: includedHint,
           },
-          { value: "excluded", label: "Net worth only", hint: excludedHint },
+          {
+            value: "excluded",
+            label: "No, net worth only",
+            hint: excludedHint,
+          },
         ]}
-        tone={tone}
         value={value ? "included" : "excluded"}
         onChange={(next) => onChange(next === "included")}
       />

@@ -50,8 +50,9 @@ A comprehensive Financial Independence, Retire Early (FIRE) calculator and track
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite
-- **UI Components**: HeroUI (NextUI successor)
-- **Styling**: TailwindCSS
+- **UI**: Hand-built components on Tailwind CSS v4 design tokens, with HeroUI's modal for dialog accessibility
+- **Typography**: Bricolage Grotesque, one variable family for display, text and tabular figures
+- **Theme**: Light and dark, following the system or set by hand
 - **State Management**: Zustand with localStorage persistence
 - **Charts**: Recharts
 - **Testing**: Vitest with jsdom
@@ -95,15 +96,15 @@ npm run test:ui     # Run tests with UI interface
 npm run lint        # Run ESLint with auto-fix
 ```
 
-## Usage
+## The five pages
 
-1. **Set Your Goals**: Configure your FIRE target, withdrawal rate, and expected returns in Settings
-2. **Add Assets**: Input your current investments, savings, and other assets
-3. **Track Liabilities**: Add mortgages, loans, and debts with accurate interest rates
-4. **Monitor Progress**: View your progress towards FIRE with real-time calculations
-5. **Analyze Projections**: Use the Simulate page to model different assumptions and save scenarios to compare
-6. **Plan Your Journey**: Adjust contributions and see how it affects your timeline
-7. **Export**: Produce a Markdown or JSON snapshot for backup or for pasting into an LLM
+1. **Overview**: the one sentence the app exists to produce (when you are financially independent), the journey from now to then with the moments that matter marked on it, the four versions of done, and checks on whether the assumptions hold together
+2. **Portfolio**: assets and liabilities as ledgers, where the money sits, net worth history, and actual against plan
+3. **Cash flow**: income, spending, debt repayments, kids, life events and retirement spending phases, with the savings rate shown as a flow from gross income to what is saved
+4. **Simulate**: move the assumptions and watch the path bend; save scenarios and lay up to three over the chart
+5. **Settings**: the assumptions every projection is built on, plus export, import and reset
+
+Old addresses (`/spending`, `/export`) redirect to their new homes.
 
 ## Key Concepts
 
@@ -126,7 +127,6 @@ Projections run in **today's dollars**, compounding at the real return (nominal 
 - Tax rates and thresholds are hardcoded for one tax year in `src/domain/tax.ts` and need reviewing each April.
 - Asset values are entered by hand; there is no live price feed.
 - A partner's assets and income are pooled with yours — only their age is modelled separately.
-- The layout is desktop-only; there is no mobile view yet.
 
 ## Contributing
 

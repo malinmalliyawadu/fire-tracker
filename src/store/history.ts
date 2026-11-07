@@ -10,6 +10,12 @@ export interface NetWorthSnapshot {
   assetsTotal: number;
   liabilitiesTotal: number;
   currency: Currency;
+  /**
+   * Years to the traditional FIRE target as projected on the day. Lets the
+   * overview show whether the date is drifting earlier or later. Absent on
+   * snapshots taken before it was recorded.
+   */
+  yearsToFire?: number;
 }
 
 interface HistoryState {

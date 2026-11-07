@@ -1,5 +1,6 @@
 import type { SimulationInputs } from "@/types";
 
+import { RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { fireTargetFor } from "@/domain/fire";
@@ -18,8 +19,9 @@ import {
   usePlanContributions,
   usePortfolioTotals,
 } from "@/store/derived";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { PageIntro, Panel } from "@/components/ui/Section";
+import { FireLadder } from "@/components/simulate/FireLadder";
 import { ProjectionChart } from "@/components/simulate/ProjectionChart";
 import { ScenarioBar } from "@/components/simulate/ScenarioBar";
 import { SaveScenarioModal } from "@/components/simulate/SaveScenarioModal";
@@ -199,10 +201,19 @@ export default function Simulate() {
   );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        description="Drag sliders, watch the chart bend. Save scenarios to compare assumptions side-by-side."
-        eyebrow="What if?"
+    <div className="space-y-10">
+      <PageIntro
+        actions={
+          <Button
+            icon={RotateCcw}
+            size="sm"
+            variant="ghost"
+            onClick={() => setInputs(defaults)}
+          >
+            Reset to plan
+          </Button>
+        }
+        lede="Move the controls and watch the path bend. Save a set of assumptions to lay it over the chart."
         title="Simulate"
       />
 
@@ -214,25 +225,25 @@ export default function Simulate() {
         yearsToTarget={yearsToTarget}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <SimulationControls
-          inputs={inputs}
-          onChange={setInputs}
-          onReset={() => setInputs(defaults)}
-        />
-        <Card eyebrow="Net worth · today's dollars" title="Projection">
-          <ProjectionChart
-            comparisons={comparisons}
-            current={currentProjection}
-            retirementAge={inputs.retirementAge}
-            showAccessible={totals.fireLockedAssetsTotal > 0}
-            showDebt={totals.fireDebts.length > 0}
-            target={target}
-          />
-        </Card>
+      <div className="grid items-start gap-8 lg:grid-cols-[340px_minmax(0,1fr)]">
+        <Panel className="lg:sticky lg:top-20">
+          <SimulationControls inputs={inputs} onChange={setInputs} />
+        </Panel>
+        <div className="space-y-10">
+          <Panel>
+            <ProjectionChart
+              comparisons={comparisons}
+              current={currentProjection}
+              retirementAge={inputs.retirementAge}
+              showAccessible={totals.fireLockedAssetsTotal > 0}
+              showDebt={totals.fireDebts.length > 0}
+              target={target}
+            />
+          </Panel>
+          <ScenarioBar onSaveCurrent={() => setSaveOpen(true)} />
+          <FireLadder />
+        </div>
       </div>
-
-      <ScenarioBar onSaveCurrent={() => setSaveOpen(true)} />
 
       <SaveScenarioModal
         inputs={inputs}

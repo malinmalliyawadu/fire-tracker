@@ -13,7 +13,6 @@ interface TypeGridProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   cols?: 2 | 3 | 4 | 6;
-  tone?: "accent" | "loss";
 }
 
 const COL_CLASS: Record<2 | 3 | 4 | 6, string> = {
@@ -28,18 +27,7 @@ export function TypeGrid<T extends string>({
   value,
   onChange,
   cols = 3,
-  tone = "accent",
 }: TypeGridProps<T>) {
-  const activeBorder =
-    tone === "accent"
-      ? "border-accent/40 bg-accent/[0.12] text-white"
-      : "border-loss/40 bg-loss/[0.10] text-white";
-  const activeIcon = tone === "accent" ? "text-accent" : "text-loss";
-  const activeGlow =
-    tone === "accent"
-      ? "shadow-[0_0_24px_-8px_rgba(124,131,231,0.6)]"
-      : "shadow-[0_0_24px_-8px_rgba(239,68,68,0.6)]";
-
   return (
     <div className={clsx("grid gap-2", COL_CLASS[cols])}>
       {options.map((opt) => {
@@ -50,18 +38,18 @@ export function TypeGrid<T extends string>({
             key={opt.value}
             aria-pressed={isActive}
             className={clsx(
-              "group flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-[11px] font-medium transition-all",
+              "press group flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-[12.5px] font-medium transition-colors duration-[var(--dur-hover)]",
               isActive
-                ? clsx(activeBorder, activeGlow)
-                : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
+                ? "border-ink bg-ink text-on-ink"
+                : "border-line text-ink-2 hover:border-ink-3 hover:text-ink",
             )}
             type="button"
             onClick={() => onChange(opt.value)}
           >
             <opt.icon
               className={clsx(
-                "h-4 w-4 transition-colors",
-                isActive ? activeIcon : "text-ink-400 group-hover:text-white",
+                "h-4 w-4",
+                isActive ? "text-on-ink" : "text-ink-3 group-hover:text-ink",
               )}
               strokeWidth={2}
             />

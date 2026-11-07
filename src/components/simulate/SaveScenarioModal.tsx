@@ -1,12 +1,12 @@
 import type { SimulationInputs } from "@/types";
 
-import { Button } from "@heroui/button";
 import { Check, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 
 import { SCENARIO_COLORS, useScenarios } from "@/store/scenarios";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
+import { Button } from "@/components/ui/Button";
 import { DialogShell } from "@/components/ui/DialogShell";
 import { Field } from "@/components/ui/Field";
 import { TextField } from "@/components/ui/TextField";
@@ -45,13 +45,13 @@ export function SaveScenarioModal({
     <DialogShell
       footer={
         <>
-          <Button variant="light" onPress={onClose}>
+          <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button
-            className="bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_24px_-8px_rgba(124,131,231,0.6)]"
-            isDisabled={!name.trim()}
-            onPress={handleSave}
+            disabled={!name.trim()}
+            variant="primary"
+            onClick={handleSave}
           >
             Save scenario
           </Button>
@@ -60,7 +60,7 @@ export function SaveScenarioModal({
       icon={Sparkles}
       isOpen={isOpen}
       size="md"
-      subtitle="Pin these inputs and overlay them on the chart later"
+      subtitle="Keep these inputs and lay them over the chart later"
       title="Save scenario"
       onClose={onClose}
     >
@@ -74,7 +74,7 @@ export function SaveScenarioModal({
       />
 
       <Field label="Colour">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2.5">
           {SCENARIO_COLORS.map((c) => {
             const active = color === c;
 
@@ -84,13 +84,8 @@ export function SaveScenarioModal({
                 aria-label={`Use colour ${c}`}
                 aria-pressed={active}
                 className={clsx(
-                  // An inset ring rather than an offset one: ring-offset paints
-                  // a solid colour that can't match the modal's translucent,
-                  // gradient-lit background.
-                  "grid h-10 w-10 place-items-center rounded-xl transition-transform",
-                  active
-                    ? "ring-2 ring-inset ring-white/80"
-                    : "hover:scale-105",
+                  "press grid h-9 w-9 place-items-center rounded-lg transition-shadow duration-[var(--dur-hover)]",
+                  active && "ring-2 ring-ink ring-offset-2 ring-offset-surface",
                 )}
                 style={{ backgroundColor: c }}
                 type="button"
@@ -98,7 +93,7 @@ export function SaveScenarioModal({
               >
                 {active && (
                   <Check
-                    className="h-4 w-4 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                    className="h-4 w-4 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]"
                     strokeWidth={3}
                   />
                 )}
