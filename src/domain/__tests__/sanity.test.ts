@@ -31,6 +31,7 @@ const settings: Settings = {
 
 const healthy = {
   settings,
+  afterTaxReturn: 0.07,
   realReturn: 0.045,
   retirementExpenses: 60_000,
   savingsRate: 0.35,
@@ -55,6 +56,57 @@ describe("checkAssumptions", () => {
         realReturn: 0.045,
       }),
     ).toContain("withdrawal-exceeds-return");
+  });
+
+  it("shows the working from expected return down to the gap", () => {
+    const warning = checkAssumptions({
+      ...healthy,
+      afterTaxReturn: 0.052,
+      realReturn: 0.027,
+    }).find((w) => w.id === "withdrawal-exceeds-return");
+
+    expect(warning?.detail).toContain("after tax and inflation");
+    expect(
+      warning?.calculation?.map((line) => [line.label, line.value]),
+    ).toEqual([
+      ["Expected return", "7.0%"],
+      ["Investment tax", "−1.8%"],
+      ["Return after tax", "5.2%"],
+      ["Inflation", "−2.5%"],
+      ["Real return", "2.7%"],
+      ["Withdrawal rate", "4.0%"],
+      ["Drawn from capital", "1.3% a year"],
+    ]);
+    expect(warning?.calculation?.at(-1)?.note).toContain(
+      "On the $1.5M target that is $19.5K of capital spent in year one.",
+    );
+  });
+
+  it("leaves tax out of the working when it takes nothing off", () => {
+    const warning = checkAssumptions({
+      ...healthy,
+      settings: { ...settings, withdrawalRate: 0.06 },
+      realReturn: 0.045,
+    }).find((w) => w.id === "withdrawal-exceeds-return");
+
+    expect(warning?.detail).toContain("after inflation");
+    expect(warning?.calculation?.map((line) => line.label)).toEqual([
+      "Expected return",
+      "Inflation",
+      "Real return",
+      "Withdrawal rate",
+      "Drawn from capital",
+    ]);
+  });
+
+  it("skips the dollar figure when there is no retirement spending", () => {
+    const warning = checkAssumptions({
+      ...healthy,
+      retirementExpenses: 0,
+      realReturn: 0.027,
+    }).find((w) => w.id === "withdrawal-exceeds-return");
+
+    expect(warning?.calculation?.at(-1)?.note).not.toContain("target");
   });
 
   it("flags an optimistic return", () => {

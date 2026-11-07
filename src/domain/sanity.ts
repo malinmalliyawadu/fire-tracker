@@ -1,16 +1,35 @@
 import type { Settings } from "@/types";
 
+import { formatMoneyCompact } from "./format";
+
 export type WarningLevel = "warning" | "note";
+
+/** One row of the working behind a warning, already formatted for display. */
+export interface CalculationLine {
+  label: string;
+  value: string;
+  /** Where the figure comes from, shown under the label. */
+  note?: string;
+  /**
+   * `total` rules the row off from the steps above it; `result` does the same
+   * and is the figure the warning is about.
+   */
+  emphasis?: "total" | "result";
+}
 
 export interface SanityWarning {
   id: string;
   level: WarningLevel;
   title: string;
   detail: string;
+  /** The arithmetic that produced the warning, when it isn't obvious. */
+  calculation?: CalculationLine[];
 }
 
 export interface SanityInputs {
   settings: Settings;
+  /** Nominal return after investment tax; the expected return when tax is off. */
+  afterTaxReturn: number;
   /** Real (inflation-adjusted) return actually used by the projection. */
   realReturn: number;
   /** Spending the FIRE target is built from. */
@@ -40,11 +59,15 @@ export const checkAssumptions = (input: SanityInputs): SanityWarning[] => {
   const warnings: SanityWarning[] = [];
 
   if (settings.withdrawalRate > input.realReturn) {
+    const taxed = input.afterTaxReturn < settings.expectedReturn;
+    const gap = settings.withdrawalRate - input.realReturn;
+
     warnings.push({
       id: "withdrawal-exceeds-return",
       level: "warning",
       title: "Withdrawal rate is above your real return",
-      detail: `Drawing ${pct(settings.withdrawalRate)} a year from a portfolio growing at ${pct(input.realReturn)} after inflation means the balance shrinks in real terms. It can still work over a fixed retirement, but it isn't self-sustaining.`,
+      detail: `Drawing ${pct(settings.withdrawalRate)} a year from a portfolio growing at ${pct(input.realReturn)} after ${taxed ? "tax and inflation" : "inflation"} means the balance shrinks in real terms. It can still work over a fixed retirement, but it isn't self-sustaining.`,
+      calculation: withdrawalCalculation(input, taxed, gap),
     });
   }
 
@@ -159,4 +182,68 @@ export const checkAssumptions = (input: SanityInputs): SanityWarning[] => {
   return warnings;
 };
 
+/**
+ * The chain from the expected return in Settings down to the real return the
+ * withdrawal rate is compared against. Tax only appears when it takes
+ * something off, so a plan with tax switched off reads as two steps, not four.
+ */
+const withdrawalCalculation = (
+  input: SanityInputs,
+  taxed: boolean,
+  gap: number,
+): CalculationLine[] => {
+  const { settings } = input;
+  const lines: CalculationLine[] = [
+    { label: "Expected return", value: pct(settings.expectedReturn) },
+  ];
+
+  if (taxed) {
+    lines.push(
+      {
+        label: "Investment tax",
+        value: minus(settings.expectedReturn - input.afterTaxReturn),
+        note: "Blended across the assets funding retirement",
+      },
+      {
+        label: "Return after tax",
+        value: pct(input.afterTaxReturn),
+        emphasis: "total",
+      },
+    );
+  }
+
+  lines.push(
+    { label: "Inflation", value: minus(settings.inflationRate) },
+    { label: "Real return", value: pct(input.realReturn), emphasis: "total" },
+    { label: "Withdrawal rate", value: pct(settings.withdrawalRate) },
+    {
+      label: "Drawn from capital",
+      value: `${pct(gap)} a year`,
+      note: capitalDrawNote(input, gap),
+      emphasis: "result",
+    },
+  );
+
+  return lines;
+};
+
+/**
+ * The gap in dollars, measured on the FIRE target the withdrawal rate implies.
+ * Withdrawals are a fixed real amount rather than a share of whatever is left,
+ * so the draw on capital starts here and grows as the pot shrinks.
+ */
+const capitalDrawNote = (input: SanityInputs, gap: number): string => {
+  const base =
+    "Withdrawal less real return, as a share of the pot in the first year. The pot shrinks, so the share grows each year after.";
+
+  if (input.retirementExpenses <= 0) return base;
+
+  const target = input.retirementExpenses / input.settings.withdrawalRate;
+  const currency = input.settings.displayCurrency;
+
+  return `${base} On the ${formatMoneyCompact(target, currency)} target that is ${formatMoneyCompact(target * gap, currency)} of capital spent in year one.`;
+};
+
 const pct = (value: number): string => `${(value * 100).toFixed(1)}%`;
+
+const minus = (value: number): string => `−${pct(value)}`;

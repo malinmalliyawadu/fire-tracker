@@ -773,6 +773,7 @@ export const useSanityWarnings = (): SanityWarning[] => {
     () =>
       checkAssumptions({
         settings,
+        afterTaxReturn: afterTax,
         realReturn: afterTax - settings.inflationRate,
         retirementExpenses: budget.retirementExpenses,
         savingsRate: savings.savingsRate,

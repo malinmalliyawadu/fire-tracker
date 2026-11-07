@@ -1,3 +1,6 @@
+import type { CalculationLine } from "@/domain/sanity";
+
+import clsx from "clsx";
 import { AlertTriangle, Check, EyeOff, Info } from "lucide-react";
 
 import { usePortfolioTotals, useSanityWarnings } from "@/store/derived";
@@ -88,13 +91,19 @@ export function AssumptionsCard() {
                   ) : (
                     <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                   )}
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-white">
                       {warning.title}
                     </div>
                     <p className="mt-1 text-[12px] leading-relaxed text-ink-300">
                       {warning.detail}
                     </p>
+                    {warning.calculation && (
+                      <Calculation
+                        lines={warning.calculation}
+                        resultTone={isWarning ? "text-loss" : "text-amber-400"}
+                      />
+                    )}
                     {fix && (
                       <button
                         className="mt-2.5 inline-flex items-start gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-left text-xs font-medium text-ink-200 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
@@ -113,5 +122,61 @@ export function AssumptionsCard() {
         </div>
       )}
     </Card>
+  );
+}
+
+/**
+ * The working behind a warning, laid out as a short ledger: each step on its
+ * own row, totals ruled off, and the figure the warning is about last.
+ */
+function Calculation({
+  lines,
+  resultTone,
+}: {
+  lines: CalculationLine[];
+  resultTone: string;
+}) {
+  return (
+    <dl className="mt-3 rounded-md border border-white/[0.06] bg-ink-950/40 px-3 py-1">
+      {lines.map((line) => {
+        const ruled = line.emphasis !== undefined;
+        const isResult = line.emphasis === "result";
+
+        return (
+          <div
+            key={line.label}
+            className={clsx(
+              "flex items-baseline justify-between gap-4 py-1.5",
+              ruled && "border-t border-white/[0.08]",
+            )}
+          >
+            <div className="min-w-0">
+              <dt
+                className={clsx(
+                  "text-[12px]",
+                  ruled ? "font-medium text-ink-200" : "text-ink-300",
+                )}
+              >
+                {line.label}
+              </dt>
+              {line.note && (
+                <p className="mt-0.5 text-[11px] leading-relaxed text-ink-500">
+                  {line.note}
+                </p>
+              )}
+            </div>
+            <dd
+              className={clsx(
+                "shrink-0 font-mono tabular text-[12px]",
+                ruled && "font-semibold",
+                isResult ? resultTone : ruled ? "text-white" : "text-ink-200",
+              )}
+            >
+              {line.value}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 }
