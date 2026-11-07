@@ -3,12 +3,11 @@ import type { ReactNode } from "react";
 import clsx from "clsx";
 
 /**
- * The one micro-label style. Section headings inside dialogs, card eyebrows and
- * field labels all use it, so a dialog reads as a single column of fields
- * rather than a stack of differently-labelled widgets.
+ * The one field-label style: sentence case, medium weight, the secondary ink.
+ * Dialog section headings and field labels share it, so a form reads as one
+ * column rather than a stack of differently-labelled widgets.
  */
-export const FIELD_LABEL_CLASS =
-  "text-[10px] font-medium uppercase tracking-[0.18em] text-ink-400";
+export const FIELD_LABEL_CLASS = "text-[13px] font-medium text-ink-2";
 
 interface FieldLabelProps {
   children: ReactNode;
@@ -27,7 +26,7 @@ export function FieldLabel({
     <>
       {children}
       {required && (
-        <span aria-hidden className="ml-1 text-loss">
+        <span aria-hidden className="ml-0.5 text-flame-ink">
           *
         </span>
       )}
@@ -47,7 +46,7 @@ export function FieldLabel({
 
 interface FieldProps {
   label: ReactNode;
-  /** Right-hand side of the label row — a running total, a unit, a toggle. */
+  /** Right-hand side of the label row: a running total, a unit, a toggle. */
   meta?: ReactNode;
   htmlFor?: string;
   required?: boolean;
@@ -55,13 +54,7 @@ interface FieldProps {
   className?: string;
 }
 
-/**
- * A labelled block of controls.
- *
- * The label sits in normal flow above its children, which is the whole point:
- * an absolutely-positioned label (what HeroUI's `labelPlacement="outside"`
- * gives you) overlaps whatever precedes it in a `space-y` stack.
- */
+/** A labelled block of controls, label in normal flow above its children. */
 export function Field({
   label,
   meta,
@@ -77,10 +70,14 @@ export function Field({
           {label}
         </FieldLabel>
         {meta && (
-          <span className="shrink-0 text-[11px] text-ink-400">{meta}</span>
+          <span className="num shrink-0 text-[12.5px] text-ink-3">{meta}</span>
         )}
       </div>
       {children}
     </div>
   );
 }
+
+/** Shared frame for text-like inputs. */
+export const INPUT_FRAME =
+  "w-full rounded-lg border border-line bg-surface text-ink outline-none transition-[border-color,box-shadow] duration-[var(--dur-hover)] placeholder:text-ink-4 hover:border-ink-3 focus:border-ink focus:shadow-[0_0_0_3px_var(--wash-strong)] focus-visible:outline-none";

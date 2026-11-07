@@ -11,20 +11,11 @@ interface ChoiceCardsProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   cols?: 2 | 3;
-  tone?: "accent" | "loss";
 }
 
 const COL_CLASS: Record<2 | 3, string> = {
   2: "sm:grid-cols-2",
   3: "sm:grid-cols-3",
-};
-
-const TONE_ACTIVE: Record<
-  NonNullable<ChoiceCardsProps<string>["tone"]>,
-  string
-> = {
-  accent: "border-accent/40 bg-accent/10 text-white",
-  loss: "border-loss/40 bg-loss/10 text-white",
 };
 
 /**
@@ -38,7 +29,6 @@ export function ChoiceCards<T extends string>({
   value,
   onChange,
   cols = 2,
-  tone = "accent",
 }: ChoiceCardsProps<T>) {
   return (
     <div className={clsx("grid gap-2", COL_CLASS[cols])}>
@@ -50,17 +40,24 @@ export function ChoiceCards<T extends string>({
             key={option.value}
             aria-pressed={active}
             className={clsx(
-              "rounded-xl border px-3 py-2.5 text-left text-xs transition",
+              "press rounded-lg border px-3.5 py-3 text-left transition-colors duration-[var(--dur-hover)]",
               active
-                ? TONE_ACTIVE[tone]
-                : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:text-white",
+                ? "border-ink bg-ink text-on-ink"
+                : "border-line bg-transparent text-ink hover:border-ink-3",
             )}
             type="button"
             onClick={() => onChange(option.value)}
           >
-            <div className="font-semibold leading-tight">{option.label}</div>
+            <div className="text-[13.5px] font-medium leading-tight">
+              {option.label}
+            </div>
             {option.hint && (
-              <div className="mt-1 text-[10px] leading-snug text-ink-400">
+              <div
+                className={clsx(
+                  "mt-1 text-[12px] leading-snug",
+                  active ? "text-on-ink/70" : "text-ink-3",
+                )}
+              >
                 {option.hint}
               </div>
             )}

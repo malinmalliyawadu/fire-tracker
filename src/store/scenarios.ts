@@ -19,12 +19,12 @@ const newId = (): string =>
 const MAX_COMPARED = 3;
 
 export const SCENARIO_COLORS = [
-  "#7c83e7",
-  "#22c55e",
-  "#f59e0b",
-  "#ec4899",
-  "#06b6d4",
-  "#a855f7",
+  "#2f7f6e",
+  "#c78a2e",
+  "#5b6b8c",
+  "#a75c4f",
+  "#7a5ea3",
+  "#b06a8c",
 ];
 
 export const useScenarios = create<ScenariosState>()(

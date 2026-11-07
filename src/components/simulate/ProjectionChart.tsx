@@ -1,5 +1,6 @@
 import type { ProjectionPoint, Scenario } from "@/types";
 
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -38,6 +39,26 @@ interface ChartRow {
   [scenarioKey: string]: number | undefined;
 }
 
+const LABEL_FONT = { fontSize: 11.5, fontWeight: 500 } as const;
+
+/** True below the `sm` breakpoint, where a second axis would eat the plot. */
+const useNarrow = (): boolean => {
+  const [narrow, setNarrow] = useState(
+    () => window.matchMedia("(max-width: 639px)").matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const update = () => setNarrow(media.matches);
+
+    media.addEventListener("change", update);
+
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return narrow;
+};
+
 export function ProjectionChart({
   current,
   comparisons,
@@ -48,9 +69,10 @@ export function ProjectionChart({
 }: ProjectionChartProps) {
   const settings = useSettings((s) => s.settings);
   const currency = settings.displayCurrency;
+  const narrow = useNarrow();
 
   // The debt curve is dwarfed by net worth on a shared axis, so it gets its
-  // own scale — and the age it clears is the fact worth calling out.
+  // own scale, and the age it clears is the fact worth calling out.
   const debtFreeAge = showDebt
     ? (current.find((p) => p.debt === 0)?.age ?? null)
     : null;
@@ -63,13 +85,8 @@ export function ProjectionChart({
       current: point.netWorth,
     };
 
-    if (showAccessible) {
-      row.accessible = point.accessible;
-    }
-
-    if (showDebt) {
-      row.debt = point.debt;
-    }
+    if (showAccessible) row.accessible = point.accessible;
+    if (showDebt) row.debt = point.debt;
 
     for (const c of comparisons) {
       row[`s_${c.scenario.id}`] = c.projection[i]?.netWorth ?? 0;
@@ -79,49 +96,56 @@ export function ProjectionChart({
   });
 
   return (
-    <div className="space-y-3">
-      <div className="h-[420px] w-full">
+    <div className="space-y-4">
+      <div className="h-[440px] w-full">
         <ResponsiveContainer height="100%" width="100%">
           <AreaChart
             data={data}
-            margin={{ top: 32, right: 16, bottom: 4, left: 8 }}
+            margin={{ top: 28, right: narrow ? 4 : 12, bottom: 4, left: 0 }}
           >
             <defs>
               <linearGradient id="grad-current" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#7c83e7" stopOpacity={0.45} />
-                <stop offset="100%" stopColor="#7c83e7" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--ink)" stopOpacity={0.1} />
+                <stop offset="100%" stopColor="var(--ink)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="grad-accessible" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--gain)" stopOpacity={0.14} />
+                <stop offset="100%" stopColor="var(--gain)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <CartesianGrid stroke="var(--line-soft)" vertical={false} />
             <XAxis
               axisLine={false}
               dataKey="age"
               interval="preserveStartEnd"
+              minTickGap={32}
               tickLine={false}
               tickMargin={8}
             />
             <YAxis
               axisLine={false}
+              // Keep the target line inside the plot even when it is the peak.
+              domain={[
+                (min: number) => Math.min(0, min),
+                (max: number) => Math.max(max, target) * 1.06,
+              ]}
               tickFormatter={(v) => formatMoneyCompact(v, currency)}
               tickLine={false}
               tickMargin={6}
-              width={64}
+              width={narrow ? 48 : 62}
               yAxisId="main"
             />
             {showDebt && (
               <YAxis
                 axisLine={false}
                 domain={[0, peakDebt]}
+                hide={narrow}
                 orientation="right"
-                tick={{ fill: "#f43f5e", fontSize: 11 }}
+                tick={{ fill: "var(--loss)", fontSize: 11.5 }}
                 tickFormatter={(v) => formatMoneyCompact(v, currency)}
                 tickLine={false}
                 tickMargin={6}
-                width={64}
+                width={62}
                 yAxisId="debt"
               />
             )}
@@ -130,23 +154,21 @@ export function ProjectionChart({
                 if (!active || !payload?.length) return null;
 
                 return (
-                  <div className="rounded-lg border border-white/10 bg-ink-900/95 p-3 shadow-xl backdrop-blur-xl">
-                    <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-ink-400">
-                      Age {label}
-                    </div>
+                  <div className="rounded-lg border border-line-soft bg-surface px-3 py-2 shadow-pop">
+                    <div className="text-[13px] text-ink-3">Age {label}</div>
                     {payload.map((entry) => (
                       <div
                         key={entry.dataKey as string}
-                        className="mt-1.5 flex items-center justify-between gap-4 text-sm"
+                        className="mt-1 flex items-center justify-between gap-5 text-[13.5px]"
                       >
-                        <span className="flex items-center gap-1.5 text-ink-300">
+                        <span className="flex items-center gap-1.5 text-ink-2">
                           <span
                             className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: entry.color }}
                           />
                           {entry.name}
                         </span>
-                        <span className="font-mono tabular font-semibold">
+                        <span className="num font-medium text-ink">
                           {formatMoney(entry.value as number, currency)}
                         </span>
                       </div>
@@ -154,30 +176,30 @@ export function ProjectionChart({
                   </div>
                 );
               }}
+              cursor={{ stroke: "var(--line)", strokeDasharray: "3 3" }}
             />
             <ReferenceLine
               label={{
                 value: "Target",
                 position: "insideTopLeft",
                 offset: 6,
-                fill: "#7c83e7",
-                fontSize: 10,
+                fill: "var(--flame-ink)",
+                ...LABEL_FONT,
               }}
-              stroke="#7c83e7"
-              strokeDasharray="4 4"
-              strokeOpacity={0.5}
+              stroke="var(--flame)"
+              strokeDasharray="6 5"
               y={target}
               yAxisId="main"
             />
             <ReferenceLine
               label={{
-                value: `Retire ${retirementAge}`,
-                position: "insideTop",
+                value: `Stop work ${retirementAge}`,
+                position: "insideTopRight",
                 offset: 8,
-                fill: "#94a3b8",
-                fontSize: 10,
+                fill: "var(--ink-3)",
+                ...LABEL_FONT,
               }}
-              stroke="rgba(255,255,255,0.15)"
+              stroke="var(--line)"
               strokeDasharray="3 3"
               x={retirementAge}
               yAxisId="main"
@@ -188,11 +210,12 @@ export function ProjectionChart({
                   value: `Debt free ${debtFreeAge}`,
                   position: "insideBottom",
                   offset: 8,
-                  fill: "#f43f5e",
-                  fontSize: 10,
+                  fill: "var(--loss)",
+                  ...LABEL_FONT,
                 }}
-                stroke="rgba(244,63,94,0.4)"
+                stroke="var(--loss)"
                 strokeDasharray="2 4"
+                strokeOpacity={0.5}
                 x={debtFreeAge}
                 yAxisId="main"
               />
@@ -200,52 +223,53 @@ export function ProjectionChart({
             {showAccessible && settings.kiwisaverUnlockAge != null && (
               <ReferenceLine
                 label={{
-                  value: `KS unlock ${settings.kiwisaverUnlockAge}`,
-                  position: "insideTop",
+                  value: `KiwiSaver unlocks ${settings.kiwisaverUnlockAge}`,
+                  position: "insideTopLeft",
                   offset: 8,
-                  fill: "#22c55e",
-                  fontSize: 10,
+                  fill: "var(--gain)",
+                  ...LABEL_FONT,
                 }}
-                stroke="rgba(34,197,94,0.35)"
+                stroke="var(--gain)"
                 strokeDasharray="2 4"
+                strokeOpacity={0.5}
                 x={settings.kiwisaverUnlockAge}
                 yAxisId="main"
               />
             )}
             <Area
               isAnimationActive
-              animationDuration={500}
+              animationDuration={400}
               dataKey="current"
               fill="url(#grad-current)"
               name="Total net worth"
-              stroke="#7c83e7"
-              strokeWidth={2.5}
+              stroke="var(--ink)"
+              strokeWidth={1.75}
               type="monotone"
               yAxisId="main"
             />
             {showAccessible && (
               <Area
-                isAnimationActive
-                animationDuration={500}
+                animationDuration={400}
                 dataKey="accessible"
                 fill="url(#grad-accessible)"
+                isAnimationActive={false}
                 name="Accessible"
-                stroke="#22c55e"
-                strokeWidth={2}
+                stroke="var(--gain)"
+                strokeWidth={1.5}
                 type="monotone"
                 yAxisId="main"
               />
             )}
             {showDebt && (
               <Line
-                isAnimationActive
-                animationDuration={500}
+                animationDuration={400}
                 dataKey="debt"
                 dot={false}
+                isAnimationActive={false}
                 name="Debt outstanding"
-                stroke="#f43f5e"
+                stroke="var(--loss)"
                 strokeDasharray="5 3"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 type="monotone"
                 yAxisId="debt"
               />
@@ -254,13 +278,13 @@ export function ProjectionChart({
               <Line
                 key={c.scenario.id}
                 isAnimationActive
-                animationDuration={400}
+                animationDuration={300}
                 dataKey={`s_${c.scenario.id}`}
                 dot={false}
                 name={c.scenario.name}
                 stroke={c.scenario.color}
                 strokeDasharray="6 4"
-                strokeWidth={1.75}
+                strokeWidth={1.5}
                 type="monotone"
                 yAxisId="main"
               />
@@ -269,23 +293,27 @@ export function ProjectionChart({
         </ResponsiveContainer>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-ink-300">
-        <LegendDot color="#7c83e7" label="Total net worth" />
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12.5px] text-ink-2">
+        <LegendDot color="var(--ink)" label="Total net worth" />
         {showDebt && (
-          <>
-            <LegendDot color="#f43f5e" label="Debt outstanding" />
-            <span className="text-ink-500">· right axis</span>
-          </>
+          <LegendDot
+            color="var(--loss)"
+            label="Debt outstanding (right axis)"
+          />
         )}
         {showAccessible && (
-          <>
-            <LegendDot color="#22c55e" label="Accessible (excl. KiwiSaver)" />
-            <span className="text-ink-500">
-              · gap above green = locked KiwiSaver until age{" "}
-              {settings.kiwisaverUnlockAge ?? 65}
-            </span>
-          </>
+          <LegendDot
+            color="var(--gain)"
+            label={`Accessible without KiwiSaver (locked until ${settings.kiwisaverUnlockAge ?? 65})`}
+          />
         )}
+        {comparisons.map((c) => (
+          <LegendDot
+            key={c.scenario.id}
+            color={c.scenario.color}
+            label={c.scenario.name}
+          />
+        ))}
       </div>
     </div>
   );

@@ -22,10 +22,10 @@ export function OptionPills<T>({
             key={index}
             aria-pressed={active}
             className={clsx(
-              "rounded-lg border px-2.5 py-1 text-xs transition",
+              "press num rounded-md border px-2.5 py-1 text-[13px] transition-colors duration-[var(--dur-hover)]",
               active
-                ? "border-accent/40 bg-accent/10 text-white"
-                : "border-white/[0.06] bg-white/[0.02] text-ink-300 hover:border-white/10 hover:text-white",
+                ? "border-ink bg-ink text-on-ink"
+                : "border-line bg-transparent text-ink-2 hover:border-ink-3 hover:text-ink",
             )}
             type="button"
             onClick={() => onChange(option.value)}

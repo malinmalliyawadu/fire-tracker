@@ -16,7 +16,6 @@ interface AmountInputProps {
   /** Pinned to the right of the value row, e.g. "Monthly". */
   trailing?: ReactNode;
   size?: "sm" | "md" | "lg";
-  tone?: "accent" | "loss";
   placeholder?: string;
   focusOnMount?: boolean;
 }
@@ -35,7 +34,6 @@ export function AmountInput({
   meta,
   trailing,
   size = "lg",
-  tone = "accent",
   placeholder = "0",
   focusOnMount = false,
 }: AmountInputProps) {
@@ -49,7 +47,6 @@ export function AmountInput({
       placeholder={placeholder}
       prefix={currencySymbol(currency)}
       size={size}
-      tone={tone}
       trailing={trailing}
       value={value}
       onChange={onChange}

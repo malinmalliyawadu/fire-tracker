@@ -1,17 +1,10 @@
 import type { ProjectionPoint } from "@/types";
 import type { CoastPoint } from "@/domain/projection";
 
-import {
-  CheckCircle2,
-  Coffee,
-  Hourglass,
-  Target,
-  TrendingUp,
-} from "lucide-react";
-
 import { formatMoneyCompact, formatYears } from "@/domain/format";
 import { useSettings } from "@/store/settings";
-import { Card } from "@/components/ui/Card";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { Figure, FigureRow } from "@/components/ui/Figure";
 
 interface SimulationKPIsProps {
   yearsToTarget: number;
@@ -29,7 +22,7 @@ const lastsUntilAge = (
 
   for (const p of projection) {
     if (p.age < retirementAge) continue;
-    // Use accessible — locked KiwiSaver before unlock age can't pay bills.
+    // Use accessible: locked KiwiSaver before unlock age can't pay bills.
     if (p.accessible > 0) lastPositiveAge = p.age;
     else break;
   }
@@ -37,6 +30,7 @@ const lastsUntilAge = (
   return lastPositiveAge;
 };
 
+/** The five answers a simulation gives, rolling as the controls move. */
 export function SimulationKPIs({
   yearsToTarget,
   target,
@@ -44,86 +38,52 @@ export function SimulationKPIs({
   retirementAge,
   coast,
 }: SimulationKPIsProps) {
-  const settings = useSettings((s) => s.settings);
-  const currency = settings.displayCurrency;
+  const currency = useSettings((s) => s.settings.displayCurrency);
 
   const peak = Math.max(...projection.map((p) => p.netWorth));
   const lastsAge = lastsUntilAge(projection, retirementAge);
   const horizon = projection.at(-1)?.age ?? 90;
   const lasts = lastsAge !== null && lastsAge >= horizon - 1;
 
-  const kpis = [
-    {
-      label: "Time to FIRE",
-      value: formatYears(yearsToTarget),
-      icon: Hourglass,
-      tone: "accent" as const,
-    },
-    {
-      label: "Target",
-      value: formatMoneyCompact(target, currency),
-      icon: Target,
-      tone: "default" as const,
-    },
-    {
-      label: "Coast from",
-      value:
-        coast === null
-          ? "Not yet"
-          : coast.year === 0
-            ? "Now"
-            : `Age ${coast.age}`,
-      icon: Coffee,
-      tone: (coast !== null ? "gain" : "default") as "gain" | "default",
-    },
-    {
-      label: "Peak net worth",
-      value: formatMoneyCompact(peak, currency),
-      icon: TrendingUp,
-      tone: "default" as const,
-    },
-    {
-      label: "Money lasts",
-      value: lasts
-        ? "Forever"
-        : lastsAge !== null
-          ? `Age ${lastsAge}`
-          : "Underfunded",
-      icon: CheckCircle2,
-      tone: (lasts ? "gain" : "loss") as "gain" | "loss",
-    },
-  ];
+  const money = (v: number) => formatMoneyCompact(v, currency);
 
   return (
-    <Card bodyClassName="p-0">
-      <div className="grid grid-cols-2 lg:grid-cols-5">
-        {kpis.map((k, idx) => (
-          <div
-            key={k.label}
-            className={
-              idx > 0 ? "border-l border-white/[0.05] px-5 py-4" : "px-5 py-4"
-            }
-          >
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-ink-400">
-              <k.icon className="h-3 w-3" /> {k.label}
-            </div>
-            <div
-              className={
-                "mt-1.5 font-mono tabular text-2xl font-semibold tracking-tight " +
-                (k.tone === "gain"
-                  ? "text-gain"
-                  : k.tone === "loss"
-                    ? "text-loss"
-                    : k.tone === "accent"
-                      ? "text-accent"
-                      : "text-white")
-              }
-            >
-              {k.value}
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
+    <FigureRow cols={5}>
+      <Figure
+        label="Time to FIRE"
+        tone="flame"
+        value={formatYears(yearsToTarget)}
+      />
+      <Figure
+        label="Target"
+        value={<AnimatedNumber format={money} value={target} />}
+      />
+      <Figure
+        label="Could coast from"
+        tone={coast !== null ? "gain" : "default"}
+        value={
+          coast === null
+            ? "Not yet"
+            : coast.year === 0
+              ? "Now"
+              : `Age ${coast.age}`
+        }
+      />
+      <Figure
+        label="Peak net worth"
+        value={<AnimatedNumber format={money} value={peak} />}
+      />
+      <Figure
+        label="Money lasts"
+        tone={lasts ? "gain" : "loss"}
+        value={
+          lasts
+            ? "Forever"
+            : lastsAge !== null
+              ? `Age ${lastsAge}`
+              : "Underfunded"
+        }
+      />
+    </FigureRow>
   );
 }

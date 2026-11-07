@@ -1,35 +1,25 @@
 import type { Currency } from "@/types";
 
-import clsx from "clsx";
+import { Segmented } from "@/components/ui/Segmented";
 
 interface CurrencyToggleProps {
   value: Currency;
   onChange: (value: Currency) => void;
 }
 
+const OPTIONS = [
+  { value: "NZD" as Currency, label: "NZD" },
+  { value: "USD" as Currency, label: "USD" },
+];
+
 export function CurrencyToggle({ value, onChange }: CurrencyToggleProps) {
   return (
-    <div className="inline-flex items-center rounded-full border border-white/[0.06] bg-black/30 p-0.5">
-      {(["NZD", "USD"] as Currency[]).map((c) => {
-        const active = value === c;
-
-        return (
-          <button
-            key={c}
-            aria-pressed={active}
-            className={clsx(
-              "rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide transition-all",
-              active
-                ? "bg-white/[0.12] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)_inset]"
-                : "text-ink-400 hover:text-white",
-            )}
-            type="button"
-            onClick={() => onChange(c)}
-          >
-            {c}
-          </button>
-        );
-      })}
-    </div>
+    <Segmented
+      ariaLabel="Currency"
+      options={OPTIONS}
+      size="sm"
+      value={value}
+      onChange={onChange}
+    />
   );
 }

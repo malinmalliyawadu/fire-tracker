@@ -25,7 +25,6 @@ interface NumericCardProps {
   trailing?: ReactNode;
   hint?: ReactNode;
   size?: CardSize;
-  tone?: "accent" | "loss";
   placeholder?: string;
   focusOnMount?: boolean;
   allowDecimal?: boolean;
@@ -33,28 +32,22 @@ interface NumericCardProps {
 }
 
 const VALUE_SIZE: Record<CardSize, string> = {
-  sm: "text-xl",
-  md: "text-2xl",
-  lg: "text-3xl",
+  sm: "text-[20px]",
+  md: "text-[26px]",
+  lg: "text-[34px]",
 };
 
 const AFFIX_SIZE: Record<CardSize, string> = {
-  sm: "text-sm",
-  md: "text-base",
-  lg: "text-xl",
-};
-
-const TONE_FOCUS: Record<NonNullable<NumericCardProps["tone"]>, string> = {
-  accent: "focus-within:border-accent/40 focus-within:bg-accent/[0.04]",
-  loss: "focus-within:border-loss/40 focus-within:bg-loss/[0.04]",
+  sm: "text-[13px]",
+  md: "text-[15px]",
+  lg: "text-[18px]",
 };
 
 /**
- * A framed numeric field: micro-label, an oversized figure, optional affixes.
+ * A framed numeric field: a label, an oversized figure, optional affixes.
  *
- * Every big number a dialog asks for goes through this, so contributions,
- * balances, payments and rates all share one type scale instead of each
- * editor picking its own.
+ * Every big number a form asks for goes through this, so balances, payments
+ * and rates share one type scale instead of each editor picking its own.
  */
 export function NumericCard({
   label,
@@ -67,7 +60,6 @@ export function NumericCard({
   trailing,
   hint,
   size = "lg",
-  tone = "accent",
   placeholder = "0",
   focusOnMount = false,
   allowDecimal = true,
@@ -77,22 +69,19 @@ export function NumericCard({
   const focusRef = useAutoFocus<HTMLInputElement>(focusOnMount);
   const id = useId();
 
-  // The card itself carries the focus affordance, so the input suppresses the
-  // global focus ring rather than drawing a second box inside the frame.
+  // The frame carries the focus affordance, so the input suppresses the
+  // global ring rather than drawing a second box inside it.
   const input = (
     <input
       ref={focusRef}
       className={clsx(
-        "min-w-0 bg-transparent font-mono tabular font-semibold tracking-tight",
-        "outline-none focus-visible:outline-none placeholder:text-ink-600",
+        "display min-w-0 bg-transparent font-medium text-ink",
+        "outline-none focus-visible:outline-none placeholder:text-ink-4",
         VALUE_SIZE[size],
-        // Sized by the sizer below when a unit has to hug the number.
         unit ? "col-start-1 row-start-1 w-full" : "flex-1",
       )}
       id={id}
       placeholder={placeholder}
-      // Drops the default 20-character intrinsic width, which would otherwise
-      // set the grid track instead of the sizer.
       size={1}
       type="text"
       {...field}
@@ -102,37 +91,31 @@ export function NumericCard({
   return (
     <div
       className={clsx(
-        "rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition-colors",
-        TONE_FOCUS[tone],
+        "rounded-xl border border-line bg-surface px-4 py-3.5 transition-[border-color,box-shadow] duration-[var(--dur-hover)]",
+        "hover:border-ink-3 focus-within:border-ink focus-within:shadow-[0_0_0_3px_var(--wash-strong)] focus-within:hover:border-ink",
       )}
     >
-      <div className="mb-2 flex min-h-[20px] items-center justify-between gap-3">
+      <div className="mb-1.5 flex min-h-[22px] items-center justify-between gap-3">
         <FieldLabel htmlFor={id}>{label}</FieldLabel>
         {action ??
           (meta && (
-            <span className="font-mono tabular shrink-0 text-[11px] text-ink-400">
+            <span className="num shrink-0 text-[12.5px] text-ink-3">
               {meta}
             </span>
           ))}
       </div>
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-baseline gap-1.5">
         {prefix && (
-          <span
-            className={clsx(
-              "shrink-0 font-mono font-medium text-ink-400",
-              AFFIX_SIZE[size],
-            )}
-          >
+          <span className={clsx("shrink-0 text-ink-3", AFFIX_SIZE[size])}>
             {prefix}
           </span>
         )}
         {unit ? (
           <span className="grid min-w-0 max-w-full">
-            {/* Sizes the input to its own text so the unit sits beside it. */}
             <span
               aria-hidden
               className={clsx(
-                "invisible col-start-1 row-start-1 whitespace-pre font-mono tabular font-semibold tracking-tight",
+                "display invisible col-start-1 row-start-1 whitespace-pre font-medium",
                 VALUE_SIZE[size],
               )}
             >
@@ -144,22 +127,17 @@ export function NumericCard({
           input
         )}
         {unit && (
-          <span
-            className={clsx(
-              "shrink-0 font-mono font-medium text-ink-400",
-              AFFIX_SIZE[size],
-            )}
-          >
+          <span className={clsx("shrink-0 text-ink-3", AFFIX_SIZE[size])}>
             {unit}
           </span>
         )}
         {trailing && (
-          <span className="ml-auto shrink-0 text-[11px] text-ink-500">
+          <span className="ml-auto shrink-0 text-[12.5px] text-ink-3">
             {trailing}
           </span>
         )}
       </div>
-      {hint && <div className="mt-2 text-[11px] text-ink-400">{hint}</div>}
+      {hint && <div className="mt-1.5 text-[12.5px] text-ink-3">{hint}</div>}
     </div>
   );
 }
