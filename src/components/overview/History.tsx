@@ -16,8 +16,8 @@ import {
   formatMoneyCompact,
   formatPercent,
 } from "@/domain/format";
+import { useSnapshotReading } from "@/hooks/useAutoSnapshot";
 import { useHistory } from "@/store/history";
-import { usePortfolioTotals } from "@/store/derived";
 import { useSettings } from "@/store/settings";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -26,7 +26,7 @@ import { Section } from "@/components/ui/Section";
 export function History() {
   const snapshots = useHistory((s) => s.snapshots);
   const takeSnapshot = useHistory((s) => s.takeSnapshot);
-  const totals = usePortfolioTotals();
+  const reading = useSnapshotReading();
   const currency = useSettings((s) => s.settings.displayCurrency);
 
   const data = useMemo(
@@ -41,14 +41,7 @@ export function History() {
     [snapshots],
   );
 
-  const handleSnapshot = () => {
-    takeSnapshot({
-      netWorth: totals.netWorth,
-      assetsTotal: totals.assetsTotal,
-      liabilitiesTotal: totals.liabilitiesTotal,
-      currency,
-    });
-  };
+  const handleSnapshot = () => takeSnapshot(reading);
 
   const snapshotButton = (
     <Button icon={Camera} size="sm" onClick={handleSnapshot}>

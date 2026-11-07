@@ -67,3 +67,21 @@ export const describeYears = (years: number): string => {
 
   return `${y} and ${months} month${months === 1 ? "" : "s"}`;
 };
+
+/** "3 weeks", "2 months", "1 year and 4 months" for a span given in years. */
+export const describeSpan = (years: number): string => {
+  const days = Math.abs(years) * 365.25;
+
+  if (days < 7) {
+    const whole = Math.max(1, Math.round(days));
+
+    return `${whole} day${whole === 1 ? "" : "s"}`;
+  }
+  if (days < 45) {
+    const weeks = Math.round(days / 7);
+
+    return `${weeks} week${weeks === 1 ? "" : "s"}`;
+  }
+
+  return describeYears(Math.abs(years));
+};

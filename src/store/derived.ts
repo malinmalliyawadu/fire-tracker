@@ -8,6 +8,12 @@ import type {
 import type { ProjectionInputBundle } from "@/domain/plan";
 import type { ProjectionLiability } from "@/domain/projection";
 import type { SanityWarning } from "@/domain/sanity";
+import type {
+  Exclusions,
+  GrowthAttribution,
+  PlanComparison,
+  ReturnEstimate,
+} from "@/domain/tracking";
 import type { AssetWeight, InvestmentTaxRates } from "@/domain/tax";
 
 import { useMemo } from "react";
@@ -28,7 +34,13 @@ import { kidsCostByYear as kidsCostNzdByYear } from "@/domain/kids";
 import { buildAccumulationProjection, buildProjection } from "@/domain/plan";
 import { checkAssumptions } from "@/domain/sanity";
 import { yearsToPayoff } from "@/domain/projection";
-import { attributeGrowth, comparePlan } from "@/domain/tracking";
+import {
+  attributeGrowth,
+  comparePlan,
+  estimateReturn,
+  readPot,
+  yearsBetween,
+} from "@/domain/tracking";
 import {
   accLevy,
   blendedAfterTaxReturn,
@@ -826,41 +838,84 @@ export const useSanityWarnings = (): SanityWarning[] => {
   );
 };
 
+export interface PlanTracking {
+  comparison: PlanComparison | null;
+  attribution: GrowthAttribution | null;
+  /** What the pot's assets have actually earned, against what is assumed. */
+  returns: {
+    estimate: ReturnEstimate;
+    /** The expected return as set, before tax. */
+    expected: number;
+    /** The same after investment tax: what an observed return compares with. */
+    expectedAfterTax: number;
+  } | null;
+  /**
+   * The plan as it would have run from the first snapshot: today's
+   * assumptions, started from where the pot stood then. Year 0 is that
+   * snapshot's date.
+   */
+  plan: {
+    points: ProjectionPoint[];
+    since: string;
+    /** Age at the first snapshot, fractional. */
+    ageAtStart: number;
+  } | null;
+  /** What today's portfolio keeps out of the pot, in display currency. */
+  excluded: Exclusions;
+}
+
 /** How the plan is tracking against reality, from recorded snapshots. */
-export const usePlanTracking = () => {
+export const usePlanTracking = (): PlanTracking => {
   const snapshots = useHistory((s) => s.snapshots);
-  const contributions = usePlanContributions();
-  const expectedReturn = useAfterTaxReturn();
-  const budget = usePlanBudget();
+  const bundle = useCurrentPlanBundle();
   const totals = usePortfolioTotals();
   const settings = useSettings((s) => s.settings);
 
   return useMemo(() => {
+    const excluded: Exclusions = {
+      assets: totals.assetsTotal - totals.fireAssetsTotal,
+      liabilities: totals.liabilitiesTotal - totals.fireLiabilitiesTotal,
+    };
     const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
     const first = sorted[0];
 
-    if (!first) return { comparison: null, attribution: null };
+    if (!first) {
+      return {
+        comparison: null,
+        attribution: null,
+        returns: null,
+        plan: null,
+        excluded,
+      };
+    }
 
     // Anchor the projection at the first snapshot, so the comparison asks
     // whether reality matched the plan rather than comparing today to today.
+    // Everything else about the plan is as it stands today; only the starting
+    // pot and the age it started at are wound back.
+    const yearsSince = Math.max(
+      0,
+      yearsBetween(first.date, new Date().toISOString()),
+    );
+    const ageAtStart = settings.currentAge - yearsSince;
     const fromFirst = buildProjection(
-      {
-        currentNetWorth: first.netWorth,
-        monthlySavings: contributions.monthlyContributions,
-        expectedReturn,
-        retirementAge: settings.retirementAge,
-        annualExpenses: budget.annualExpenses,
-        retirementExpenses: budget.retirementExpenses,
-        currentLockedNetWorth: totals.fireLockedAssetsTotal,
-        monthlyLockedSavings: contributions.monthlyLockedContributions,
-      },
-      settings,
+      { ...bundle, currentNetWorth: readPot(first, excluded).netWorth },
+      { ...settings, currentAge: ageAtStart },
       DASHBOARD_HORIZON_YEARS,
     );
+    const monthly = bundle.monthlySavings;
+    const estimate = estimateReturn(sorted, monthly, undefined, excluded);
 
     return {
-      comparison: comparePlan(sorted, fromFirst),
-      attribution: attributeGrowth(sorted, contributions.monthlyContributions),
+      comparison: comparePlan(sorted, fromFirst, undefined, excluded),
+      attribution: attributeGrowth(sorted, monthly, excluded),
+      returns: estimate && {
+        estimate,
+        expected: settings.expectedReturn,
+        expectedAfterTax: bundle.expectedReturn,
+      },
+      plan: { points: fromFirst, since: first.date, ageAtStart },
+      excluded,
     };
-  }, [snapshots, contributions, expectedReturn, budget, totals, settings]);
+  }, [snapshots, bundle, totals, settings]);
 };

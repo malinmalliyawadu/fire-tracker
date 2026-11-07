@@ -16,6 +16,20 @@ export interface NetWorthSnapshot {
    * snapshots taken before it was recorded.
    */
   yearsToFire?: number;
+  /**
+   * The pot the plan projects: assets that fund retirement, net of the debts
+   * set against them. Recorded so the record and the projection sit on the
+   * same basis. Absent on snapshots taken before it was recorded.
+   */
+  fireNetWorth?: number;
+  /** Gross assets funding retirement: the base the plan's return compounds. */
+  fireAssetsTotal?: number;
+  /**
+   * Monthly contributions into the pot at the time, in the snapshot's
+   * currency. Lets later readings use the rate that actually applied in each
+   * stretch of the record rather than smearing today's rate backwards.
+   */
+  monthlyContributions?: number;
 }
 
 interface HistoryState {
