@@ -60,6 +60,11 @@ const PAD_BOTTOM = 26;
 /** Gap between the inspected point and the card that reads it out. */
 const CARD_GAP = 14;
 
+/** The band always shows at least this many years ahead of today. */
+const MIN_YEARS_AHEAD = 15;
+/** Years of runway drawn past the last moment marked on the band. */
+const HORIZON_ROOM = 5;
+
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
@@ -88,8 +93,9 @@ const toPath = (coords: [number, number][]): string =>
     .join(" ");
 
 /**
- * The journey: the FIRE pot across the rest of a life, with the moments that
- * matter marked on it. What has been recorded is drawn as the record, and the
+ * The journey: the FIRE pot from the first record to a little past the last
+ * moment that matters, with those moments marked on it. The decades after
+ * that are left to the simulation. What has been recorded is drawn as the record, and the
  * projection takes over from today. Once there is a record, the plan as it
  * would have run from the first snapshot is drawn dashed behind both, so the
  * gap between it and the path is how far ahead or behind you are. The one
@@ -173,14 +179,56 @@ export function JourneyBand() {
           plan: planAt(age),
         };
       });
-    const projected: Point[] = projection.map((p) => ({
-      kind: "projected",
-      age: p.age,
-      when: String(thisYear + p.year),
-      netWorth: p.netWorth,
-      debt: p.debt,
-      plan: planAt(p.age),
-    }));
+    // The moments that matter, read off the full projection before it is cut
+    // to the band's window.
+    const realReturn = afterTax - settings.inflationRate;
+    const coast = coastPoint(
+      projection,
+      summary.target,
+      realReturn,
+      settings.retirementAge,
+    );
+    const debtFree = projection.some((p) => p.debt > 0)
+      ? (projection.find((p) => p.debt === 0)?.age ?? null)
+      : null;
+    // A pot that was there at retirement and is gone later.
+    const runsOut =
+      projection.find(
+        (p, i) =>
+          i > 0 &&
+          p.age > settings.retirementAge &&
+          p.netWorth <= 0 &&
+          projection[i - 1].netWorth > 0,
+      )?.age ?? null;
+
+    // The band ends a few years past the last of those moments, on a round
+    // age, rather than running out the whole projection: the decades after
+    // the last thing that happens only squeeze the years that matter.
+    const fullMax = projection[projection.length - 1].age;
+    const lastMoment = Math.max(
+      settings.currentAge + MIN_YEARS_AHEAD,
+      settings.retirementAge,
+      settings.kiwisaverUnlockAge,
+      settings.nzSuperStartAge,
+      summary.age ?? 0,
+      debtFree ?? 0,
+      runsOut ?? 0,
+    );
+    const horizon = Math.min(
+      fullMax,
+      Math.ceil((lastMoment + HORIZON_ROOM) / 5) * 5,
+    );
+
+    const projected: Point[] = projection
+      .filter((p) => p.age <= horizon)
+      .map((p) => ({
+        kind: "projected",
+        age: p.age,
+        when: String(thisYear + p.year),
+        netWorth: p.netWorth,
+        debt: p.debt,
+        plan: planAt(p.age),
+      }));
     const points = [...recorded, ...projected];
     const todayIndex = recorded.length;
 
@@ -238,17 +286,6 @@ export function JourneyBand() {
     const todayX = x(settings.currentAge);
     const todayPct = (todayX / W) * 100;
 
-    const realReturn = afterTax - settings.inflationRate;
-    const coast = coastPoint(
-      projection,
-      summary.target,
-      realReturn,
-      settings.retirementAge,
-    );
-    const debtFree = projection.some((p) => p.debt > 0)
-      ? (projection.find((p) => p.debt === 0)?.age ?? null)
-      : null;
-
     const marks: Mark[] = [];
 
     if (summary.age !== null && !summary.reached && summary.age <= maxAge) {
@@ -269,6 +306,9 @@ export function JourneyBand() {
     }
     if (debtFree !== null && debtFree > settings.currentAge) {
       marks.push({ age: debtFree, label: "Debt free", minor: true });
+    }
+    if (runsOut !== null && runsOut <= maxAge) {
+      marks.push({ age: runsOut, label: "Pot runs out" });
     }
 
     const unlock = settings.kiwisaverUnlockAge;
