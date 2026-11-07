@@ -1,6 +1,8 @@
 import type { Currency } from "@/types";
 
+import { todayIso } from "@/domain/age";
 import { useSettings } from "@/store/settings";
+import { DateCard } from "@/components/ui/DateCard";
 import { Field } from "@/components/ui/Field";
 import { NumericCard } from "@/components/ui/NumericCard";
 import { Section } from "@/components/ui/Section";
@@ -18,7 +20,7 @@ export function Profile() {
   return (
     <Section
       id="you"
-      lede="Ages anchor every projection; the currency is how everything is shown."
+      lede="Every age in the plan is counted from your date of birth; the currency is how everything is shown."
       title="You"
     >
       <div className="space-y-5">
@@ -32,13 +34,13 @@ export function Profile() {
         </Field>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <NumericCard
-            allowDecimal={false}
-            grouping={false}
-            label="Current age"
+          <DateCard
+            label="Date of birth"
+            max={todayIso()}
+            meta={`Age ${settings.currentAge}`}
             size="sm"
-            value={settings.currentAge}
-            onChange={(v) => update({ currentAge: v ?? 0 })}
+            value={settings.birthDate}
+            onChange={(v) => update({ birthDate: v })}
           />
           <NumericCard
             allowDecimal={false}

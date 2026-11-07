@@ -154,6 +154,35 @@ describe("parseBackup", () => {
     expect(result.payload.settings?.retirementAge).toBe(65);
   });
 
+  it("drops birth dates that are not calendar dates", () => {
+    const result = parseBackup(
+      JSON.stringify({
+        settings: {
+          birthDate: "yesterday",
+          household: { hasPartner: true, partnerBirthDate: "1992-03-01" },
+        },
+        assets: [asset],
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.payload.settings).not.toHaveProperty("birthDate");
+    expect(result.payload.settings?.household?.partnerBirthDate).toBe(
+      "1992-03-01",
+    );
+  });
+
+  it("drops a household that is not an object", () => {
+    const result = parseBackup(
+      JSON.stringify({ settings: { household: "two" }, assets: [asset] }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.payload.settings).not.toHaveProperty("household");
+  });
+
   it("keeps NaN and Infinity out of settings", () => {
     // JSON.parse can't produce these, but a hand-edited file routed through
     // another tool can, so the guard is on the value not the syntax.

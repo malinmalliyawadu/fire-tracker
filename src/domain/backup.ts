@@ -10,6 +10,8 @@ import type {
 } from "@/types";
 import type { NetWorthSnapshot } from "@/store/history";
 
+import { isIsoDate } from "@/domain/age";
+
 /**
  * Everything a backup round-trips. Each list is optional so a file written by
  * an older version still restores what it does contain.
@@ -131,7 +133,9 @@ const validSnapshot = (s: Record<string, unknown>): boolean =>
 
 /**
  * Numeric settings that would break the projection if they arrived as strings
- * or NaN. Anything not listed passes through as-is.
+ * or NaN. Anything not listed passes through as-is. `currentAge` is no longer
+ * kept, but a backup from before birth dates carries it and the settings
+ * store turns it into one, so it still has to be a number.
  */
 const NUMERIC_SETTINGS = [
   "currentAge",
@@ -158,6 +162,26 @@ const cleanSettings = (value: unknown): Partial<Settings> | undefined => {
   }
 
   if (!isCurrency(cleaned.displayCurrency)) delete cleaned.displayCurrency;
+  if ("birthDate" in cleaned && !isIsoDate(cleaned.birthDate)) {
+    delete cleaned.birthDate;
+  }
+
+  if (isRecord(cleaned.household)) {
+    const household = { ...cleaned.household };
+
+    if (
+      "partnerBirthDate" in household &&
+      !isIsoDate(household.partnerBirthDate)
+    ) {
+      delete household.partnerBirthDate;
+    }
+    if ("partnerAge" in household && !isFiniteNumber(household.partnerAge)) {
+      delete household.partnerAge;
+    }
+    cleaned.household = household;
+  } else if ("household" in cleaned) {
+    delete cleaned.household;
+  }
 
   return cleaned as Partial<Settings>;
 };

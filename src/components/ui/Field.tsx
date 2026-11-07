@@ -78,6 +78,14 @@ export function Field({
   );
 }
 
+/**
+ * Shared frame for card fields: a label row over an oversized value. The
+ * frame carries the focus affordance, so the input inside it suppresses the
+ * global ring rather than drawing a second box.
+ */
+export const CARD_FRAME =
+  "rounded-xl border border-line bg-surface px-4 py-3.5 transition-[border-color,box-shadow] duration-[var(--dur-hover)] hover:border-ink-3 focus-within:border-ink focus-within:shadow-[0_0_0_3px_var(--wash-strong)] focus-within:hover:border-ink";
+
 /** Shared frame for text-like inputs. */
 export const INPUT_FRAME =
   "w-full rounded-lg border border-line bg-surface text-ink outline-none transition-[border-color,box-shadow] duration-[var(--dur-hover)] placeholder:text-ink-4 hover:border-ink-3 focus:border-ink focus:shadow-[0_0_0_3px_var(--wash-strong)] focus-visible:outline-none";

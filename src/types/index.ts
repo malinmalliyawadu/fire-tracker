@@ -149,6 +149,12 @@ export interface IncomeSource {
 
 export interface Settings {
   displayCurrency: Currency;
+  /** Date of birth, YYYY-MM-DD. Every age in the plan is counted from it. */
+  birthDate: string;
+  /**
+   * Age today, read off `birthDate` by the settings store. Derived rather
+   * than entered, so it moves on a birthday without anyone touching it.
+   */
   currentAge: number;
   retirementAge: number;
   annualExpenses: number;
@@ -181,10 +187,18 @@ export interface Settings {
  */
 export interface Household {
   hasPartner: boolean;
+  /** Partner's date of birth, YYYY-MM-DD. */
+  partnerBirthDate: string;
+  /** Partner's age today, derived from `partnerBirthDate` like `currentAge`. */
   partnerAge: number;
   /** Include the partner's NZ Super in retirement income. */
   includePartnerNzSuper: boolean;
 }
+
+/** What the settings store keeps: everything but the derived ages. */
+export type StoredSettings = Omit<Settings, "currentAge" | "household"> & {
+  household: Omit<Household, "partnerAge">;
+};
 
 export type FireType = "traditional" | "lean" | "fat" | "coast";
 

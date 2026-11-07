@@ -8,6 +8,7 @@ import { yearsToTarget } from "../projection";
 
 const settings: Settings = {
   displayCurrency: "NZD",
+  birthDate: "1991-01-01",
   currentAge: 35,
   retirementAge: 55,
   annualExpenses: 90_000,
@@ -22,6 +23,7 @@ const settings: Settings = {
   nzSuperStatus: "singleLivingAlone",
   household: {
     hasPartner: false,
+    partnerBirthDate: "1991-01-01",
     partnerAge: 35,
     includePartnerNzSuper: false,
   },

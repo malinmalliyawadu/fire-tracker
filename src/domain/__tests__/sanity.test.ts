@@ -6,6 +6,7 @@ import { checkAssumptions } from "../sanity";
 
 const settings: Settings = {
   displayCurrency: "NZD",
+  birthDate: "1988-01-01",
   currentAge: 38,
   retirementAge: 55,
   annualExpenses: 60_000,
@@ -18,7 +19,12 @@ const settings: Settings = {
   usdToNzd: 1.65,
   applyInvestmentTax: true,
   nzSuperStatus: "singleLivingAlone",
-  household: { hasPartner: false, partnerAge: 38, includePartnerNzSuper: true },
+  household: {
+    hasPartner: false,
+    partnerBirthDate: "1988-01-01",
+    partnerAge: 38,
+    includePartnerNzSuper: true,
+  },
   spendingPhases: {
     enabled: false,
     goGoMultiplier: 1.1,
