@@ -31,6 +31,7 @@ const settings: Settings = {
 
 const healthy = {
   settings,
+  afterTaxReturn: 0.07,
   realReturn: 0.045,
   retirementExpenses: 60_000,
   savingsRate: 0.35,
@@ -55,6 +56,111 @@ describe("checkAssumptions", () => {
         realReturn: 0.045,
       }),
     ).toContain("withdrawal-exceeds-return");
+  });
+
+  it("shows the working from expected return down to the gap", () => {
+    const warning = checkAssumptions({
+      ...healthy,
+      afterTaxReturn: 0.052,
+      realReturn: 0.027,
+      investmentTax: {
+        rates: { marginal: 0.33, pir: 0.28 },
+        slices: [
+          {
+            rule: "pie",
+            types: ["shares", "kiwisaver"],
+            share: 0.72,
+            drag: 0.01,
+          },
+          { rule: "income", types: ["savings"], share: 0.08, drag: 0.008 },
+          { rule: "untaxed", types: ["property"], share: 0.2, drag: 0 },
+        ],
+      },
+    }).find((w) => w.id === "withdrawal-exceeds-return");
+
+    expect(warning?.detail).toContain("after tax and inflation");
+    expect(
+      warning?.calculation?.map((line) => [line.label, line.value]),
+    ).toEqual([
+      ["Expected return", "7.0%"],
+      ["Investment tax", "−1.8%"],
+      ["Return after tax", "5.2%"],
+      ["Inflation", "−2.5%"],
+      ["Real return", "2.7%"],
+      ["Withdrawal rate", "4.0%"],
+      ["Drawn from capital", "1.3% a year"],
+    ]);
+    expect(warning?.calculation?.at(-1)?.note).toContain(
+      "On the $1.5M target that is $19.5K of capital spent in year one.",
+    );
+  });
+
+  it("says where the tax comes from, holding by holding", () => {
+    const warning = checkAssumptions({
+      ...healthy,
+      afterTaxReturn: 0.052,
+      realReturn: 0.027,
+      investmentTax: {
+        rates: { marginal: 0.33, pir: 0.175 },
+        slices: [
+          {
+            rule: "pie",
+            types: ["shares", "kiwisaver"],
+            share: 0.72,
+            drag: 0.01,
+          },
+          { rule: "income", types: ["savings"], share: 0.08, drag: 0.008 },
+          { rule: "untaxed", types: ["property"], share: 0.2, drag: 0 },
+        ],
+      },
+    }).find((w) => w.id === "withdrawal-exceeds-return");
+    const note = warning?.calculation?.find(
+      (line) => line.label === "Investment tax",
+    )?.note;
+
+    expect(note).toBe(
+      "Shares and KiwiSaver, 72% of the pot: 5% of value is deemed income each year and taxed at your 17.5% PIR, costing 1.0%. " +
+        "Savings, 8% of the pot: the whole return is taxed as income at your 33% marginal rate, costing 0.8%. " +
+        "Property, 20% of the pot: growth is untaxed. " +
+        "Set under Investment tax in Settings.",
+    );
+  });
+
+  it("spells out what real return is taken from", () => {
+    const notes = (afterTaxReturn: number) =>
+      checkAssumptions({ ...healthy, afterTaxReturn, realReturn: 0.027 })
+        .find((w) => w.id === "withdrawal-exceeds-return")
+        ?.calculation?.find((line) => line.label === "Real return")?.note;
+
+    expect(notes(0.052)).toContain("Return after tax less inflation");
+    expect(notes(0.07)).toContain("Expected return less inflation");
+  });
+
+  it("leaves tax out of the working when it takes nothing off", () => {
+    const warning = checkAssumptions({
+      ...healthy,
+      settings: { ...settings, withdrawalRate: 0.06 },
+      realReturn: 0.045,
+    }).find((w) => w.id === "withdrawal-exceeds-return");
+
+    expect(warning?.detail).toContain("after inflation");
+    expect(warning?.calculation?.map((line) => line.label)).toEqual([
+      "Expected return",
+      "Inflation",
+      "Real return",
+      "Withdrawal rate",
+      "Drawn from capital",
+    ]);
+  });
+
+  it("skips the dollar figure when there is no retirement spending", () => {
+    const warning = checkAssumptions({
+      ...healthy,
+      retirementExpenses: 0,
+      realReturn: 0.027,
+    }).find((w) => w.id === "withdrawal-exceeds-return");
+
+    expect(warning?.calculation?.at(-1)?.note).not.toContain("target");
   });
 
   it("flags an optimistic return", () => {

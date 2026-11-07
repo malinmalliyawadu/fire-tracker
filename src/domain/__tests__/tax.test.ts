@@ -6,6 +6,7 @@ import {
   ACC_MAX_LIABLE_EARNINGS,
   afterTaxReturn,
   blendedAfterTaxReturn,
+  investmentTaxBreakdown,
   esctRate,
   FAIR_DIVIDEND_RATE,
   governmentContribution,
@@ -231,5 +232,52 @@ describe("blendedAfterTaxReturn", () => {
     );
 
     expect(blended).toBeCloseTo(0.06, 6);
+  });
+});
+
+describe("investmentTaxBreakdown", () => {
+  const rates = { marginal: 0.33, pir: 0.28 };
+  const portfolio = [
+    { type: "shares" as const, value: 500 },
+    { type: "kiwisaver" as const, value: 220 },
+    { type: "savings" as const, value: 80 },
+    { type: "property" as const, value: 200 },
+  ];
+
+  it("is empty with nothing to weight", () => {
+    expect(investmentTaxBreakdown([], 0.07, rates)).toEqual([]);
+  });
+
+  it("groups holdings by tax rule, largest holding first", () => {
+    const slices = investmentTaxBreakdown(portfolio, 0.07, rates);
+
+    expect(slices.map((s) => [s.rule, s.types])).toEqual([
+      ["pie", ["shares", "kiwisaver"]],
+      ["income", ["savings"]],
+      ["untaxed", ["property"]],
+    ]);
+    expect(slices.map((s) => s.share)).toEqual([0.72, 0.08, 0.2]);
+  });
+
+  it("adds up to the blended drag", () => {
+    const slices = investmentTaxBreakdown(portfolio, 0.07, rates);
+    const drag = 0.07 - blendedAfterTaxReturn(portfolio, 0.07, rates);
+
+    expect(slices.reduce((sum, s) => sum + s.drag, 0)).toBeCloseTo(drag, 12);
+    expect(slices[0].drag).toBeCloseTo(0.72 * 0.28 * 0.05, 12);
+    expect(slices[1].drag).toBeCloseTo(0.08 * 0.07 * 0.33, 12);
+    expect(slices[2].drag).toBe(0);
+  });
+
+  it("leaves out rules the portfolio doesn't touch", () => {
+    const slices = investmentTaxBreakdown(
+      [{ type: "property", value: 100 }],
+      0.07,
+      rates,
+    );
+
+    expect(slices).toEqual([
+      { rule: "untaxed", types: ["property"], share: 1, drag: 0 },
+    ]);
   });
 });

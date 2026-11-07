@@ -1,3 +1,6 @@
+import type { CalculationLine } from "@/domain/sanity";
+
+import clsx from "clsx";
 import { EyeOff } from "lucide-react";
 
 import { usePortfolioTotals, useSanityWarnings } from "@/store/derived";
@@ -70,12 +73,64 @@ export function Checks() {
                 title={warning.title}
                 tone={warning.level === "warning" ? "warning" : "note"}
               >
-                {warning.detail}
+                <p>{warning.detail}</p>
+                {warning.calculation && <Working lines={warning.calculation} />}
               </Callout>
             </li>
           );
         })}
       </ul>
     </Section>
+  );
+}
+
+/**
+ * The arithmetic behind a check, laid out as a short working: one step a
+ * row, totals ruled off above, and the figure the check is about last.
+ */
+function Working({ lines }: { lines: CalculationLine[] }) {
+  return (
+    <dl className="mt-3 max-w-[44ch]">
+      {lines.map((line) => {
+        const ruled = line.emphasis !== undefined;
+        const isResult = line.emphasis === "result";
+
+        return (
+          <div
+            key={line.label}
+            className={clsx(
+              "flex items-baseline justify-between gap-6 py-1.5",
+              ruled ? "border-t border-line" : "border-t border-line-soft",
+              line === lines[0] && "border-t-0",
+            )}
+          >
+            <div className="min-w-0">
+              <dt
+                className={clsx(
+                  "text-[13px]",
+                  ruled ? "font-medium text-ink" : "text-ink-2",
+                )}
+              >
+                {line.label}
+              </dt>
+              {line.note && (
+                <dd className="mt-0.5 text-[12px] leading-relaxed text-ink-3">
+                  {line.note}
+                </dd>
+              )}
+            </div>
+            <dd
+              className={clsx(
+                "num shrink-0 text-[13px]",
+                ruled ? "font-medium" : "text-ink-2",
+                isResult ? "text-loss" : ruled && "text-ink",
+              )}
+            >
+              {line.value}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 }
