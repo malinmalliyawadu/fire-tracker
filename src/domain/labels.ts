@@ -139,13 +139,17 @@ export const FREQUENCY_PILL: Record<ContributionFrequency, string> = {
   annually: "Yr",
 };
 
+/**
+ * Categorical colours, muted so they sit on paper and ink in either scheme.
+ * Semantic colours (gain, loss, flame) are deliberately not in this set.
+ */
 export const ASSET_TYPE_COLOR: Record<AssetType, string> = {
-  kiwisaver: "#7c83e7",
-  shares: "#06b6d4",
-  savings: "#22c55e",
-  crypto: "#f59e0b",
-  property: "#ec4899",
-  other: "#94a3b8",
+  kiwisaver: "#5b6b8c",
+  shares: "#2f7f6e",
+  savings: "#8a9a5b",
+  crypto: "#c78a2e",
+  property: "#a75c4f",
+  other: "#8e8b84",
 };
 
 export const INCOME_TYPE_LABEL: Record<IncomeType, string> = {
@@ -203,12 +207,12 @@ export const EXPENSE_CATEGORY_ICON: Record<ExpenseCategory, LucideIcon> = {
 };
 
 export const EXPENSE_CATEGORY_COLOR: Record<ExpenseCategory, string> = {
-  housing: "#7c83e7",
-  food: "#22c55e",
-  transport: "#06b6d4",
-  utilities: "#f59e0b",
-  health: "#ec4899",
-  insurance: "#a855f7",
-  discretionary: "#f43f5e",
-  other: "#94a3b8",
+  housing: "#a75c4f",
+  food: "#8a9a5b",
+  transport: "#5b6b8c",
+  utilities: "#c78a2e",
+  health: "#b06a8c",
+  insurance: "#4f7f8f",
+  discretionary: "#7a5ea3",
+  other: "#8e8b84",
 };

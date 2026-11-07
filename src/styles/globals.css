@@ -1,38 +1,191 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ------------------------------------------------------------------ */
+/* Tokens                                                              */
+/*                                                                     */
+/* Paper and ink. One hot colour, flame, and it means exactly one      */
+/* thing: the goal. Everything interactive is ink.                     */
+/* ------------------------------------------------------------------ */
+
 :root {
+  --bg: #edefe9;
+  --bg-deep: #e3e6df;
+  --surface: #ffffff;
+  --surface-2: #f6f7f3;
+  --ink: #101712;
+  --ink-2: #4a554d;
+  --ink-3: #7e8a81;
+  --ink-4: #a9b2ab;
+  --line: rgba(16, 23, 18, 0.14);
+  --line-soft: rgba(16, 23, 18, 0.08);
+  --wash: rgba(16, 23, 18, 0.045);
+  --wash-strong: rgba(16, 23, 18, 0.09);
+  --flame: #f0632f;
+  --flame-ink: #b63a12;
+  --flame-wash: rgba(240, 99, 47, 0.12);
+  --gain: #1f7a48;
+  --gain-wash: rgba(31, 122, 72, 0.12);
+  --loss: #b3261e;
+  --loss-wash: rgba(179, 38, 30, 0.1);
+  --note: #8a6a12;
+  --note-wash: rgba(138, 106, 18, 0.12);
+  --on-ink: #f4f6f1;
+  --shadow-pop:
+    0 1px 2px rgba(16, 23, 18, 0.08), 0 12px 32px -12px rgba(16, 23, 18, 0.28);
+  --shadow-dialog:
+    0 1px 2px rgba(16, 23, 18, 0.1), 0 32px 80px -24px rgba(16, 23, 18, 0.45);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press: 140ms;
+  --dur-hover: 160ms;
+  --dur-pop: 200ms;
+  --dur-dialog: 240ms;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0d110e;
+  --bg-deep: #090c0a;
+  --surface: #151a16;
+  --surface-2: #1b211c;
+  --ink: #eef0ea;
+  --ink-2: #a9b2aa;
+  --ink-3: #727d75;
+  --ink-4: #4c554f;
+  --line: rgba(238, 240, 234, 0.14);
+  --line-soft: rgba(238, 240, 234, 0.08);
+  --wash: rgba(238, 240, 234, 0.05);
+  --wash-strong: rgba(238, 240, 234, 0.1);
+  --flame: #ff6a3d;
+  --flame-ink: #ff8f68;
+  --flame-wash: rgba(255, 106, 61, 0.16);
+  --gain: #4cc27a;
+  --gain-wash: rgba(76, 194, 122, 0.14);
+  --loss: #f0705f;
+  --loss-wash: rgba(240, 112, 95, 0.14);
+  --note: #d9b24a;
+  --note-wash: rgba(217, 178, 74, 0.14);
+  --on-ink: #0d110e;
+  --shadow-pop:
+    0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.7);
+  --shadow-dialog:
+    0 1px 2px rgba(0, 0, 0, 0.5), 0 32px 80px -24px rgba(0, 0, 0, 0.85);
+
   color-scheme: dark;
 }
+
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-wash: var(--wash);
+  --color-wash-strong: var(--wash-strong);
+  --color-flame: var(--flame);
+  --color-flame-ink: var(--flame-ink);
+  --color-flame-wash: var(--flame-wash);
+  --color-gain: var(--gain);
+  --color-gain-wash: var(--gain-wash);
+  --color-loss: var(--loss);
+  --color-loss-wash: var(--loss-wash);
+  --color-note: var(--note);
+  --color-note-wash: var(--note-wash);
+  --color-on-ink: var(--on-ink);
+
+  --font-sans:
+    "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --shadow-pop: var(--shadow-pop);
+  --shadow-dialog: var(--shadow-dialog);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+  --ease-drawer: var(--ease-drawer);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
 
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
+}
+
+html {
+  background-color: var(--bg);
 }
 
 body {
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-feature-settings: "ss01", "cv11";
-  background-color: #050508;
-  color: #f5f6fa;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  font-optical-sizing: auto;
+  font-feature-settings: "ss02";
+  background-color: var(--bg);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
 
-.font-mono,
-.tabular {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" on, "lnum" on;
-}
-
 ::selection {
-  background: rgba(124, 131, 231, 0.35);
-  color: #ffffff;
+  background: var(--flame-wash);
+  color: var(--ink);
 }
 
-/* Subtle scrollbar */
+/* Figures: every number in the app lines up in columns. */
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Display cuts: the narrow width axis gives big figures their stance. */
+.display {
+  font-variation-settings: "wdth" 88;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.display-wide {
+  font-variation-settings: "wdth" 100;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  font-weight: 500;
+}
+
+/* Hairline rules do the structural work cards used to do. */
+.rule {
+  border-top: 1px solid var(--line-soft);
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -41,81 +194,141 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--wash-strong);
   border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
-/* Recharts dark-mode tweaks */
+/* Focus: an ink ring, offset so it never fights a control's own border. */
+:where(button, a, [role="button"], input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+:where(button, [role="button"]) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pressables answer the finger. */
+.press {
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Range inputs are drawn by hand in SliderField; strip the UA chrome. */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: grab;
+  transition: transform var(--dur-hover) var(--ease-out);
+}
+input[type="range"]::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: grab;
+}
+input[type="range"]:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+@media (hover: hover) and (pointer: fine) {
+  input[type="range"]:hover::-webkit-slider-thumb {
+    transform: scale(1.1);
+  }
+}
+
+/* Recharts */
 .recharts-cartesian-axis-tick-value {
-  fill: #6e7591 !important;
-  font-family: "JetBrains Mono", ui-monospace, monospace !important;
-  font-size: 11px !important;
+  fill: var(--ink-3) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 11.5px !important;
+  font-variant-numeric: tabular-nums;
 }
 .recharts-cartesian-grid line {
-  stroke: rgba(255, 255, 255, 0.04) !important;
+  stroke: var(--line-soft) !important;
 }
-.recharts-tooltip-wrapper {
+.recharts-tooltip-wrapper,
+.recharts-surface {
   outline: none !important;
 }
-
-/* Hairline border helper */
-.hairline {
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.recharts-reference-line text {
+  font-family: var(--font-sans) !important;
+  font-weight: 500;
 }
 
-/* Animated ambient blobs */
-@keyframes drift-a {
-  0%,
-  100% {
-    transform: translate3d(-10%, -10%, 0) scale(1);
+/* ------------------------------------------------------------------ */
+/* Motion                                                              */
+/* ------------------------------------------------------------------ */
+
+/* Each page settles in once: a short rise, nothing else. */
+.page-enter {
+  animation: page-enter 280ms var(--ease-out) both;
+}
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
-  50% {
-    transform: translate3d(10%, 5%, 0) scale(1.1);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-@keyframes drift-b {
-  0%,
-  100% {
-    transform: translate3d(20%, 30%, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(-15%, -10%, 0) scale(1.15);
-  }
+
+/* Staggered reveal for a list that appears on first paint. */
+.reveal {
+  animation: reveal 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
-@keyframes drift-c {
-  0%,
-  100% {
-    transform: translate3d(-20%, 40%, 0) scale(0.95);
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-  50% {
-    transform: translate3d(15%, -25%, 0) scale(1.05);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-}
-.blob-a {
-  animation: drift-a 26s ease-in-out infinite;
-}
-.blob-b {
-  animation: drift-b 32s ease-in-out infinite;
-}
-.blob-c {
-  animation: drift-c 38s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .blob-a,
-  .blob-b,
-  .blob-c {
-    animation: none;
+  .page-enter,
+  .reveal {
+    animation-duration: 120ms;
+    animation-delay: 0ms;
   }
-}
-
-/* Focus rings.
-   The radius is inherited rather than forced, so a pill keeps its pill shape
-   and a bare input inside a framed field doesn't sprout a stray rectangle. */
-:where(button, a, [role="button"], input, select, textarea):focus-visible {
-  outline: 2px solid #7c83e7;
-  outline-offset: 2px;
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: none;
+    }
+  }
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: none;
+    }
+  }
+  .press:active {
+    transform: none;
+  }
 }

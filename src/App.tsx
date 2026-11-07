@@ -1,12 +1,12 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { useAutoSnapshot } from "@/hooks/useAutoSnapshot";
-import Dashboard from "@/pages/Dashboard";
-import Export from "@/pages/Export";
+import CashFlow from "@/pages/CashFlow";
+import Overview from "@/pages/Overview";
+import Portfolio from "@/pages/Portfolio";
 import Settings from "@/pages/Settings";
 import Simulate from "@/pages/Simulate";
-import Spending from "@/pages/Spending";
 
 export default function App() {
   useAutoSnapshot();
@@ -14,11 +14,18 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<Dashboard />} />
-        <Route element={<Spending />} path="/spending" />
+        <Route index element={<Overview />} />
+        <Route element={<Portfolio />} path="/portfolio" />
+        <Route element={<CashFlow />} path="/cashflow" />
         <Route element={<Simulate />} path="/simulate" />
-        <Route element={<Export />} path="/export" />
         <Route element={<Settings />} path="/settings" />
+        {/* Old addresses keep working. */}
+        <Route element={<Navigate replace to="/cashflow" />} path="/spending" />
+        <Route
+          element={<Navigate replace to="/settings#data" />}
+          path="/export"
+        />
+        <Route element={<Navigate replace to="/" />} path="*" />
       </Route>
     </Routes>
   );

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 
+import { useFireSummary } from "@/hooks/useFireSummary";
 import { useHistory } from "@/store/history";
 import { useSettings } from "@/store/settings";
 import { usePortfolioTotals } from "@/store/derived";
@@ -12,8 +13,10 @@ export function useAutoSnapshot() {
   const totals = usePortfolioTotals();
   const currency = useSettings((s) => s.settings.displayCurrency);
   const takeSnapshot = useHistory((s) => s.takeSnapshot);
+  const { years } = useFireSummary();
 
   const { netWorth, assetsTotal, liabilitiesTotal } = totals;
+  const yearsToFire = Number.isFinite(years) ? years : undefined;
 
   useEffect(() => {
     // Skip when portfolio is empty (avoids a $0 snapshot on first load).
@@ -24,6 +27,14 @@ export function useAutoSnapshot() {
       assetsTotal,
       liabilitiesTotal,
       currency,
+      yearsToFire,
     });
-  }, [netWorth, assetsTotal, liabilitiesTotal, currency, takeSnapshot]);
+  }, [
+    netWorth,
+    assetsTotal,
+    liabilitiesTotal,
+    currency,
+    yearsToFire,
+    takeSnapshot,
+  ]);
 }

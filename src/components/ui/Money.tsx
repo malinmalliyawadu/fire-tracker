@@ -25,9 +25,5 @@ export function Money({
 
   const display = signed && amount > 0 ? `+${text}` : text;
 
-  return (
-    <span className={clsx("font-mono tabular tracking-tight", className)}>
-      {display}
-    </span>
-  );
+  return <span className={clsx("num", className)}>{display}</span>;
 }
