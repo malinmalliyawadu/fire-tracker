@@ -38,6 +38,7 @@ import {
   attributeGrowth,
   comparePlan,
   estimateReturn,
+  inCurrency,
   readPot,
   yearsBetween,
 } from "@/domain/tracking";
@@ -876,7 +877,11 @@ export const usePlanTracking = (): PlanTracking => {
       assets: totals.assetsTotal - totals.fireAssetsTotal,
       liabilities: totals.liabilitiesTotal - totals.fireLiabilitiesTotal,
     };
-    const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+    const sorted = inCurrency(
+      snapshots,
+      settings.displayCurrency,
+      settings.usdToNzd,
+    ).sort((a, b) => a.date.localeCompare(b.date));
     const first = sorted[0];
 
     if (!first) {

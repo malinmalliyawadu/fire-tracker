@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  # Rebuilds with the latest S&P 500 closes, which ship inside the app.
+  schedule:
+    - cron: "23 6 * * 2"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -32,6 +36,11 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      # A failed download keeps the data committed in the repo.
+      - name: Refresh benchmark data
+        continue-on-error: true
+        run: npm run update:benchmark
 
       - name: Build
         run: npm run build

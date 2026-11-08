@@ -1,7 +1,9 @@
-import type { ProjectionPoint } from "@/types";
+import type { Currency, ProjectionPoint } from "@/types";
 import type { NetWorthSnapshot } from "@/store/history";
 
-const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+import { convert } from "@/domain/currency";
+
+export const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
 /** Fractional years between two ISO timestamps. Negative if `to` precedes `from`. */
 export const yearsBetween = (from: string, to: string): number =>
@@ -18,7 +20,38 @@ export interface Exclusions {
   liabilities: number;
 }
 
-const NOTHING_EXCLUDED: Exclusions = { assets: 0, liabilities: 0 };
+export const NOTHING_EXCLUDED: Exclusions = { assets: 0, liabilities: 0 };
+
+/**
+ * Put a record into one currency at today's rate.
+ *
+ * Each snapshot is stored in whatever currency was on display that day, so a
+ * record can hold both. Left mixed, the switch itself reads as a huge gain or
+ * loss. One rate across the whole record leaves every return untouched.
+ */
+export const inCurrency = (
+  snapshots: NetWorthSnapshot[],
+  to: Currency,
+  usdToNzd: number,
+): NetWorthSnapshot[] =>
+  snapshots.map((s) => {
+    if (s.currency === to) return s;
+
+    const move = (amount: number) => convert(amount, s.currency, to, usdToNzd);
+    const moveMaybe = (amount?: number) =>
+      amount === undefined ? undefined : move(amount);
+
+    return {
+      ...s,
+      currency: to,
+      netWorth: move(s.netWorth),
+      assetsTotal: move(s.assetsTotal),
+      liabilitiesTotal: move(s.liabilitiesTotal),
+      fireNetWorth: moveMaybe(s.fireNetWorth),
+      fireAssetsTotal: moveMaybe(s.fireAssetsTotal),
+      monthlyContributions: moveMaybe(s.monthlyContributions),
+    };
+  });
 
 /** One snapshot read on the basis the plan projects: the FIRE pot. */
 export interface PotReading {
@@ -56,7 +89,7 @@ export const readPot = (
   };
 };
 
-const readPots = (
+export const readPots = (
   snapshots: NetWorthSnapshot[],
   excluded: Exclusions,
 ): PotReading[] =>
@@ -152,7 +185,7 @@ export interface GrowthAttribution {
 }
 
 /** A sum of money arriving at a moment, measured in years from the start. */
-interface Flow {
+export interface Flow {
   at: number;
   amount: number;
 }
@@ -165,7 +198,7 @@ interface Flow {
  * into monthly lumps placed at the middle of each month, close enough to the
  * fortnightly and monthly reality to compound honestly.
  */
-const contributionFlows = (
+export const contributionFlows = (
   readings: PotReading[],
   fallbackMonthly: number,
 ): Flow[] => {
@@ -254,6 +287,47 @@ const RETURN_FLOOR = -0.95;
 const RETURN_CEILING = 5;
 
 /**
+ * The annual rate at which a starting value plus dated flows, each compounded
+ * from when it arrived, grow into a closing value: the money-weighted return.
+ * Null when no believable rate does it.
+ */
+export const solveReturn = (
+  startValue: number,
+  flows: Flow[],
+  years: number,
+  endValue: number,
+): number | null => {
+  // Closing value implied by a rate, less the value recorded. Rises with the
+  // rate, so the root can be bracketed and bisected.
+  const shortfall = (rate: number): number => {
+    const grow = (amount: number, span: number) =>
+      amount * Math.pow(1 + rate, span);
+    const grownFlows = flows.reduce(
+      (sum, f) => sum + grow(f.amount, years - f.at),
+      0,
+    );
+
+    return grow(startValue, years) + grownFlows - endValue;
+  };
+
+  if (shortfall(RETURN_FLOOR) > 0 || shortfall(RETURN_CEILING) < 0) {
+    return null;
+  }
+
+  let low = RETURN_FLOOR;
+  let high = RETURN_CEILING;
+
+  for (let i = 0; i < 100; i++) {
+    const mid = (low + high) / 2;
+
+    if (shortfall(mid) > 0) high = mid;
+    else low = mid;
+  }
+
+  return (low + high) / 2;
+};
+
+/**
  * The return the pot's assets actually earned, as one annual rate.
  *
  * Solves for the rate at which the starting assets plus every contribution,
@@ -289,35 +363,12 @@ export const estimateReturn = (
   const startValue = first.assets;
   const endValue = last.assets;
 
-  // Closing value implied by a rate, less the value recorded. Rises with the
-  // rate, so the root can be bracketed and bisected.
-  const shortfall = (rate: number): number => {
-    const grow = (amount: number, years: number) =>
-      amount * Math.pow(1 + rate, years);
-    const grownFlows = flows.reduce(
-      (sum, f) => sum + grow(f.amount, yearsTracked - f.at),
-      0,
-    );
+  const annualised = solveReturn(startValue, flows, yearsTracked, endValue);
 
-    return grow(startValue, yearsTracked) + grownFlows - endValue;
-  };
-
-  if (shortfall(RETURN_FLOOR) > 0 || shortfall(RETURN_CEILING) < 0) {
-    return null;
-  }
-
-  let low = RETURN_FLOOR;
-  let high = RETURN_CEILING;
-
-  for (let i = 0; i < 100; i++) {
-    const mid = (low + high) / 2;
-
-    if (shortfall(mid) > 0) high = mid;
-    else low = mid;
-  }
+  if (annualised === null) return null;
 
   return {
-    annualised: (low + high) / 2,
+    annualised,
     startValue,
     endValue,
     contributions,
