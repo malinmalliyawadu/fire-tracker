@@ -64,6 +64,8 @@ interface RowProps {
   children: ReactNode;
   /** Makes the whole row a button that opens the editor. */
   onOpen?: () => void;
+  /** Makes the row an on/off switch instead: `onOpen` flips it. */
+  checked?: boolean;
   label?: string;
   className?: string;
   muted?: boolean;
@@ -72,12 +74,14 @@ interface RowProps {
 export function LedgerRow({
   children,
   onOpen,
+  checked,
   label,
   className,
   muted,
 }: RowProps) {
   return (
     <tr
+      aria-checked={checked}
       aria-label={onOpen ? label : undefined}
       className={clsx(
         "group border-b border-line-soft last:border-b-0",
@@ -86,7 +90,7 @@ export function LedgerRow({
         muted && "text-ink-3",
         className,
       )}
-      role={onOpen ? "button" : undefined}
+      role={onOpen ? (checked === undefined ? "button" : "switch") : undefined}
       tabIndex={onOpen ? 0 : undefined}
       onClick={onOpen}
       onKeyDown={

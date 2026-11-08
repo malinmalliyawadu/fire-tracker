@@ -1,4 +1,4 @@
-import type { Currency } from "@/types";
+import type { AssetMix, Currency } from "@/types";
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -24,6 +24,12 @@ export interface NetWorthSnapshot {
   fireNetWorth?: number;
   /** Gross assets funding retirement: the base the plan's return compounds. */
   fireAssetsTotal?: number;
+  /**
+   * Those assets by kind, in the snapshot's currency. Lets a benchmark follow
+   * what the pot held at the time. Absent on snapshots taken before it was
+   * recorded, and history can't be reconstructed, so it is kept from day one.
+   */
+  fireAssetsByType?: AssetMix;
   /**
    * Monthly contributions into the pot at the time, in the snapshot's
    * currency. Lets later readings use the rate that actually applied in each

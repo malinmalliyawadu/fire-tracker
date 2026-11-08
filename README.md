@@ -100,7 +100,7 @@ npm run lint        # Run ESLint with auto-fix
 
 1. **Overview**: the one sentence the app exists to produce (when you are financially independent), the journey from now to then with the moments that matter marked on it, the four versions of done, and checks on whether the assumptions hold together
 2. **Portfolio**: assets and liabilities as ledgers, where the money sits, net worth history, and actual against plan
-3. **Performance**: what your investments have actually earned against the same money put in the S&P 500 on the same dates, overall and by period
+3. **Performance**: what your investments have actually earned against the same money elsewhere on the same dates, overall and by period: your plan, inflation, global shares, the S&P 500, your mix in indices, paying off the mortgage and cash, each switchable, before or after tax
 4. **Cash flow**: income, spending, debt repayments, kids, life events and retirement spending phases, with the savings rate shown as a flow from gross income to what is saved
 5. **Simulate**: move the assumptions and watch the path bend; save scenarios and lay up to three over the chart
 6. **Settings**: the assumptions every projection is built on, plus export, import and reset

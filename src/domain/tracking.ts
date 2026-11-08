@@ -1,4 +1,4 @@
-import type { Currency, ProjectionPoint } from "@/types";
+import type { AssetMix, Currency, ProjectionPoint } from "@/types";
 import type { NetWorthSnapshot } from "@/store/history";
 
 import { convert } from "@/domain/currency";
@@ -49,6 +49,14 @@ export const inCurrency = (
       liabilitiesTotal: move(s.liabilitiesTotal),
       fireNetWorth: moveMaybe(s.fireNetWorth),
       fireAssetsTotal: moveMaybe(s.fireAssetsTotal),
+      fireAssetsByType:
+        s.fireAssetsByType &&
+        (Object.fromEntries(
+          Object.entries(s.fireAssetsByType).map(([type, value]) => [
+            type,
+            move(value),
+          ]),
+        ) as AssetMix),
       monthlyContributions: moveMaybe(s.monthlyContributions),
     };
   });

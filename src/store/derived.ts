@@ -1,4 +1,5 @@
 import type {
+  AssetMix,
   AssetType,
   FireTargets,
   Liability,
@@ -68,6 +69,8 @@ export interface PortfolioTotals {
   debts: ProjectionLiability[];
   /** Assets marked as funding retirement. */
   fireAssetsTotal: number;
+  /** Assets funding retirement by kind, in display currency. */
+  fireAssetsByType: AssetMix;
   /** Debts netted off the retirement pot. */
   fireLiabilitiesTotal: number;
   /** The pot the FIRE target is measured against. */
@@ -106,6 +109,7 @@ export const usePortfolioTotals = (): PortfolioTotals => {
     let monthlyContributions = 0;
     let lockedMonthlyContributions = 0;
     let fireAssetsTotal = 0;
+    const fireAssetsByType: AssetMix = {};
     let fireLockedAssetsTotal = 0;
     let fireMonthlyContributions = 0;
     let fireLockedMonthlyContributions = 0;
@@ -134,6 +138,7 @@ export const usePortfolioTotals = (): PortfolioTotals => {
       }
 
       fireAssetsTotal += valueDisplay;
+      fireAssetsByType[a.type] = (fireAssetsByType[a.type] ?? 0) + valueDisplay;
       fireMonthlyContributions += monthlyDisplay;
 
       if (locked) {
@@ -180,6 +185,7 @@ export const usePortfolioTotals = (): PortfolioTotals => {
       lockedMonthlyContributions,
       debts,
       fireAssetsTotal,
+      fireAssetsByType,
       fireLiabilitiesTotal,
       fireNetWorth,
       fireMonthlyContributions,

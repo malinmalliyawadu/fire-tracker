@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  # Rebuilds with the latest S&P 500 closes, which ship inside the app.
+  # Rebuilds with the latest market and NZ rate data, which ship inside the app.
   schedule:
     - cron: "23 6 * * 2"
   workflow_dispatch:
