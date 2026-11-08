@@ -1,4 +1,5 @@
 import { LineChart } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import {
   formatMoney,
@@ -122,6 +123,12 @@ export function Tracking() {
               A holding you add or revalue by hand counts as a return here, so a
               jump after an edit is the edit, not the market.
             </p>
+            <Link
+              className="mt-3 inline-block text-[13px] text-ink-2 underline decoration-line underline-offset-4 hover:text-ink"
+              to="/performance"
+            >
+              See how this compares with the S&amp;P 500
+            </Link>
           </div>
         )}
 
