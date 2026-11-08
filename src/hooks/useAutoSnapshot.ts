@@ -26,6 +26,7 @@ export function useSnapshotReading(): SnapshotReading {
     liabilitiesTotal,
     fireNetWorth,
     fireAssetsTotal,
+    fireAssetsByType,
   } = totals;
   const { monthlyContributions } = contributions;
   const yearsToFire = Number.isFinite(years) ? years : undefined;
@@ -39,6 +40,7 @@ export function useSnapshotReading(): SnapshotReading {
       yearsToFire,
       fireNetWorth,
       fireAssetsTotal,
+      fireAssetsByType,
       monthlyContributions,
     }),
     [
@@ -49,6 +51,7 @@ export function useSnapshotReading(): SnapshotReading {
       yearsToFire,
       fireNetWorth,
       fireAssetsTotal,
+      fireAssetsByType,
       monthlyContributions,
     ],
   );

@@ -25,6 +25,9 @@ export type LiabilityType =
   | "personal-loan"
   | "other";
 
+/** Value held in each kind of asset, in one currency. */
+export type AssetMix = Partial<Record<AssetType, number>>;
+
 export interface Asset {
   id: string;
   name: string;
